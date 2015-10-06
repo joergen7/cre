@@ -1,0 +1,12 @@
+{application, cre,
+ [
+  {description, "The Cuneiform Runtime Environment."},
+  {vsn, "2.1.0"},                 % version string
+  {registered, [cre, cre_proxy]}, % list of registered names
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, {cre, []}},               % callback module and arguments
+  {env, []}
+ ]}.
