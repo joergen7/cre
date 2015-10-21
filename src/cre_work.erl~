@@ -171,9 +171,6 @@ handle_info( {Port, {data, {noeol, ?CFMSG++Assoc}}}, {Nslot, Queue, RunMap} ) ->
   
 handle_info( {Port, {data, {Eol, Line}}}, {Nslot, Queue, RunMap} ) ->
 
-  io:format( "Received: ~p", [Line] ),
-
-
   % retrieve exec info
   {execinfo, Pid, Dir, Ticket, Interpreter, Script, Output, Result} =
     get( Port, RunMap ),
@@ -193,9 +190,6 @@ handle_info( {Port, {data, {Eol, Line}}}, {Nslot, Queue, RunMap} ) ->
   
   
 handle_info( {Port, {exit_status, 0}}, {Nslot, Queue, RunMap} ) ->
-
-  io:format( "Port ~p terminated normally.", [Port] ),
-
 
   % retrieve exec info
   {execinfo, Pid,
@@ -235,8 +229,6 @@ handle_info( {Port, {exit_status, 0}}, {Nslot, Queue, RunMap} ) ->
   
   
 handle_info( {Port, {exit_status, _Status}}, {Nslot, Queue, RunMap} ) ->
-
-  io:format( "Port ~p terminated with error.", [Port] ),
 
   % retrieve exec info
   {execinfo, Pid, Dir, Ticket, Interpreter, Script, Output, _Result} =
@@ -340,47 +332,35 @@ prepare( {ticket, _, {sign, OutList, [], InList},
       Prefix, "\n", Body, "\n\n", Suffix, "\n", get_epilog( Lang)] )}.
 
       
-get_interpreter( bash ) -> "bash";              % bash %%%%%%%%%%%%%%%%%%%%%%%%%
-get_interpreter( r ) -> "R --vanilla --slave";  % r %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-get_interpreter( python ) -> "python".          % python %%%%%%%%%%%%%%%%%%%%%%%
+get_interpreter( bash ) -> "bash";
+get_interpreter( r ) -> "R --vanilla --slave".
       
-get_epilog( bash ) -> "exit\n";                 % bash %%%%%%%%%%%%%%%%%%%%%%%%%
-get_epilog( r ) -> "";                          % r %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-get_epilog( python ) -> "".                     % python %%%%%%%%%%%%%%%%%%%%%%%
+get_epilog( bash ) -> "exit\n";
+get_epilog( r ) -> "".
 
-
-%% get_prolog/1
-get_prolog( bash ) -> "set -eu -o pipefail\n";  % bash %%%%%%%%%%%%%%%%%%%%%%%%%
+get_prolog( bash ) ->
+  "set -eu -o pipefail\n";
   
-get_prolog( r ) -> "";                          % r %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-get_prolog( python ) -> "".                     % python %%%%%%%%%%%%%%%%%%%%%%%
+get_prolog( r ) -> "".
       
 %% get_assignment/4
 %
-get_assignment( bash, Name, false, Value ) ->   % bash %%%%%%%%%%%%%%%%%%%%%%%%%
-  flatten( [Name, $=, list_quoted( Value ), $\n] );
+get_assignment( bash, Name, false, Value ) ->
+  flatten( [Name, "=", list_quoted( Value ), "\n"] );
+  
+get_assignment( r, Name, false, Value ) ->
+  flatten( [Name, "=", list_quoted( Value ), "\n"] );
+  
   
 get_assignment( bash, Name, true, Value ) ->
   flatten( [Name, "=(", list_quoted( Value ), ")\n"] );
   
-
-get_assignment( r, Name, false, Value ) ->      % r %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  flatten( [Name, $=, list_quoted( Value ), $\n] );
-    
+  
 get_assignment( r, Name, true, Value ) ->
-  flatten( [Name, "=c(", list_quoted( Value ), ")\n"] );
-  
-  
-get_assignment( python, Name, false, Value ) -> % python %%%%%%%%%%%%%%%%%%%%%%%
-  flatten( [Name, $=, list_quoted( Value ), $\n] );
-  
-get_assignment( python, Name, true, Value ) ->
-  flatten( [Name, "=[", list_quoted( Value ), "]\n"] ).
+  flatten( [Name, "=c(", list_quoted( Value ), ")\n"] ).
 
   
-%% list_quoted/1
-%
+  
 list_quoted( Value ) ->
   list_quoted( Value, [] ).
   
@@ -388,34 +368,25 @@ list_quoted( [], Acc ) ->
   flatten( reverse( Acc ) );
   
 list_quoted( [{str, _, V}|R], "" ) ->
-  list_quoted( R, [$",V,$"] );
+  list_quoted( R, [V] );
   
 list_quoted( [{str, _, V}|R], Acc ) ->
-  list_quoted( R, [[$",V,$"], ",",Acc] ).
+  list_quoted( R, [V, ", "|Acc] ).
   
 %% get_dismissal/3
 %
-get_dismissal( bash, Name, false ) ->           % bash %%%%%%%%%%%%%%%%%%%%%%%%%
+get_dismissal( bash, Name, false ) ->
   "echo \""++?CFMSG++Name++?COLON++"[\\\"$"++Name++"\\\"]\"\n";
 
 get_dismissal( bash, Name, true ) ->
   "TMP=`printf \""++?COMMA++"\\\"%s\\\"\" ${"++Name++
   "[@]}`\nTMP=${TMP:1}\necho \""++?CFMSG++Name++?COLON++"[$TMP]\"\n";
 
-  
-get_dismissal( r, Name, false ) ->              % r %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+get_dismissal( r, Name, false ) ->
   "cat(\""++?CFMSG++Name++?COLON++"[\","++Name++",\"]\\n\")\n";
   
 get_dismissal( r, Name, true ) ->
-  "cat(\""++?CFMSG++Name++?COLON++"[\",paste(\"\\\"\","++Name++
-  ",\"\\\"\",collapse=\",\",sep=\"\"),\"]\\n\",sep=\"\")\n";
-  
-  
-get_dismissal( python, Name, false ) ->         % python %%%%%%%%%%%%%%%%%%%%%%%
-  "print(\""++?CFMSG++Name++?COLON++"[\\\"\"+"++Name++"+\"\\\"]\\n\")\n";
-
-get_dismissal( python, Name, true ) ->
-  "print(\""++?CFMSG++Name++?COLON++"[\"+\",\".join("++Name++")+\"]\\n\")\n".
+  "cat(\""++?CFMSG++Name++?COLON++"[\",paste(\"\\\"\","++Name++",\"\\\"\",collapse=\",\",sep=\"\"),\"]\\n\",sep=\"\")\n".
   
 %% parse_assoc/1
 %
@@ -437,7 +408,6 @@ run( Interpreter, Script, Dir ) ->
                     [exit_status, stderr_to_stdout, {cd, Dir}, {line, 1000000}] ),
   io:format( "Sending data:~n~s~n", [Script] ),
   Port ! {self(), {command, Script}},
-
   io:format( "Done creating port.~n" ),
 
   Port.

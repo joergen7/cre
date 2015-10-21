@@ -32,13 +32,12 @@
 
 code_change( _OldVsn, State, _Extra ) -> {ok, State}.
 
-handle_call( _, _From, State ) -> {reply, ok, State}.
+handle_call( stop, _From, State ) ->
+  {stop, normal, ok, State}.
 
 handle_cast( _Request, State ) -> {noreply, State}.
 
 handle_info( {finished, FinMap}, {Sender, ExprList, Rho, CreateTicket, Global, Fin} ) ->
-
-  io:format( "{finished, ~p}~n", [FinMap] ),
 
   Fin1 = merge( Fin, FinMap ),
   ExprList1 = eval( ExprList, Rho, CreateTicket, Global, Fin1 ),
@@ -46,7 +45,6 @@ handle_info( {finished, FinMap}, {Sender, ExprList, Rho, CreateTicket, Global, F
   case is_final_list( ExprList1 ) of
   
     true ->
-      io:format( "Sending report ...~n" ),
       Sender ! {finished, ExprList1},
       {stop, finished, {Sender, ExprList1, Rho, CreateTicket, Global, Fin1}};
       
