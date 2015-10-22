@@ -16,6 +16,8 @@
 % limitations under the License.
 
 -module( cre_work ).
+-author( "Jörgen Brandt <brandjoe@hu-berlin.de>" ).
+
 -behaviour( gen_server ).
 
 -include( "cre_work.hrl" ).
@@ -340,22 +342,28 @@ prepare( {ticket, _, {sign, OutList, [], InList},
       Prefix, "\n", Body, "\n\n", Suffix, "\n", get_epilog( Lang)] )}.
 
       
+%% get_interpreter/1
+%
 get_interpreter( bash ) -> "bash";              % bash %%%%%%%%%%%%%%%%%%%%%%%%%
-get_interpreter( r ) -> "R --vanilla --slave";  % r %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-get_interpreter( python ) -> "python".          % python %%%%%%%%%%%%%%%%%%%%%%%
+get_interpreter( r ) -> "Rscript --vanilla -";  % r %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+get_interpreter( python ) -> "python";          % python %%%%%%%%%%%%%%%%%%%%%%%
+get_interpreter( scala ) -> "scala";
+get_interpreter( java ) -> "bsh".
       
-get_epilog( bash ) -> "exit\n";                 % bash %%%%%%%%%%%%%%%%%%%%%%%%%
+%% get_prolog/1
+%
+get_prolog( bash ) -> "set -eu -o pipefail\n";  % bash %%%%%%%%%%%%%%%%%%%%%%%%%
+get_prolog( r ) -> "";                          % r %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+get_prolog( python ) -> "".                     % python %%%%%%%%%%%%%%%%%%%%%%%
+      
+
+%% get_epilog/1
+%
+get_epilog( bash ) -> "";                       % bash %%%%%%%%%%%%%%%%%%%%%%%%%
 get_epilog( r ) -> "";                          % r %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 get_epilog( python ) -> "".                     % python %%%%%%%%%%%%%%%%%%%%%%%
 
 
-%% get_prolog/1
-get_prolog( bash ) -> "set -eu -o pipefail\n";  % bash %%%%%%%%%%%%%%%%%%%%%%%%%
-  
-get_prolog( r ) -> "";                          % r %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-get_prolog( python ) -> "".                     % python %%%%%%%%%%%%%%%%%%%%%%%
-      
 %% get_assignment/4
 %
 get_assignment( bash, Name, false, Value ) ->   % bash %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -378,20 +386,6 @@ get_assignment( python, Name, false, Value ) -> % python %%%%%%%%%%%%%%%%%%%%%%%
 get_assignment( python, Name, true, Value ) ->
   flatten( [Name, "=[", list_quoted( Value ), "]\n"] ).
 
-  
-%% list_quoted/1
-%
-list_quoted( Value ) ->
-  list_quoted( Value, [] ).
-  
-list_quoted( [], Acc ) ->
-  flatten( reverse( Acc ) );
-  
-list_quoted( [{str, _, V}|R], "" ) ->
-  list_quoted( R, [$",V,$"] );
-  
-list_quoted( [{str, _, V}|R], Acc ) ->
-  list_quoted( R, [[$",V,$"], ",",Acc] ).
   
 %% get_dismissal/3
 %
@@ -417,6 +411,22 @@ get_dismissal( python, Name, false ) ->         % python %%%%%%%%%%%%%%%%%%%%%%%
 get_dismissal( python, Name, true ) ->
   "print(\""++?CFMSG++Name++?COLON++"[\"+\",\".join("++Name++")+\"]\\n\")\n".
   
+
+%% list_quoted/1
+%
+list_quoted( Value ) ->
+  list_quoted( Value, [] ).
+  
+list_quoted( [], Acc ) ->
+  flatten( reverse( Acc ) );
+  
+list_quoted( [{str, _, V}|R], "" ) ->
+  list_quoted( R, [$",V,$"] );
+  
+list_quoted( [{str, _, V}|R], Acc ) ->
+  list_quoted( R, [[$",V,$"], ",",Acc] ).
+  
+
 %% parse_assoc/1
 %
 parse_assoc( Assoc ) ->
@@ -434,7 +444,10 @@ run( Interpreter, Script, Dir ) ->
   % run ticket
   io:format( "Opening ~s port in ~s.~n", [Interpreter, Dir] ),
   Port = open_port( {spawn, Interpreter},
-                    [exit_status, stderr_to_stdout, {cd, Dir}, {line, 1000000}] ),
+                    [exit_status,
+                     stderr_to_stdout,
+                     {cd, Dir},
+                     {line, 1000000}] ),
   io:format( "Sending data:~n~s~n", [Script] ),
   Port ! {self(), {command, Script}},
 
