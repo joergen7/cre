@@ -123,7 +123,7 @@ handle_call( {remove, Ticket}, _From, {Nslot, Queue, RunMap} ) ->
                   
                 true ->
                 
-                  destroy_port( Port ),
+                  effi:destroy_port( Port ),
                   Acc
                 
                   
@@ -166,7 +166,7 @@ handle_info( {Port, {data, {eol, ?CFMSG++Assoc}}}, {Nslot, Queue, RunMap} ) ->
   {noreply, {Nslot, Queue, RunMap1}};
   
   
-handle_info( {Port, {data, {noeol, ?CFMSG++Assoc}}}, {Nslot, Queue, RunMap} ) ->
+handle_info( {_, {data, {noeol, _}}}, {_, _, _} ) ->
 
   error( cfmsg_too_large );  
   
@@ -270,7 +270,7 @@ init( Nslot ) when Nslot > 0 ->
 terminate( _Reason, {_Nslot, _Queue, RunMap} ) ->
 
   % destroy all ports
-  foreach( fun destroy_port/1, keys( RunMap ) ),
+  foreach( fun effi:destroy_port/1, keys( RunMap ) ),
   
   ok.
 
@@ -336,32 +336,10 @@ prepare( {ticket, _, {sign, OutList, [], InList},
   
   Suffix = foldl( Fun2, "", OutList ),
 
-  {get_interpreter( Lang ),
-   flatten(
-     [get_prolog( Lang ), "\n",
-      Prefix, "\n", Body, "\n\n", Suffix, "\n", get_epilog( Lang)] )}.
+  [Prefix, "\n", Body, "\n", Suffix, "\n"].
 
       
-%% get_interpreter/1
-%
-get_interpreter( bash ) -> "bash";              % bash %%%%%%%%%%%%%%%%%%%%%%%%%
-get_interpreter( r ) -> "Rscript --vanilla -";  % r %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-get_interpreter( python ) -> "python";          % python %%%%%%%%%%%%%%%%%%%%%%%
-get_interpreter( scala ) -> "scala";
-get_interpreter( java ) -> "bsh".
       
-%% get_prolog/1
-%
-get_prolog( bash ) -> "set -eu -o pipefail\n";  % bash %%%%%%%%%%%%%%%%%%%%%%%%%
-get_prolog( r ) -> "";                          % r %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-get_prolog( python ) -> "".                     % python %%%%%%%%%%%%%%%%%%%%%%%
-      
-
-%% get_epilog/1
-%
-get_epilog( bash ) -> "";                       % bash %%%%%%%%%%%%%%%%%%%%%%%%%
-get_epilog( r ) -> "";                          % r %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-get_epilog( python ) -> "".                     % python %%%%%%%%%%%%%%%%%%%%%%%
 
 
 %% get_assignment/4
@@ -437,23 +415,7 @@ parse_assoc( Assoc ) ->
   {Name, L2}.
 
   
-%% run/1
-%
-run( Interpreter, Script, Dir ) ->
 
-  % run ticket
-  io:format( "Opening ~s port in ~s.~n", [Interpreter, Dir] ),
-  Port = open_port( {spawn, Interpreter},
-                    [exit_status,
-                     stderr_to_stdout,
-                     {cd, Dir},
-                     {line, 1000000}] ),
-  io:format( "Sending data:~n~s~n", [Script] ),
-  Port ! {self(), {command, Script}},
-
-  io:format( "Done creating port.~n" ),
-
-  Port.
 
 %% gobble_queue/1
 %
@@ -464,7 +426,7 @@ gobble_queue( State={Nslot,
                      [{Pid,
                        Dir,
                        Ticket={ticket, _, {sign, _, [], InParam},
-                                       _, Binding}}|Rest],
+                                       {forbody, Lang, _}, Binding}}|Rest],
                      RunMap} ) ->
 
   % check if the maximum number of processes is already reached
@@ -478,12 +440,12 @@ gobble_queue( State={Nslot,
       
     false ->
     
-      % there is still room
+      
       
 
 
       % prepare interpreter and script
-      {Interpreter, Script} = prepare( Ticket ),
+      Script = prepare( Ticket ),
 
       % check pre-conditions
       case probe_precond( InParam, Dir, Binding ) of
@@ -493,7 +455,7 @@ gobble_queue( State={Nslot,
           % notify caller that the ticket has failed
           Pid ! {failed, Dir,
                          Ticket,
-                         Interpreter,
+                         Lang,
                          Script,
                          list_to_binary( io_lib:format( "Input contract: File or directory '~s' does not exist.\n", [S] ) )},
       
@@ -502,13 +464,13 @@ gobble_queue( State={Nslot,
         ok ->
     
           % start ticket
-          Port = run( Interpreter, Script, Dir ),
+          Port = effi:run( Lang, Script, Dir ),
 
           % create exec info entry in run map
           RunMap1 = RunMap#{Port => {execinfo, Pid,
                                                Dir,
                                                Ticket,
-                                               Interpreter, Script, <<>>, #{}}},
+                                               Lang, Script, <<>>, #{}}},
 
           gobble_queue( {Nslot, Rest, RunMap1} )
       end 
@@ -577,24 +539,6 @@ is_dirinuse( Directory, Queue, RunMap ) ->
           end,
 
   any( Pred1, Queue ) orelse any( Pred2, keys( RunMap ) ).
-  
-%% destroy_port/1
-%
-destroy_port( Port ) when is_port( Port ) ->
 
-  % linux specific code %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  {os_pid, OsPid} = erlang:port_info( Port, os_pid ),
-                  
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  Port ! {self(), close},    %
-  receive                    %
-    {Port, closed} -> ok     %
-  end,                       %
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
-  _ = os:cmd( io_lib:format( "kill -9 ~p `pgrep -P ~p`", [OsPid, OsPid] ) ),
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-  ok.
-          
 

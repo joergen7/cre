@@ -76,11 +76,11 @@ when Info  :: {port(), {data, term()} | {exit_status, integer()}},
 %-spec get_assignment('bash',_,boolean(),[any()]) -> [any()].
 %-spec get_dismissal('bash',[any()],boolean()) -> [any(),...].
 %-spec parse_assoc(string()) -> {nonempty_string(),[[any()]]}.
-
+%-spec run([97 | 98 | 104 | 115,...],[any()],boolean() | binary() | [string() | char()]) -> port().
 %-spec gobble_queue({_,maybe_improper_list(),_}) -> {_,maybe_improper_list(),_}.
 %-spec probe_precond(_,atom() | binary() | [atom() | [any()] | char()],_) -> 'ok' | {'err',atom() | binary() | [atom() | [any()] | char()]}.
 %-spec probe_param(maybe_improper_list(),_,_) -> 'ok' | {'err',string()}.
 -spec probe_str( [str()], string() ) -> 'ok' | {'err', string()}.
 %-spec is_dirinuse(_,[any()],_) -> boolean().
-
+-spec destroy_port( Port::port() ) -> ok.
 
