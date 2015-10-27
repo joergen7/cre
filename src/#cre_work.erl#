@@ -271,7 +271,7 @@ gobble_queue( State={_Nslot, [], _RunMap} ) ->
 gobble_queue( State={Nslot,
                      [{Pid,
                        Dir,
-                       Ticket={ticket, _, {sign, OutParam, [], InParam},
+                       Ticket={ticket, _, {sign, OutVar, [], InParam},
                                        {forbody, Lang, Script}, Binding}}|Rest],
                      RunMap} ) ->
 
