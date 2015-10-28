@@ -70,6 +70,14 @@ when Info  :: {port(), {data, term()} | {exit_status, integer()}},
 -spec stop( Pid::atom() | pid() ) -> ok.
 
 
+%% ============================================================
+%% Constant Definitions
+%% ============================================================
+
+-define( MAXPROC, 8 ).
+
+
+
 % helper functions
 
 %-spec prepare({'ticket',_,{'sign',[any()],[],[any()]},{'forbody','bash',_},_}) -> {[97 | 98 | 104 | 115,...],[any()]}.

@@ -18,68 +18,51 @@
 -module( cre_work ).
 -author( "Jörgen Brandt <brandjoe@hu-berlin.de>" ).
 
--behaviour( gen_server ).
+-behaviour( tract ).
+
+%% ============================================================
+%% Includes
+%% ============================================================
 
 -include( "cre_work.hrl" ).
 
--export( [code_change/3, handle_call/3, handle_cast/2, handle_info/2, init/1,
-          terminate/2] ).
-          
+
+%% ============================================================
+%% API Exports
+%% ============================================================
+
 -export( [add_ticket/3, ls/1, nslot/1, nslot/2, remove_ticket/2, start_link/0,
           stop/1] ).
 
 
+%% ============================================================
+%% Tract Function Exports
+%% ============================================================
 
--define( CFMSG, "<CFMSG> " ).
--define( COLON, ":" ).
--define( COMMA, "," ).
--define( MAXPROC, 8 ).
+-export( [code_change/3, handle_call/3, handle_cast/2, handle_info/2, init/1,
+          terminate/2] ).
+          
 
-
-
--import( maps, [get/2, is_key/2, keys/1, remove/2] ).
--import( lists, [any/2, flatten/1, foldl/3, foreach/2, member/2, reverse/1] ).
--import( string, [join/2, substr/3, tokens/2] ).
--import( file, [read_file_info/1] ).
--import( erlang, [system_info/1] ).
+%% ============================================================
+%% Tract Functions
+%% ============================================================
 
 
-% SERVER CALLBACK FUNCTIONS
 
-%% code_change/3
-%
-code_change( _OldVsn, State, _Extra ) -> {ok, State}.
-
-
-%% handle_call/3
-%
-handle_call( stop, _From, State ) ->
-  {stop, normal, ok, State};
-  
-  
-handle_call( ls, _From, State={_Nslot, Queue, RunMap} ) ->
-
-  Fun = fun( Port, Acc ) ->
-          {execinfo, _, _, T, _, _, _, _} = get( Port, RunMap ),
-          [T|Acc]
-        end,
-        
-  Ls = Queue++foldl( Fun, [], keys( RunMap ) ),
-        
-  {reply, {ls, Ls}, State};
   
 handle_call( nslot, _From, State={Nslot, _Queue, _RunMap} ) ->
   {reply, {nslot, Nslot}, State};
-  
+
+
 handle_call( {nslot, N}, _From, {_Nslot, Queue, RunMap} ) when N > 0 ->
 
   % try to fill up empty slots
   State1 = gobble_queue( {N, Queue, RunMap} ),
 
-  {reply, ok, State1};
+  {reply, ok, State1}.
 
 
-handle_call( {add, Ticket, Dir}, {Pid, _Tag}, {Nslot, Queue, RunMap} ) ->
+handle_recv( {add, Ticket, Dir}, {Pid, _Tag}, {Nslot, Queue, RunMap} ) ->
 
 
     
