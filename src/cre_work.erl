@@ -38,7 +38,8 @@
 %% Tract Function Exports
 %% ============================================================
 
--export( [handle_call/3, handle_info/2, init/1, handle_recv/3, handle_abort/2, handle_commit/3] ).
+-export( [handle_call/3, handle_info/2, init/1, handle_recv/3,
+          handle_abort/2, handle_commit/3] ).
           
 
 %% ============================================================
@@ -61,7 +62,7 @@ handle_call( {nslot, N}, _From, {_Nslot, Queue, RunMap} ) when N > 0 ->
 
 
 handle_recv( TransId,
-             {add, Lang, Script, Dir, OutList, ParamMap, TypeMap},
+             {Lang, Script, Dir, OutList, ParamMap, TypeMap},
              {Nslot, Queue, RunMap} ) ->
     
   % add ticket to queue and attempt to start it
