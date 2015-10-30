@@ -31,16 +31,14 @@
 %% API Exports
 %% ============================================================
 
--export( [add_ticket/3, ls/1, nslot/1, nslot/2, remove_ticket/2, start_link/0,
-          stop/1] ).
+-export( [nslot/1, nslot/2, start_link/0] ).
 
 
 %% ============================================================
 %% Tract Function Exports
 %% ============================================================
 
--export( [code_change/3, handle_call/3, handle_cast/2, handle_info/2, init/1,
-          terminate/2] ).
+-export( [handle_call/3, handle_info/2, init/1, handle_recv/3, handle_abort/2, handle_commit/3] ).
           
 
 %% ============================================================
@@ -62,161 +60,108 @@ handle_call( {nslot, N}, _From, {_Nslot, Queue, RunMap} ) when N > 0 ->
   {reply, ok, State1}.
 
 
-handle_recv( {add, Ticket, Dir}, {Pid, _Tag}, {Nslot, Queue, RunMap} ) ->
-
-
+handle_recv( TransId,
+             {add, Lang, Script, Dir, OutList, ParamMap, TypeMap},
+             {Nslot, Queue, RunMap} ) ->
     
-  % check whether directory is in use
-  case is_dirinuse( Dir, Queue, RunMap ) of
+  % add ticket to queue and attempt to start it
+  State1 = gobble_queue( {Nslot, [{TransId, Lang, Script, Dir, OutList, ParamMap, TypeMap}|Queue], RunMap} ),
   
-    true ->
-    
-      error( {dir_is_in_use, Dir} );
+  {reply, ok, State1}.
       
-    false ->
 
-      % directory is not in use
-        
-      % add ticket to queue and attempt to start it
-      State1 = gobble_queue( {Nslot, [{Pid, Dir, Ticket}|Queue], RunMap} ),
+handle_abort( TransId, {Nslot, Queue, RunMap} ) ->
   
-      {reply, ok, State1}
-      
-  end;
+  QueueFun = fun( Tuple={TransId1, _Lang, _Script, _Dir, _OutList, _ParamMap, _TypeMap}, AccIn ) ->
+
+               case TransId1 of
+
+                 TransId -> AccIn;
+                 _       -> [Tuple|AccIn]
+
+               end
+             end,
+
+  RunMapFun = fun( Pid, AccIn ) ->
+
+                TransId1 = maps:get( Pid, RunMap ),
+
+                case TransId1 of
+
+                  TransId ->
+
+                    Pid ! {'EXIT', self(), abort},
+                    AccIn;
+
+                  _ ->
+
+                    AccIn#{ Pid => TransId1 }
+
+                end
+              end,
+
+  Queue1 = lists:foldl( QueueFun, [], Queue ),
+  RunMap1 = lists:foldl( RunMapFun, #{}, maps:keys( RunMap ) ),
+
+  State1 = gobble_queue( {Nslot, Queue1, RunMap1} ),
+
+  {noreply, State1}.
   
-handle_call( {remove, Ticket}, _From, {Nslot, Queue, RunMap} ) ->
 
-  case member( Ticket, Queue ) of
-  
-    true ->
-      {reply, ok, {Nslot, Queue--[Ticket], RunMap}};
-      
-    false ->
-      
-      Fun = fun( Port, Acc ) ->
-      
-              Execinfo = get( Port, RunMap ),
-              {execinfo, _, _, T, _, _, _, _} = Execinfo,
-              
-              case T =:= Ticket of
-              
-                false ->
-                
-                  Acc#{Port => Execinfo};
-                  
-                true ->
-                
-                  effi:destroy_port( Port ),
-                  Acc
-                
-                  
-              end
-            end,
-      
-      % kill ticket instances and update run map
-      RunMap1 = foldl( Fun, #{}, keys( RunMap ) ),
-      
-      % start new tickets if available
-      State1 = gobble_queue( {Nslot, Queue, RunMap1} ),
-      
-      {reply, ok, State1}
-  end.
-
-
-%% handle_cast/2
+%% handle_commit/3
 %
-handle_cast( _Request, State ) -> {noreply, State}.
+handle_commit( _TransId, _Reply, State ) ->
+  {noreply, State}.
 
 
 %% handle_info/2
 %
-handle_info( {finished, Result, Out}, {Nslot, Queue, RunMap} ) ->
-		   
-  % retrieve exec info
-  {execinfo, Pid,
-             Dir,
-             Ticket={ticket, _, {sign, OutParam, [], _}, _, _},
-             Interpreter, Script, Output, Result} = get( Port, RunMap ),
-  
-  % check post-conditions
-  case probe_param( OutParam, Dir, Result ) of
+handle_info( {finished, Pid, Result, Output}, {Nslot, Queue, RunMap} ) ->
 
-    {err, S} ->
-    
-      Suffix = list_to_binary( ["\nOutput contract: File '",
-                                        S, "' does not exist.\n"] ),
-      
-      % notify client about failure
-      Pid ! {failed, Dir,
-                     Ticket,
-                     Interpreter,
-                     Script,
-                     <<Output/binary, Suffix/binary>>},
-      ok;
+  % retrieve transaction id
+  TransId = maps:get( Pid, RunMap ),
+
+  % commit transaction
+  tract:commit( TransId, {finished, Result, Output} ),
+
+  % remove pid from run map
+  NewRunMap = maps:remove( Pid, RunMap ),
+		       
+  % update run map and attempt to start new ticket
+  NewState = gobble_queue( {Nslot, Queue, NewRunMap} ),
   
-    ok ->
-    
-      io:format( "WORK returning result ~p~n", [Result] ),
-  
-      % notify client about success
-      Pid ! {finished, Ticket, Output, Result},
-      ok
-  end,
+  {noreply, NewState};
+
+handle_info( {failed, Pid, Output}, {Nslot, Queue, RunMap} ) ->
+
+  % retrieve transaction id
+  TransId = maps:get( Pid, RunMap ),
+
+  % commit transaction
+  tract:commit( TransId, {failed, Output} ),
+
+  % remove pid from run map
+  NewRunMap = maps:remove( Pid, RunMap ),
     
   % update run map and attempt to start new ticket
-  State1 = gobble_queue( {Nslot, Queue, remove( Port, RunMap )} ),
+  NewState = gobble_queue( {Nslot, Queue, NewRunMap} ),
   
-  {noreply, State1};
-
-handle_info( {failed, Result, Output}, {Nslot, Queue, RunMap} ) ->
-
-  % retrieve exec info
-  {execinfo, Pid,
-             Dir,
-             Ticket={ticket, _, {sign, OutParam, [], _}, _, _},
-             Interpreter, Script, Output, Result} = get( Port, RunMap ),
-
-  % notify client about failure
-  Pid ! {failed, Dir,
-                 Ticket,
-                 Interpreter,
-                 Script,
-                 Output},
-    
-  % update run map and attempt to start new ticket
-  State1 = gobble_queue( {Nslot, Queue, remove( Port, RunMap )} ),
-  
-  {noreply, State1}.
+  {noreply, NewState}.
 
 
 
 %% init/1
 %
 init( Nslot ) when Nslot > 0 ->
-  process_flag( trap_exit, true ),
   {ok, {Nslot, [], #{}}}.
 
 
-%% terminate/2
-%
-terminate( _Reason, {_Nslot, _Queue, RunMap} ) ->
-
-  % destroy all ports
-  foreach( fun effi:destroy_port/1, keys( RunMap ) ),
-  
-  ok.
 
 
 
-% CONVENIENCE FUNCTIONS
-
-%% add_ticket/3
-%
-add_ticket( Pid, Ticket, Dir ) -> gen_server:call( Pid, {add, Ticket, Dir} ).
-
-%% ls/1
-%
-ls( Pid ) -> gen_server:call( Pid, ls ).
+%% ============================================================
+%% API Functions
+%% ============================================================
 
 %% nslot/1
 %
@@ -226,22 +171,22 @@ nslot( Pid ) -> gen_server:call( Pid, nslot ).
 %
 nslot( Pid, N ) -> gen_server:call( Pid, {nslot, N} ).
 
-%% remove_ticket/2
-%
-remove_ticket( Pid, Ticket ) -> gen_server:call( Pid, {remove, Ticket} ).
-
 %% start_link/0
 %
 start_link() ->
-  gen_server:start_link( {local, cre_work}, ?MODULE,
-                         system_info( logical_processors_available ), [] ).
 
-%% stop/1
-%
-stop( Pid ) -> gen_server:call( Pid, stop ).
+  Ncore = erlang:system_info( logical_processors_available ),
+
+  gen_server:start_link( {local, cre_work},
+                         ?MODULE,
+                         Ncore,
+                         [] ).
 
 
-% HELPER FUNCTIONS
+
+%% ============================================================
+%% Internal Functions
+%% ============================================================
 
 
 
@@ -252,10 +197,7 @@ gobble_queue( State={_Nslot, [], _RunMap} ) ->
   State;
   
 gobble_queue( State={Nslot,
-                     [{Pid,
-                       Dir,
-                       Ticket={ticket, _, {sign, OutParam, [], InParam},
-                                       {forbody, Lang, Script}, Binding}}|Rest],
+                     [{TransId, Lang, Script, Dir, OutList, ParamMap, TypeMap}|Rest],
                      RunMap} ) ->
 
   % check if the maximum number of processes is already reached
@@ -269,39 +211,28 @@ gobble_queue( State={Nslot,
       
     false ->
     
-      % check pre-conditions
-      case probe_precond( InParam, Dir, Binding ) of
-  
-        {err, S} ->
-    
-          % notify caller that the ticket has failed
-          Pid ! {failed, Dir,
-                         Ticket,
-                         Lang,
-                         Script,
-                         list_to_binary( io_lib:format( "Input contract: File or directory '~s' does not exist.\n", [S] ) )},
-      
-          gobble_queue( {Nslot, Rest, RunMap} );
-      
-        ok ->
-    
-          % start ticket
-          ChildPid = effi:spawn_link_run( Lang, Script, Dir, OutList, ParamMap, TypeMap ),
+      % start ticket
+      Pid = effi:spawn_link_run( Lang, Script, Dir, OutList, ParamMap, TypeMap ),
 
-          % create exec info entry in run map
-          RunMap1 = RunMap#{ChildPid => {execinfo, Pid, Dir, Ticket},
+      % store pid and transactioni id in runmap
+      NewRunMap = RunMap#{Pid => TransId},
 
-          gobble_queue( {Nslot, Rest, RunMap1} )
-      end 
+      gobble_queue( {Nslot, Rest, NewRunMap} )
+
   end.
   
-    
+
+%% ============================================================
+%% Deprecated Functions
+%% ============================================================
+
+  
 %% probe_precond/3
 %
 probe_precond( InParam, Dir, Binding ) ->
 
   % check whether directory exists
-  case read_file_info( Dir ) of
+  case file:read_file_info( Dir ) of
   
     {error, enoent} ->
       {err, Dir};
@@ -320,7 +251,7 @@ probe_param( [{param, {name, _Name, false}, _IsList}|R], Dir, Binding ) ->
   probe_param( R, Dir, Binding );
 
 probe_param( [{param, {name, Name, true}, _IsList}|R], Dir, Binding ) ->
-  V = get( Name, Binding ),
+  V = maps:get( Name, Binding ),
   case probe_str( V, Dir ) of
   
     ok -> probe_param( R, Dir, Binding );
@@ -333,9 +264,9 @@ probe_str( [], _Dir ) -> ok;
 
 probe_str( [{str, _Line, S}|R], Dir ) ->
 
-  F = join( [Dir, S], "/" ),
+  F = string:join( [Dir, S], "/" ),
   
-  case read_file_info( F ) of
+  case file:read_file_info( F ) of
   
     {ok, _} ->
       probe_str( R, Dir );
@@ -347,17 +278,20 @@ probe_str( [{str, _Line, S}|R], Dir ) ->
 
 
 %% is_dirinuse/3
-%
+%%
+%% @doc Checks if there is another request currently running (or queued)
+%%      using the specified directory.
+%%
 is_dirinuse( Directory, Queue, RunMap ) ->
 
   Pred1 = fun( {_Pid, Dir, _Ticket} ) -> Dir =:= Directory end,
   
   Pred2 = fun( Port ) ->
-            {execinfo, _, Dir, _, _, _, _, _} = get( Port, RunMap ),
+            {execinfo, _, Dir, _, _, _, _, _} = maps:get( Port, RunMap ),
             Dir =:= Directory
           end,
 
-  any( Pred1, Queue ) orelse any( Pred2, keys( RunMap ) ).
+  lists:any( Pred1, Queue ) orelse lists:any( Pred2, maps:keys( RunMap ) ).
 
   
 

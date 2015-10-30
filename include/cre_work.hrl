@@ -31,64 +31,12 @@
                       
 % FUNCTION PROTOTYPES
                       
-% gen_server callback functions
-
--spec code_change( OldVsn::term(), State::term(), Extra::term() ) ->
-        {ok, stateinfo()}.
-              
--spec handle_call( Request, From, State) -> Ret
-when Request :: ls
-              | nslot
-              | stop
-              | {nslot, pos_integer()}
-              | {remove, ticket()}
-              | {add, ticket(), string()},
-     From    :: {pid(), term()},
-     State   :: stateinfo(),
-     Ret     :: {reply, ok | {ls, [ticket()]} | {nslot, pos_integer()}, stateinfo()}
-              | {stop, normal, ok, stateinfo()}.
-
--spec handle_cast( _Request, State::stateinfo()) -> {noreply, stateinfo()}.
-
-
--spec handle_info( Info, State ) -> {noreply, stateinfo()}
-when Info  :: {port(), {data, term()} | {exit_status, integer()}},
-     State :: stateinfo().
-
--spec init( Nslot::pos_integer() ) -> {ok, stateinfo()}.
--spec terminate( normal | shutdown, State::stateinfo()) -> ok.
 
 
 % convenience functions
 
--spec add_ticket( Pid::atom() | pid(), Ticket::ticket(), Dir::string() ) -> ok.
--spec ls( Pid:: atom() | pid() ) -> [ticket()].
 -spec nslot( Pid::atom() | pid() ) -> pos_integer().
 -spec nslot( Pid::atom() | pid(), Nslot::pos_integer() ) -> ok.
--spec remove_ticket( Pid::atom() | pid(), Ticket::ticket() ) -> ok.
 -spec start_link() -> {'ok', pid()}.
--spec stop( Pid::atom() | pid() ) -> ok.
-
-
-%% ============================================================
-%% Constant Definitions
-%% ============================================================
-
--define( MAXPROC, 8 ).
-
-
-
-% helper functions
-
-%-spec prepare({'ticket',_,{'sign',[any()],[],[any()]},{'forbody','bash',_},_}) -> {[97 | 98 | 104 | 115,...],[any()]}.
-%-spec get_assignment('bash',_,boolean(),[any()]) -> [any()].
-%-spec get_dismissal('bash',[any()],boolean()) -> [any(),...].
-%-spec parse_assoc(string()) -> {nonempty_string(),[[any()]]}.
-
-%-spec gobble_queue({_,maybe_improper_list(),_}) -> {_,maybe_improper_list(),_}.
-%-spec probe_precond(_,atom() | binary() | [atom() | [any()] | char()],_) -> 'ok' | {'err',atom() | binary() | [atom() | [any()] | char()]}.
-%-spec probe_param(maybe_improper_list(),_,_) -> 'ok' | {'err',string()}.
--spec probe_str( [str()], string() ) -> 'ok' | {'err', string()}.
-%-spec is_dirinuse(_,[any()],_) -> boolean().
 
 
