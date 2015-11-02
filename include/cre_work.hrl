@@ -44,7 +44,7 @@
 when Pid   :: atom() | pid(),
      Nslot :: pos_integer().
 
--spec nslot( Pid::atom() | pid(), Nslot::pos_integer() ) -> ok
+-spec nslot( Pid, Nslot ) -> ok
 when Pid   :: atom() | pid(),
      Nslot :: pos_integer().
 								     

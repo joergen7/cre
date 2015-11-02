@@ -20,19 +20,25 @@
 
 -behaviour( tract ).
 
+%% ============================================================
+%% Includes
+%% ============================================================
+
+-include( "cre_stage.hrl" ).
+
 
 %% ============================================================
 %% Tract Function Exports
 %% ============================================================
 
--export( [] ).
+-export( [handle_abort/2, handle_call/3, handle_commit/4, handle_info/2, handle_recv/3, init/1] ).
 
 
 %% ============================================================
 %% API Exports
 %% ============================================================
 
--export( [] ).
+-export( [start_link/0] ).
 
           
 %% ============================================================
@@ -45,119 +51,89 @@
 handle_call( _Request, _From, State ) ->
   {reply, ok, State}.
 
-  
-handle_recv( ToStageId,
-             {add, {ticket, Line, Sign, {forbody, Lang, Script}, Binding}, Datadir},
-             {BaseDir, RepoDir, NextId, SignMap} ) ->
 
-  % derive working directory    
+%% handle_recv/3
+%%
+handle_recv( ToStageId,
+             {add, {ticket, Line, Sign, {forbody, Lang, Script}, Binding}, DataDir},
+             {BaseDir, RepoDir, NextId, RunMap} ) ->
+
   Dir = string:join( [BaseDir, NextId], "/" ),
   Binding1 = prepare_dir( Dir, RepoDir, DataDir, Sign, Binding ),
   OutNameList = outname_list( Sign ),
   TypeMap = type_map( Sign ),
   ParamMap = param_map( Sign, Binding1 ),
-  ToWorkId = send_reschedule( cre_work, {add, Lang, Script, Dir, OutNameList, ParamMap, TypeMap}, TransId )
-  NewSignMap = SignMap#{ToStageId => {Line, Sign}},
+  NewRunMap = RunMap#{ToStageId => {Line, Sign, Dir}},
 
-  {noreply, {BaseDir, RepoDir, NextId+1, NewSignMap}}.
+  % send request to worker
+  _ToWorkId = tract:send_reschedule(
+               cre_work,
+               {add, Lang, Script, Dir, OutNameList, ParamMap, TypeMap},
+               ToStageId ),
+
+  {noreply, {BaseDir, RepoDir, NextId+1, NewRunMap}}.
 
 
-handle_abort( ToStageId, {BaseDir, RepoDir, NextId, SignMap ) ->
+%% handle_abort/2
+%%
+handle_abort( ToStageId, {BaseDir, RepoDir, NextId, RunMap} ) ->
 
-  NewSignMap = maps:remove( ToStageId, SignMap )
+  NewRunMap = maps:remove( ToStageId, RunMap ),
 
-  {noreply, {BaseDir, RepoDir, NextId, NewSignMap}}.
+  {noreply, {BaseDir, RepoDir, NextId, NewRunMap}}.
   
 
-handle_commit( ToWorkId, ToStageId, {finished, Result, Output}, {BaseDir, RepoDir, NextId, SignMap} ) ->
+%% handle_commit/4
+%%
+handle_commit( _ToWorkId, ToStageId, {finished, Result, Output}, {BaseDir, RepoDir, NextId, RunMap} ) ->
 
-  {Line, Sign} = maps:get( ToStageId, SignMap ),
+  {Line, Sign, Dir} = maps:get( ToStageId, RunMap ),
   {sign, OutParam, [], _InParam} = Sign,
-  Binding = binding_map( Sign, Result, Line ),
-  Binding1 = postprocess_dir( Dir, RepoDir, OutParam, Binding )  
-  NewSignMap = maps:remove( ToStageId, SignMap ),
+  Binding = binding_map( Line, Sign, Result ),
+  Binding1 = postprocess_dir( Dir, RepoDir, OutParam, Binding ),
+  NewRunMap = maps:remove( ToStageId, RunMap ),
   
-  tract:commit( ToStageId, {finished, Binding1, Output} ),
+  % commit finished ticket
+  ok = tract:commit( ToStageId, {finished, Binding1, Output} ),
 
-  {noreply, {BaseDir, RepoDir, NextId, NewSignMap}};
+  {noreply, {BaseDir, RepoDir, NextId, NewRunMap}};
 
 
-handle_commit( ToWorkId, ToStageId, {failed, Output}, {BaseDir, RepoDir, NextId, SignMap} ) ->
+handle_commit( _ToWorkId, ToStageId, {failed, Output}, {BaseDir, RepoDir, NextId, RunMap} ) ->
 
-  NewSignMap = maps:remove( ToStageId, SignMap ),
+  NewRunMap = maps:remove( ToStageId, RunMap ),
 
+  % commit failed ticket
   tract:commit( ToStageId, {failed, Output} ),
 
-  {noreply, {BaseDir, RepoDir, NextId, NewSignMap}}.
-
-
+  {noreply, {BaseDir, RepoDir, NextId, NewRunMap}}.
 
 
 %% handle_info/2
-%
-handle_info( {finished, Ticket1, _Output, Result},
-             {Basedir, Repodir, Nextid, RunMap} ) ->
-
-  % retrieve info
-  {execinfo, Pid, Dir, Ticket} = get( Ticket1, RunMap ),
-  {ticket, Line, {sign, OutParam, [], _InParam}, _ForBody, _Binding} = Ticket,
-  
-  % move result files to repo
-  Result1 = postprocess_dir( Dir, Repodir, OutParam, Result ),
-  
-  io:format( "STAGE returning result ~p~n", [Result] ),
-  
-  % deliver finished message
-  Pid ! {finished, Ticket, Result1},
-
-  % remove ticket from run map
-  RunMap1 = remove( Ticket1, RunMap ),  
-
-  {noreply, {Basedir, Repodir, Nextid, RunMap1}};
-
-handle_info( {failed, Dir, Ticket1, Interpreter, Script, Output},
-             {Basedir, Repodir, Nextid, RunMap} ) ->
-
-  % retrieve info
-  {execinfo, Pid, Dir, Ticket} = get( Ticket1, RunMap ),
-  
-  % deliver failed message
-  Pid ! {failed, Ticket, Interpreter, Script, Output},
-
-  % remove ticket from run map
-  RunMap1 = remove( Ticket1, RunMap ),  
-
-  {noreply, {Basedir, Repodir, Nextid, RunMap1}}.
+%%
+handle_info( _Info, State ) ->
+  {noreply, State}.
 
 
 %% init/1
-%
+%%
 init( {Basedir, Repodir} ) ->
 
   % delete base directory if it exists
   ok = rm_if_exists( Basedir ),
   
   % create base directory
-  ok = ensure_dir( Basedir ),
-  ok = make_dir( Basedir ),
+  ok = filelib:ensure_dir( Basedir ),
+  ok = file:make_dir( Basedir ),
   
   % delete repo directory if it exists
   ok = rm_if_exists( Repodir ),
   
   % create repo directory
-  ok = ensure_dir( Repodir ),
-  ok = make_dir( Repodir ),
+  ok = filelib:ensure_dir( Repodir ),
+  ok = file:make_dir( Repodir ),
   
   {ok, {Basedir, Repodir, 1, #{}}}.
-
-
-%% terminate/2
-%
-terminate( _, _State ) -> ok.
-
-
-
-
 
 
 %% ============================================================
@@ -176,34 +152,34 @@ start_link() ->
 
 %% prepare_dir/4
 %
-prepare_dir( Dir, Repodir, Datadir, {sign, _OutParam, [], InParam} Binding ) ->
+prepare_dir( Dir, Repodir, Datadir, {sign, _OutParam, [], InParam}, Binding ) ->
 
-  ok = make_dir( Dir ),
-        
-  foldl( fun( P, Acc ) ->
-           process_param( P, Acc, Dir, [Repodir, Datadir], Binding )
-         end,
-         #{}, InParam ).
+  ok = file:make_dir( Dir ),
+
+  lists:foldl( fun( P, Acc ) ->
+                 process_param( P, Acc, Dir, [Repodir, Datadir], Binding )
+               end,
+               #{}, InParam ).
 
 
 postprocess_dir( Dir, Repodir, OutParam, Result ) ->
 
   % link into repository directory
-  foldl( fun( P, Acc ) ->
-           process_param( P, Acc, Repodir, [Dir], Result )
-         end,
-         #{}, OutParam ).
+  lists:foldl( fun( P, Acc ) ->
+                 process_param( P, Acc, Repodir, [Dir], Result )
+               end,
+               #{}, OutParam ).
   
   
   
 %% process_param/6
 %
 process_param( {param, {name, Name, false}, _IsList}, Acc, _Dest, _SrcList, Binding ) ->
-  Acc#{Name => get( Name, Binding )};
+  Acc#{Name => maps:get( Name, Binding )};
   
 process_param( {param, {name, Name, true}, _IsList}, Acc, Dest, SrcList, Binding ) ->
   
-  V = get( Name, Binding ),
+  V = maps:get( Name, Binding ),
   V1 = [rebase_expr( E, Dest, SrcList ) || E <- V],
 
   Acc#{Name => V1}.
@@ -253,54 +229,64 @@ locate( _Suffix, [] ) ->
   
 locate( Suffix, [Prefix|Rest] ) ->
 
-  Filename = join( [Prefix, Suffix], "/" ),
+  Filename = string:join( [Prefix, Suffix], "/" ),
   
-  case read_file_info( Filename ) of
+  case file:read_file_info( Filename ) of
     {ok, _} -> {ok, Filename};
     {error, enoent} -> locate( Suffix, Rest )
   end.
 
-  
-
-  
 
 %% outname_list/1
 %%
 outname_list( {sign, OutList, [], _InList} ) ->
-  lists:foldl( fun acc_outname_list/2, [], OutList ).
 
+  AccOutnameList = fun( {param, {name, Name, _}, _}, NameList ) ->
+                     [Name|NameList]
+                   end,
 
-%% acc_outname_list/2
-%%
-acc_outname_list( {param, {name, Name, _}, _}, NameList ) ->
-  [Name|NameList].
+  lists:foldl( AccOutnameList, [], OutList ).
 
 
 %% param_map/2
 %%
 param_map( {sign, _OutList, [], InList}, Binding ) ->
-  list:foldl( fun acc_param_map/2, #{}, InList ).
 
+  AccParamMap = fun( {param, {name, Name, _IsFile}, _IsList}, ParamMap ) ->
 
-%% acc_param_map/2
-%%
-acc_param_map( {param, {name, Name, }, ParamMap ) ->
+                  StrList = maps:get( Name, Binding ),
+                  SimpleStrList = [StrValue || {str, _Line, StrValue} <- StrList],
 
-  StrList = maps:get( Name, Binding ),
-  SimpleStrList = [StrValue || {str, _Line, StrValue} <- StrList],
+                  ParamMap#{Name => SimpleStrList}
 
-  ParamMap#{Name => SimpleStrList}.
- 
+                end,
+
+  list:foldl( AccParamMap, #{}, InList ).
+
 
 %% type_map/1
 %%
-type_map( {sign, OutList, [] InList} ) ->
-  lists:foldl( fun acc_type_map/2, #{}, OutList++InList ).
+type_map( {sign, OutList, [], InList} ) ->
+
+  AccTypeMap = fun( {param, {name, Name, _IsFile}, IsList}, TypeMap ) ->
+                 TypeMap#{Name => IsList}
+               end,
+
+  lists:foldl( AccTypeMap, #{}, OutList++InList ).
 
 
-%% acc_type_map/2
+%% binding_map/3
 %%
-acc_type_map( {param, {name, Name, _IsFile}, IsList}, TypeMap ) ->
-  TypeMap#{Name => IsList}.
-    
+binding_map( Line, {sign, OutList, [], _InList}, Result ) ->
 
+  AccBindingMap = fun( {param, {name, Name, _IsFile}, _IsList}, Binding ) ->
+
+                    SimpleStrList = maps:get( Name, Result ),
+                    StrList = [{str, Line, Value} || Value <- SimpleStrList],
+                    
+                    Binding#{Name => StrList}
+
+                  end,
+
+  lists:foldl( AccBindingMap, #{}, OutList ).
+  

@@ -39,7 +39,7 @@
 %% ============================================================
 
 -export( [handle_call/3, handle_info/2, init/1, handle_recv/3,
-          handle_abort/2, handle_commit/3] ).
+          handle_abort/2, handle_commit/4] ).
           
 
 %% ============================================================
