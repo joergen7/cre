@@ -46,9 +46,6 @@
 %% Tract Functions
 %% ============================================================
 
-
-
-  
 handle_call( nslot, _From, State={Nslot, _Queue, _RunMap} ) ->
   {reply, {nslot, Nslot}, State};
 
@@ -62,7 +59,7 @@ handle_call( {nslot, N}, _From, {_Nslot, Queue, RunMap} ) when N > 0 ->
 
 
 handle_recv( TransId,
-             {Lang, Script, Dir, OutList, ParamMap, TypeMap},
+             {add, Lang, Script, Dir, OutList, ParamMap, TypeMap},
              {Nslot, Queue, RunMap} ) ->
     
   % add ticket to queue and attempt to start it
@@ -111,7 +108,7 @@ handle_abort( TransId, {Nslot, Queue, RunMap} ) ->
 
 %% handle_commit/3
 %
-handle_commit( _TransId, _Reply, State ) ->
+handle_commit( _TransId, _Precond, _Reply, State ) ->
   {noreply, State}.
 
 

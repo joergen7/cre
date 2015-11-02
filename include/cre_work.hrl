@@ -15,9 +15,17 @@
 % See the License for the specific language governing permissions and
 % limitations under the License.
 
+
+%% ============================================================
+%% Includes
+%% ============================================================
+
 -include( "_abstract_syntax.hrl" ).
 
-% TYPE DECLARATIONS
+
+%% ============================================================
+%% Type Definitions
+%% ============================================================
 
 -type execinfo() :: {execinfo, Pid::pid(), Dir::string(),
                                Ticket::ticket(),
@@ -28,15 +36,18 @@
 -type stateinfo() :: {Nslot::pos_integer(), Queue::[ticket()],
                       RunMap::#{port()=>execinfo()}}.
 
-                      
-% FUNCTION PROTOTYPES
-                      
+%% ============================================================
+%% Function Prototypes
+%% ============================================================                      
 
+-spec nslot( Pid ) -> Nslot
+when Pid   :: atom() | pid(),
+     Nslot :: pos_integer().
 
-% convenience functions
-
--spec nslot( Pid::atom() | pid() ) -> pos_integer().
--spec nslot( Pid::atom() | pid(), Nslot::pos_integer() ) -> ok.
--spec start_link() -> {'ok', pid()}.
+-spec nslot( Pid::atom() | pid(), Nslot::pos_integer() ) -> ok
+when Pid   :: atom() | pid(),
+     Nslot :: pos_integer().
+								     
+-spec start_link() -> {ok, pid()}.
 
 

@@ -16,81 +16,81 @@
 % limitations under the License.
 
 -module( cre_stage ).
--behaviour( gen_server ).
+-author( "Jörgen Brandt <brandjoe@hu-berlin.de>" ).
 
--export( [add_ticket/2, code_change/3, handle_call/3, handle_cast/2,
-          handle_info/2, init/1, ls/1, start_link/0, stop/1, terminate/2] ).
+-behaviour( tract ).
 
 
--import( file, [del_dir/1, delete/1, list_dir/1, make_dir/1, make_link/2,
-                read_file_info/1] ).
--import( filelib, [ensure_dir/1, is_dir/1] ).
--import( gen_server, [call/2] ).
--import( lists, [flatten/1, foldl/3, foreach/2, last/1] ).
--import( maps, [get/2, keys/1, remove/2, values/1] ).
--import( os, [cmd/1] ).
--import( string, [join/2, tokens/2] ).
+%% ============================================================
+%% Tract Function Exports
+%% ============================================================
 
--define( BASEDIR, "/tmp/base" ).
--define( REPODIR, "/tmp/repo" ).
--define( RNDNUM, random:uniform( 9223372036854775807 ) ).
+-export( [] ).
+
+
+%% ============================================================
+%% API Exports
+%% ============================================================
+
+-export( [] ).
+
           
-
-% SERVER CALLBACK FUNCTIONS
-
-%% code_change/3
-%
-code_change( _OldVsn, State, _Extra ) -> {ok, State}.
+%% ============================================================
+%% Server Callback Functions
+%% ============================================================
 
 
 %% handle_call/3
-%
-handle_call( stop, _From, State ) ->
+%%
+handle_call( _Request, _From, State ) ->
+  {reply, ok, State}.
 
-  {stop, normal, ok, State};
   
-handle_call( ls, _From, State={_Basedir, _Repodir, _Nextid, RunMap} ) ->
-  {reply, [Ticket || {execinfo, _, _, Ticket} <- values( RunMap )], State};
-  
-handle_call( {add, Ticket, Datadir}, {Pid, _Tag}, {Basedir, Repodir, Nextid, RunMap} ) ->
+handle_recv( ToStageId,
+             {add, {ticket, Line, Sign, {forbody, Lang, Script}, Binding}, Datadir},
+             {BaseDir, RepoDir, NextId, SignMap} ) ->
 
-  io:format( "STAGE receiving ticket ~p~n", [Ticket] ),
+  % derive working directory    
+  Dir = string:join( [BaseDir, NextId], "/" ),
+  Binding1 = prepare_dir( Dir, RepoDir, DataDir, Sign, Binding ),
+  OutNameList = outname_list( Sign ),
+  TypeMap = type_map( Sign ),
+  ParamMap = param_map( Sign, Binding1 ),
+  ToWorkId = send_reschedule( cre_work, {add, Lang, Script, Dir, OutNameList, ParamMap, TypeMap}, TransId )
+  NewSignMap = SignMap#{ToStageId => {Line, Sign}},
 
-  Dir = flatten( io_lib:format( "~s/~p", [Basedir, Nextid] ) ),
-  
-  % create links to input data
-  Ticket1 = prepare_dir( Dir, Repodir, Datadir, Ticket ),
-
-  % update run map
-  RunMap1 = RunMap#{Ticket1 => {execinfo, Pid, Dir, Ticket}},
-
-  % submit job
-  ok = call( cre_work, {add, Ticket1, Dir} ),
-  
-  
-  {reply, ok, {Basedir, Repodir, Nextid+1, RunMap1}};
-  
-handle_call( {remove, Ticket}, _From, {Basedir, Repodir, Nextid, RunMap} ) ->
-
-  Fun = fun( Ticket1, Acc ) ->
-          {execinfo, _, _, Original} = get( Ticket1, RunMap ),
-          case Original =:= Ticket of
-            true ->
-              gen_server:call( cre_work, {remove, Ticket1} ),
-              remove( Ticket1, Acc );
-            false -> Acc
-          end
-        end,
-        
-  RunMap1 = foldl( Fun, RunMap, keys( RunMap ) ),
-  
-  {reply, ok, {Basedir, Repodir, Nextid, RunMap1}}.
-  
+  {noreply, {BaseDir, RepoDir, NextId+1, NewSignMap}}.
 
 
-%% handle_cast/2
-%
-handle_cast( _Request, State ) -> {noreply, State}.
+handle_abort( ToStageId, {BaseDir, RepoDir, NextId, SignMap ) ->
+
+  NewSignMap = maps:remove( ToStageId, SignMap )
+
+  {noreply, {BaseDir, RepoDir, NextId, NewSignMap}}.
+  
+
+handle_commit( ToWorkId, ToStageId, {finished, Result, Output}, {BaseDir, RepoDir, NextId, SignMap} ) ->
+
+  {Line, Sign} = maps:get( ToStageId, SignMap ),
+  {sign, OutParam, [], _InParam} = Sign,
+  Binding = binding_map( Sign, Result, Line ),
+  Binding1 = postprocess_dir( Dir, RepoDir, OutParam, Binding )  
+  NewSignMap = maps:remove( ToStageId, SignMap ),
+  
+  tract:commit( ToStageId, {finished, Binding1, Output} ),
+
+  {noreply, {BaseDir, RepoDir, NextId, NewSignMap}};
+
+
+handle_commit( ToWorkId, ToStageId, {failed, Output}, {BaseDir, RepoDir, NextId, SignMap} ) ->
+
+  NewSignMap = maps:remove( ToStageId, SignMap ),
+
+  tract:commit( ToStageId, {failed, Output} ),
+
+  {noreply, {BaseDir, RepoDir, NextId, NewSignMap}}.
+
+
 
 
 %% handle_info/2
@@ -160,50 +160,39 @@ terminate( _, _State ) -> ok.
 
 
 
-
-% CONVENIENCE FUNCTIONS
+%% ============================================================
+%% API Functions
+%% ============================================================
 
 %% start_link/0
-%
+%%
 start_link() ->
   gen_server:start_link( {local, cre_stage}, ?MODULE, {?BASEDIR, ?REPODIR}, [] ).
 
-%% add_ticket/2
+
+%% ============================================================
+%% Internal Functions
+%% ============================================================
+
+%% prepare_dir/4
 %
-add_ticket( Pid, Ticket ) -> gen_server:call( Pid, {add, Ticket} ).
-
-%% ls/1
-%
-ls( Pid ) -> gen_server:call( Pid, ls ).
-
-%% stop/1
-%
-stop( Pid ) -> gen_server:call( Pid, stop ).
-
-
-% SERVER OPERATIONS
-
-%% prepare_dir/3
-%
-prepare_dir( Dir, Repodir, Datadir, {ticket, Line, {sign, OutParam, [], InParam}, ForBody, Binding} ) ->
+prepare_dir( Dir, Repodir, Datadir, {sign, _OutParam, [], InParam} Binding ) ->
 
   ok = make_dir( Dir ),
         
-  Binding1 = foldl( fun( P, Acc ) ->
-                      process_param( P, Acc, Dir, [Repodir, Datadir], Binding )
-                    end,
-                    #{}, InParam ),
-  
-  {ticket, Line, {sign, OutParam, [], InParam}, ForBody, Binding1}.
+  foldl( fun( P, Acc ) ->
+           process_param( P, Acc, Dir, [Repodir, Datadir], Binding )
+         end,
+         #{}, InParam ).
 
 
 postprocess_dir( Dir, Repodir, OutParam, Result ) ->
 
   % link into repository directory
   foldl( fun( P, Acc ) ->
-                    process_param( P, Acc, Repodir, [Dir], Result )
-                  end,
-                  #{}, OutParam ).
+           process_param( P, Acc, Repodir, [Dir], Result )
+         end,
+         #{}, OutParam ).
   
   
   
@@ -225,49 +214,36 @@ process_param( {param, {name, Name, true}, _IsList}, Acc, Dest, SrcList, Binding
 rebase_expr( {str, Line, S}, Dest, SrcList ) ->
 
   {ok, Filename} = locate( S, SrcList ),
-  S1 = flatten( io_lib:format( "~p_~s", [?RNDNUM, basename( Filename )] ) ),
-  Filename1 = join( [Dest, S1], "/" ),
-  ok = make_link( Filename, Filename1 ),
+  S1 = string:join( [?RNDNUM, filename:basename( Filename )], "_" ),
+  Filename1 = string:join( [Dest, S1], "/" ),
+  ok = file:make_link( Filename, Filename1 ),
   {str, Line, S1}.
   
 
-
-% HELPER FUNCTIONS
-
 %% rm_if_exists/1
 %
-rm_if_exists( Dir ) ->
-  rm( [Dir] ).
+rm_if_exists( Ref ) ->
 
-%% rm/1
-%
-rm( [] ) ->
-  ok;
-  
-rm( [H|T] ) when is_list( H ) ->
+  case filelib:is_dir( Ref ) of
 
-  case is_dir( H ) of
-  
     true ->
-    
-      {ok, L} = list_dir( H ),
-      case rm( [join( [H, F], "/" ) || F <- L] ) of
-        ok ->
-          case del_dir( H ) of
-            ok -> rm( T );
-            X -> X
-          end;
-        Y -> Y
-      end;
-      
+
+      {ok, L} = file:list_dir( Ref ),
+      ok = lists:foreach( fun rm_if_exists/1, L ),
+      file:del_dir( Ref );
+
     false ->
-    
-      case delete( H ) of 
-        ok -> rm( T );
-        {error, enoent} -> rm( T );
-        Z -> Z
+
+      case file:delete( Ref ) of
+	ok -> ok;
+	enoent -> ok;
+	Reason -> error( Reason )
       end
+
   end.
+	  
+      
+	  
 
   
 %% locate/2
@@ -284,11 +260,47 @@ locate( Suffix, [Prefix|Rest] ) ->
     {error, enoent} -> locate( Suffix, Rest )
   end.
 
-%% basename/1
-%
-basename( Filename ) ->
-  last( tokens( Filename, "/" ) ).
   
 
   
+
+%% outname_list/1
+%%
+outname_list( {sign, OutList, [], _InList} ) ->
+  lists:foldl( fun acc_outname_list/2, [], OutList ).
+
+
+%% acc_outname_list/2
+%%
+acc_outname_list( {param, {name, Name, _}, _}, NameList ) ->
+  [Name|NameList].
+
+
+%% param_map/2
+%%
+param_map( {sign, _OutList, [], InList}, Binding ) ->
+  list:foldl( fun acc_param_map/2, #{}, InList ).
+
+
+%% acc_param_map/2
+%%
+acc_param_map( {param, {name, Name, }, ParamMap ) ->
+
+  StrList = maps:get( Name, Binding ),
+  SimpleStrList = [StrValue || {str, _Line, StrValue} <- StrList],
+
+  ParamMap#{Name => SimpleStrList}.
+ 
+
+%% type_map/1
+%%
+type_map( {sign, OutList, [] InList} ) ->
+  lists:foldl( fun acc_type_map/2, #{}, OutList++InList ).
+
+
+%% acc_type_map/2
+%%
+acc_type_map( {param, {name, Name, _IsFile}, IsList}, TypeMap ) ->
+  TypeMap#{Name => IsList}.
+    
 

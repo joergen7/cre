@@ -15,7 +15,9 @@
 % See the License for the specific language governing permissions and
 % limitations under the License.
 
-% ABSTRACT SYNTAX DEFINITION
+%% ============================================================
+%% Abstract Syntax Definition
+%% ============================================================
 
 -type str()        :: {str, pos_integer(), string()}.
 -type var()        :: {var, pos_integer(), string()}.
@@ -31,7 +33,7 @@
                              
 -type simplesign() :: {sign, OutList::[param()], [], InList::[param()]}.
                              
--type name()       :: {name, ParamName::string(), IsFile::boolean()}.
+-type name()       :: {name, Name::string(), IsFile::boolean()}.
 
 -type inparam()    :: param() | correl() | comb().
 
@@ -45,7 +47,7 @@
 
 -type body()       :: natbody() | forbody().
 -type natbody()    :: {natbody, #{string() => [expr()]}}.
--type forbody()    :: {forbody, lang(), string()}.
+-type forbody()    :: {forbody, Lang::lang(), Script::string()}.
 
 -type lam()        :: {lam, pos_integer(), string(), sign(), body()}.
 
