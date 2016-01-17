@@ -16,93 +16,110 @@
 % limitations under the License.
 
 Nonterminals 
-  script stat assign compoundexpr necompoundexpr expr binding block sign
-  paramlist param inparamlist inparam namelist name defun lang idlist.
+  script stat assign compoundexpr exprlist expr binding block sign query app cnd
+  paramlist param inparamlist inparam namelist name defun lang idlist cur
+  bindinglist.
 
 Terminals
   intlit strlit body apply bash beginif colon comma comb deftask else endif eq
   file in lisp matlab octave perl python r lbrace lparen lsquarebr ltag nil
-  noreplace rbrace rparen rsquarebr rtag semicolon string task then id.
+  noreplace rbrace rparen rsquarebr rtag semicolon string task then id java
+  scala curry.
 
   
 Rootsymbol script.
 
-script         -> stat        : '$1'.
-script         -> stat script : combine( '$1', '$2' ).
+script       -> stat        : '$1'.
+script       -> stat script : combine( '$1', '$2' ).
 
-stat           -> compoundexpr semicolon : {'$1', #{}, #{}}.
-stat           -> assign                 : {[], '$1', #{}}.
-stat           -> defun                  : {[], #{}, '$1'}.
+stat         -> query  : {'$1', #{}, #{}}.
+stat         -> assign : {[], '$1', #{}}.
+stat         -> defun  : {[], #{}, '$1'}.
 
-defun          -> deftask id sign lbrace block rbrace : mk_natlam( '$1', '$2', '$3', '$5' ).
-defun          -> deftask id sign in lang body        : mk_forlam( '$1', '$2', '$3', '$5', '$6' ).
+query        -> compoundexpr semicolon : '$1'.
 
-lang           -> bash   : bash.
-lang           -> lisp   : lisp.
-lang           -> matlab : matlab.
-lang           -> octave : octave.
-lang           -> perl   : perl.
-lang           -> python : python.
-lang           -> r      : r.
 
-assign         -> necompoundexpr eq compoundexpr semicolon : mk_assign( '$1', '$3', 1 ).
+defun        -> deftask id sign lbrace block rbrace : mk_natlam( '$1', '$2', '$3', '$5' ).
+defun        -> deftask id sign in lang body        : mk_forlam( '$1', '$2', '$3', '$5', '$6' ).
 
-compoundexpr   -> nil            : [].
-compoundexpr   -> necompoundexpr : '$1'.
+lang         -> bash   : bash.
+lang         -> java   : java.
+lang         -> lisp   : lisp.
+lang         -> matlab : matlab.
+lang         -> octave : octave.
+lang         -> perl   : perl.
+lang         -> python : python.
+lang         -> r      : r.
+lang         -> scala  : scala.
 
-necompoundexpr -> expr              : ['$1'].
-necompoundexpr -> expr compoundexpr : ['$1'|'$2'].
+assign       -> exprlist eq compoundexpr semicolon : mk_assign( '$1', '$3', 1 ).
 
-expr           -> id                                          : mk_var( '$1' ).
-expr           -> intlit                                      : mk_str( '$1' ).
-expr           -> strlit                                      : mk_str( '$1' ).
-expr           -> beginif compoundexpr then compoundexpr else
-                  compoundexpr endif                          : {cnd, get_line( '$1' ), '$2', '$4', '$6'}.
-expr           -> apply lparen task colon compoundexpr rparen : {app, get_line( '$1' ), 1, '$5', #{}}.
-expr           -> apply lparen task colon compoundexpr comma
-                  binding rparen                              : {app, get_line( '$1' ), 1, '$5', '$7'}.
-expr           -> id lparen rparen                            : {app, get_line( '$1' ), 1, [mk_var( '$1' )], #{}}.
-expr           -> id lparen binding rparen                    : {app, get_line( '$1' ), 1, [mk_var( '$1' )], '$3'}.
-                                         
-binding        -> id colon compoundexpr               : mk_binding( '$1', '$3' ).
-binding        -> id colon compoundexpr comma binding : maps:merge( mk_binding( '$1', '$3' ), '$5' ).
+compoundexpr -> nil      : [].
+compoundexpr -> exprlist : '$1'.
 
-block          -> assign       : '$1'.
-block          -> assign block : maps:merge( '$1', '$2' ).
+exprlist     -> expr          : ['$1'].
+exprlist     -> expr exprlist : ['$1'|'$2'].
 
-sign           -> lparen paramlist colon rparen             : {sign, '$2', [], []}.
-sign           -> lparen paramlist colon inparamlist rparen : {sign, '$2', [], '$4'}.
-sign           -> lparen paramlist colon lsquarebr task
-                  namelist rsquarebr rparen                 : {sign, '$2', '$6', []}.
-sign           -> lparen paramlist colon lsquarebr task
-                  namelist rsquarebr inparamlist rparen     : {sign, '$2', '$6', '$8'}.
+expr         -> id     : mk_var( '$1' ).
+expr         -> intlit : mk_str( '$1' ).
+expr         -> strlit : mk_str( '$1' ).
+expr         -> app    : '$1'.
+expr         -> cnd    : '$1'.
+expr         -> cur    : '$1'.
 
-paramlist      -> param           : ['$1'].
-paramlist      -> param paramlist : ['$1'|'$2'].
+cur          -> curry lparen task colon compoundexpr comma
+                bindinglist rparen : {cur, get_line( '$1' ), '$5', '$7'}.
 
-param          -> id                                : {param, {name, get_name( '$1' ), false}, false}.
-param          -> id lparen string rparen           : {param, {name, get_name( '$1' ), false}, false}.
-param          -> id lparen file rparen             : {param, {name, get_name( '$1' ), true}, false}.
-param          -> ltag id rtag                      : {param, {name, get_name( '$2' ), false}, true}.
-param          -> ltag id lparen string rparen rtag : {param, {name, get_name( '$2' ), false}, true}.
-param          -> ltag id lparen file rparen rtag   : {param, {name, get_name( '$2' ), true}, true}.
+cnd          -> beginif compoundexpr then compoundexpr else
+                compoundexpr endif                          : {cnd, get_line( '$1' ), '$2', '$4', '$6'}.
 
-inparamlist    -> inparam             : ['$1'].
-inparamlist    -> inparam inparamlist : ['$1'|'$2'].
+app          -> apply lparen task colon compoundexpr rparen : {app, get_line( '$1' ), 1, '$5', #{}}.
+app          -> apply lparen task colon compoundexpr comma
+                bindinglist rparen                          : {app, get_line( '$1' ), 1, '$5', '$7'}.
+app          -> id lparen rparen                            : {app, get_line( '$1' ), 1, [mk_var( '$1' )], #{}}.
+app          -> id lparen bindinglist rparen                : {app, get_line( '$1' ), 1, [mk_var( '$1' )], '$3'}.
 
-inparam        -> param                                          : '$1'.
-inparam        -> lsquarebr namelist rsquarebr                   : {correl, '$2'}.
-inparam        -> lbrace comb noreplace name colon idlist rbrace : {comb, cnr, '$4', '$6'}.
+binding      -> id colon compoundexpr : mk_binding( '$1', '$3' ).
 
-namelist       -> name          : ['$1'].
-namelist       -> name namelist : ['$1'|'$2'].
+bindinglist  -> binding                   : '$1'.
+bindinglist  -> binding comma bindinglist : maps:merge( '$1', '$3' ).
 
-name           -> id                      : {name, get_name( '$1' ), false}.
-name           -> id lparen string rparen : {name, get_name( '$1' ), false}.
-name           -> id lparen file rparen   : {name, get_name( '$1' ), true}.
+block        -> assign       : '$1'.
+block        -> assign block : maps:merge( '$1', '$2' ).
 
-idlist         -> id        : [get_name( '$1' )].
-idlist         -> id idlist : [get_name( '$1' )|'$2'].
+sign         -> lparen paramlist colon rparen             : {sign, '$2', [], []}.
+sign         -> lparen paramlist colon inparamlist rparen : {sign, '$2', [], '$4'}.
+sign         -> lparen paramlist colon lsquarebr task
+                namelist rsquarebr rparen                 : {sign, '$2', '$6', []}.
+sign         -> lparen paramlist colon lsquarebr task
+                namelist rsquarebr inparamlist rparen     : {sign, '$2', '$6', '$8'}.
+
+paramlist    -> param           : ['$1'].
+paramlist    -> param paramlist : ['$1'|'$2'].
+
+param        -> id                                : {param, {name, get_name( '$1' ), false}, false}.
+param        -> id lparen string rparen           : {param, {name, get_name( '$1' ), false}, false}.
+param        -> id lparen file rparen             : {param, {name, get_name( '$1' ), true}, false}.
+param        -> ltag id rtag                      : {param, {name, get_name( '$2' ), false}, true}.
+param        -> ltag id lparen string rparen rtag : {param, {name, get_name( '$2' ), false}, true}.
+param        -> ltag id lparen file rparen rtag   : {param, {name, get_name( '$2' ), true}, true}.
+
+inparamlist  -> inparam             : ['$1'].
+inparamlist  -> inparam inparamlist : ['$1'|'$2'].
+
+inparam      -> param                                          : '$1'.
+inparam      -> lsquarebr namelist rsquarebr                   : {correl, '$2'}.
+inparam      -> lbrace comb noreplace name colon idlist rbrace : {comb, cnr, '$4', '$6'}.
+
+namelist     -> name          : ['$1'].
+namelist     -> name namelist : ['$1'|'$2'].
+
+name         -> id                      : {name, get_name( '$1' ), false}.
+name         -> id lparen string rparen : {name, get_name( '$1' ), false}.
+name         -> id lparen file rparen   : {name, get_name( '$1' ), true}.
+
+idlist       -> id        : [get_name( '$1' )].
+idlist       -> id idlist : [get_name( '$1' )|'$2'].
 
 
 Erlang code.

@@ -23,6 +23,7 @@ BEGINIF   = if
 COLON     = :
 COMMA     = ,
 COMB      = comb
+CURRY     = curry
 DEFTASK   = deftask
 ELSE      = else
 ENDIF     = end
@@ -35,6 +36,8 @@ OCTAVE    = [Oo]ctave
 PERL      = [Pp]erl
 PYTHON    = [Pp]ython
 R         = [Rr]
+SCALA     = [Ss]cala
+JAVA      = [Jj]ava
 LBRACE    = \{
 LPAREN    = \(
 LSQUAREBR = \[
@@ -76,6 +79,7 @@ Rules.
 {COLON}     : {token, {colon, TokenLine, TokenChars}}.
 {COMMA}     : {token, {comma, TokenLine, TokenChars}}.
 {COMB}      : {token, {comb, TokenLine, TokenChars}}.
+{CURRY}     : {token, {curry, TokenLine, TokenChars}}.
 {DEFTASK}   : {token, {deftask, TokenLine, TokenChars}}.
 {ELSE}      : {token, {else, TokenLine, TokenChars}}.
 {ENDIF}     : {token, {endif, TokenLine, TokenChars}}.
@@ -88,6 +92,8 @@ Rules.
 {PERL}      : {token, {perl, TokenLine, TokenChars}}.
 {PYTHON}    : {token, {python, TokenLine, TokenChars}}.
 {R}         : {token, {r, TokenLine, TokenChars}}.
+{JAVA}      : {token, {java, TokenLine, TokenChars}}.
+{SCALA}     : {token, {scala, TokenLine, TokenChars}}.
 {LBODY}     : {token, {lbody, TokenLine, TokenChars}}.
 {LBRACE}    : {token, {lbrace, TokenLine, TokenChars}}.
 {LPAREN}    : {token, {lparen, TokenLine, TokenChars}}.
