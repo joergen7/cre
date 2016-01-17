@@ -16,9 +16,9 @@
 % limitations under the License.
 
 Nonterminals 
-  script stat assign compoundexpr exprlist expr binding block sign query app cnd
-  paramlist param inparamlist inparam namelist name defun lang idlist cur
-  bindinglist.
+  script stat assign compoundexpr exprlist expr binding assignlist sign query
+  app cnd paramlist param inparamlist inparam namelist name defun lang idlist
+  cur bindinglist.
 
 Terminals
   intlit strlit body apply bash beginif colon comma comb deftask else endif eq
@@ -38,9 +38,13 @@ stat         -> defun  : {[], #{}, '$1'}.
 
 query        -> compoundexpr semicolon : '$1'.
 
+assign       -> exprlist eq compoundexpr semicolon : mk_assign( '$1', '$3', 1 ).
 
-defun        -> deftask id sign lbrace block rbrace : mk_natlam( '$1', '$2', '$3', '$5' ).
-defun        -> deftask id sign in lang body        : mk_forlam( '$1', '$2', '$3', '$5', '$6' ).
+assignlist   -> assign            : '$1'.
+assignlist   -> assign assignlist : maps:merge( '$1', '$2' ).
+
+defun        -> deftask id sign lbrace assignlist rbrace : mk_natlam( '$1', '$2', '$3', '$5' ).
+defun        -> deftask id sign in lang body             : mk_forlam( '$1', '$2', '$3', '$5', '$6' ).
 
 lang         -> bash   : bash.
 lang         -> java   : java.
@@ -52,13 +56,8 @@ lang         -> python : python.
 lang         -> r      : r.
 lang         -> scala  : scala.
 
-assign       -> exprlist eq compoundexpr semicolon : mk_assign( '$1', '$3', 1 ).
-
 compoundexpr -> nil      : [].
 compoundexpr -> exprlist : '$1'.
-
-exprlist     -> expr          : ['$1'].
-exprlist     -> expr exprlist : ['$1'|'$2'].
 
 expr         -> id     : mk_var( '$1' ).
 expr         -> intlit : mk_str( '$1' ).
@@ -66,6 +65,9 @@ expr         -> strlit : mk_str( '$1' ).
 expr         -> app    : '$1'.
 expr         -> cnd    : '$1'.
 expr         -> cur    : '$1'.
+
+exprlist     -> expr          : ['$1'].
+exprlist     -> expr exprlist : ['$1'|'$2'].
 
 cur          -> curry lparen task colon compoundexpr comma
                 bindinglist rparen : {cur, get_line( '$1' ), '$5', '$7'}.
@@ -83,9 +85,6 @@ binding      -> id colon compoundexpr : mk_binding( '$1', '$3' ).
 
 bindinglist  -> binding                   : '$1'.
 bindinglist  -> binding comma bindinglist : maps:merge( '$1', '$3' ).
-
-block        -> assign       : '$1'.
-block        -> assign block : maps:merge( '$1', '$2' ).
 
 sign         -> lparen paramlist colon rparen             : {sign, '$2', [], []}.
 sign         -> lparen paramlist colon inparamlist rparen : {sign, '$2', [], '$4'}.
