@@ -93,29 +93,25 @@ sign         -> lparen paramlist colon lsquarebr task
 sign         -> lparen paramlist colon lsquarebr task
                 namelist rsquarebr inparamlist rparen     : {sign, '$2', '$6', '$8'}.
 
-paramlist    -> param           : ['$1'].
-paramlist    -> param paramlist : ['$1'|'$2'].
-
-param        -> id                                : {param, {name, get_name( '$1' ), false}, false}.
-param        -> id lparen string rparen           : {param, {name, get_name( '$1' ), false}, false}.
-param        -> id lparen file rparen             : {param, {name, get_name( '$1' ), true}, false}.
-param        -> ltag id rtag                      : {param, {name, get_name( '$2' ), false}, true}.
-param        -> ltag id lparen string rparen rtag : {param, {name, get_name( '$2' ), false}, true}.
-param        -> ltag id lparen file rparen rtag   : {param, {name, get_name( '$2' ), true}, true}.
-
-inparamlist  -> inparam             : ['$1'].
-inparamlist  -> inparam inparamlist : ['$1'|'$2'].
-
 inparam      -> param                                          : '$1'.
 inparam      -> lsquarebr namelist rsquarebr                   : {correl, '$2'}.
 inparam      -> lbrace comb noreplace name colon idlist rbrace : {comb, cnr, '$4', '$6'}.
 
-namelist     -> name          : ['$1'].
-namelist     -> name namelist : ['$1'|'$2'].
+inparamlist  -> inparam             : ['$1'].
+inparamlist  -> inparam inparamlist : ['$1'|'$2'].
+
+param        -> name           : {param, '$1', false}.
+param        -> ltag name rtag : {param, '$2', true}.
+
+paramlist    -> param           : ['$1'].
+paramlist    -> param paramlist : ['$1'|'$2'].
 
 name         -> id                      : {name, get_name( '$1' ), false}.
 name         -> id lparen string rparen : {name, get_name( '$1' ), false}.
 name         -> id lparen file rparen   : {name, get_name( '$1' ), true}.
+
+namelist     -> name          : ['$1'].
+namelist     -> name namelist : ['$1'|'$2'].
 
 idlist       -> id        : [get_name( '$1' )].
 idlist       -> id idlist : [get_name( '$1' )|'$2'].
