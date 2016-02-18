@@ -31,6 +31,21 @@
 -export( [start/0, submit/1] ).
 
 %% =============================================================================
+%% Abstract Syntax
+%% =============================================================================
+
+-type str()     :: {str, S::string()}.
+-type fut()     :: {fut, Name::string(), R::pos_integer(), Lp::[boolean()]}.
+-type app()     :: {app, Line::pos_integer(), C::pos_integer(),
+                         Lambda::lam(), Fa::#{string() => [str()]}}.
+-type lam()     :: {lam, Line::pos_integer(), Name::string(),
+                         S::sign(), B::forbody()}.
+-type sign()    :: {sign, Lo::[param()], Li::[param()]}.
+-type param()   :: {param, N::string(), Pl::boolean()}.
+-type forbody() :: {forbody, L::lang(), S::string()}.
+-type lang()    :: bash | python | r.
+
+%% =============================================================================
 %% Generic Server Functions
 %% =============================================================================
 
