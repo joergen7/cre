@@ -9,5 +9,4 @@ rel/example_project
 .concrete/DEV_MODE
 .rebar
 *~
-src/cuneiform_lexer.erl
-src/cuneiform_parser.erl
+doc

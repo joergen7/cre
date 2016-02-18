@@ -1,7 +1,8 @@
-% The Cuneiform Runtime Environment is an interpreter of the functional
-% programming language Cuneiform.
+%% -*- erlang -*-
 %
-% Copyright 2013-2015 Jörgen Brandt, Marc Bux, and Ulf Leser
+% Cuneiform: A Functional Language for Large Scale Scientific Data Analysis
+%
+% Copyright 2016 Jörgen Brandt, Marc Bux, and Ulf Leser
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.
@@ -15,104 +16,44 @@
 % See the License for the specific language governing permissions and
 % limitations under the License.
 
-% @doc Root supervisor and start/stop callbacks for Cuneiform application.
-
 -module( cre ).
+-author( "Jörgen Brandt <brandjoe@hu-berlin.de>" ).
 
--export( [file/2, init/1, start/0, start/2, start_link/0, stop/1] ).
+-behavior( gen_server ).
 
--include( "cre.hrl" ).
+%% =============================================================================
+%% Function Exports
+%% =============================================================================
 
--import( supervisor, [start_child/2, which_children/1] ).
--import( gen_server, [call/2] ).
+-export( [code_change/3, handle_cast/2, handle_info/2, init/1, terminate/2,
+          handle_call/3] ).
 
--behavior( application ).
--behavior( supervisor ).
+-export( [start/0, submit/1] ).
 
-%% supervisor:init/1
-%
-% @spec init( Args::[] ) -> ignore
-%
-% @doc  Provides initialization info for the supervisor behavior.
-%
-% @todo Define a generic server to be started
-%       instead of returning ignore.
-%
-init( [] ) ->
+%% =============================================================================
+%% Generic Server Functions
+%% =============================================================================
 
-  RestartStrategy = one_for_all,
-  MaxRestart = 5,
-  MaxTime = 60,
-  
-  % work server
-  Work = #{id       => work,
-           start    => {cre_work, start_link, []},
-           restart  => permanent,
-           shutdown => 5000,
-           type     => worker,
-           modules  => [cre_work]},
+code_change( _OldVsn, State, _Extra ) -> {ok, State}.
+handle_cast( _Request, State )        -> {noreply, State}.
+handle_info( _Info, State )           -> {noreply, State}.
+init( [] )                            -> {ok, []}.
+terminate( _Reason, _State )          -> ok.
 
-  % start stage server
-  Stage = #{id       => stage,
-            start    => {cre_stage, start_link, []},
-            restart  => permanent,
-            shutdown => 5000,
-            type     => worker,
-            modules  => [cre_stage]},
-                
-  % start proxy server
-  Proxy = #{id       => proxy,
-            start    => {cre_proxy, start_link, []},
-            restart  => permanent,
-            shutdown => 5000,
-            type     => worker,
-            modules  => [cre_proxy]},
+%% Call Handler %%
+handle_call( _Request, _From, State ) -> {reply, ok, State}.
 
-                
-                
- 
-  % ignore.
-  {ok, {{RestartStrategy, MaxRestart, MaxTime}, [Work, Stage, Proxy]}}.                  
-  
+%% =============================================================================
+%% API Functions
+%% =============================================================================
 
-
-
-%% start/2
-%
-% @doc Starts the application.
-%
-% @spec start( StartType::normal, StartArgs::[] ) -> {ok, pid()}
-%
-start( normal, [] ) -> start_link().
-
-
-%% start/0
-%
 start() ->
-  application:start( cre ).
+  gen_server:start_link( {local, ?MODULE}, ?MODULE, [], [] ).
 
-  
-%% stop/2
-%
-% @doc Stops the application.
-%
-% @spec stop( State ) -> ok
-%
-stop( _State ) -> ok.
+submit( App ) ->
+  gen_server:call( ?MODULE, {submit, App} ).
 
-  
-start_link() -> supervisor:start_link( {local, ?MODULE}, ?MODULE, [] ).
-  
-
-file( Filename, Datadir ) ->
-
-  QuerySpec = #{id       => make_ref(),
-                start    => {cre_query, start_link, [self(), file, Filename, Datadir]},
-                restart  => temporary,
-                shutdown => 5000,
-                type     => worker,
-                modules  => [cre_query]},
-
-  supervisor:start_child( cre, QuerySpec ).
-
+%% =============================================================================
+%% Internal Functions
+%% =============================================================================
 
