@@ -50,7 +50,10 @@ handle_call( _Request, _From, State ) -> {reply, ok, State}.
 start() ->
   gen_server:start_link( {local, ?MODULE}, ?MODULE, [], [] ).
 
-submit( App ) ->
+
+-spec submit( App :: app() ) -> fut().
+
+submit( App ) when is_tuple( App ) ->
   gen_server:call( ?MODULE, {submit, App} ).
 
 %% =============================================================================
