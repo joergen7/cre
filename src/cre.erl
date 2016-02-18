@@ -35,7 +35,7 @@
 %% =============================================================================
 
 -type str()     :: {str, S::string()}.
--type fut()     :: {fut, Name::string(), R::pos_integer(), Lp::[boolean()]}.
+-type fut()     :: {fut, Name::string(), R::pos_integer(), Lo::[param()]}.
 -type app()     :: {app, Line::pos_integer(), C::pos_integer(),
                          Lambda::lam(), Fa::#{string() => [str()]}}.
 -type lam()     :: {lam, Line::pos_integer(), Name::string(),
@@ -52,11 +52,17 @@
 code_change( _OldVsn, State, _Extra ) -> {ok, State}.
 handle_cast( _Request, State )        -> {noreply, State}.
 handle_info( _Info, State )           -> {noreply, State}.
-init( [] )                            -> {ok, []}.
+init( [] )                            -> {ok, {1}}.
 terminate( _Reason, _State )          -> ok.
 
 %% Call Handler %%
-handle_call( _Request, _From, State ) -> {reply, ok, State}.
+
+handle_call( {submit, A={app, _, _, {lam, _, Name, {sign, Lo, _}, _}, _}},
+             _From, {R} ) ->
+
+  _Pid = spawn_link( ?MODULE, stage, [A, R] ),
+
+  {reply, {fut, Name, R, Lo}, {R+1}}.
 
 %% =============================================================================
 %% API Functions
@@ -74,4 +80,27 @@ submit( App ) when is_tuple( App ) ->
 %% =============================================================================
 %% Internal Functions
 %% =============================================================================
+
+-spec run( A::app(), R::pos_integer() ) -> ok.
+
+stage( {app, _, _, {lam, _, Name, {sign, Lo, _}, {forbody, Lang, Script}}, Fa}, R ) ->
+
+  % create prefix string
+  Prefix = lists:flatten( io_lib:format( "~B", [R] ) ),
+
+  % general info
+  GeneralOpt = [{lang, Lang}, {prefix, Prefix}, {taskname, Name}].
+
+  % output names
+  OutputOpt = [{case Pl of true -> listout; false -> singout end, N} || {param, {name, N, _}}, Pl} <- Lo]
+
+  % output file declarations
+  OutputFileOpt = lists:foldl( fun acc_file/2, [], Lo ),
+
+  % input parameters
+  InputOpt = 
+
+
+acc_file( {param, {name, N, Pf}, _}, Acc0 ) when Pf -> [{file, N}|Acc0];
+acc_file( {param, {name, _, _}, _}, Acc0 )          -> Acc0.
 

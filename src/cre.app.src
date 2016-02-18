@@ -1,11 +1,9 @@
 {application, cre,
  [
-  {description, "An Erlang cre library"},
+  {description, "Cuneiform Runtime Environment"},
   {vsn, "0.1.0"},
-  {modules, [
-             cre
-            ]},
-  {registered, []},
+  {modules, [cre]},
+  {registered, [cre]},
   {applications, [
                   kernel,
                   stdlib
