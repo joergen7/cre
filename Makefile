@@ -1,11 +1,9 @@
 all: .rebar/cre_18.2.1_plt
-	rebar co eu dialyze doc
+	rebar update-deps co eu dialyze doc
 
 clean:
 	rebar clean
 
-.rebar/cre_18.2.1_plt: deps/effi/src/effi.erl
-	rebar build-plt
+.rebar/cre_18.2.1_plt:
+	rebar update-deps build-plt
 
-deps/effi/src/effi.erl:
-	rebar get-deps
