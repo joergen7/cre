@@ -19,17 +19,22 @@
 -module( cre ).
 -author( "Jorgen Brandt <brandjoe@hu-berlin.de>" ).
 
--behavior( gen_server ).
+%% =============================================================================
+%% Callback Function Declarations
+%% =============================================================================
+
+-callback stage( A::app(), R::pos_integer() ) -> fut().
+
 
 %% =============================================================================
 %% Function Exports
 %% =============================================================================
 
+-export( [start_link/0, submit/1, format_optlist/1, get_optlist/1] ).
+
+-behavior( gen_server ).
 -export( [code_change/3, handle_cast/2, handle_info/2, init/1, terminate/2,
           handle_call/3] ).
-
--export( [start_link/0, submit/1, format_optlist/1, get_optlist/2] ).
-
 
 %% =============================================================================
 %% Includes
@@ -93,11 +98,10 @@ submit( App ) when is_tuple( App ) ->
 format_optlist( OptList ) ->
   string:join( [format_optpair( OptPair ) || OptPair <- OptList], " " ).
 
--spec get_optlist( A::app(), R::pos_integer() ) -> [{atom(), _}].
+-spec get_optlist( A::app() ) -> [{atom(), _}].
 
-get_optlist( {app, _, _, {lam, _, Name, {sign, Lo, Li}, {forbody, Lang, _}}, Fa}, R ) ->
-  Prefix     = lists:flatten( io_lib:format( "~B", [R] ) ),
-  GeneralOpt = [{lang, Lang}, {prefix, Prefix}, {taskname, Name}],       % general info
+get_optlist( {app, _, _, {lam, _, Name, {sign, Lo, Li}, {forbody, Lang, _}}, Fa} ) ->
+  GeneralOpt = [{lang, Lang}, {taskname, Name}],                         % general info
   OutputOpt  = [acc_out( N, Pl ) || {param, {name, N, _}, Pl} <- Lo],    % output names
   InputOpt   = [acc_in( N, Pl, Fa ) || {param, {name, N, _}, Pl} <- Li], % input parameters
   FileOpt    = lists:foldl( fun acc_file/2, [], Lo++Li ),                % input and output file declarations
