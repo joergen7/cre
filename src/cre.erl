@@ -28,7 +28,7 @@
 -export( [code_change/3, handle_cast/2, handle_info/2, init/1, terminate/2,
           handle_call/3] ).
 
--export( [start/0, submit/1, format_optlist/1, get_optlist/2] ).
+-export( [start_link/0, submit/1, format_optlist/1, get_optlist/2] ).
 
 
 %% =============================================================================
@@ -78,7 +78,7 @@ handle_call( {submit, A={app, _, _, {lam, _, Name, {sign, Lo, _}, _}, _}},
 %% API Functions
 %% =============================================================================
 
-start() ->
+start_link() ->
   gen_server:start_link( {local, ?MODULE}, ?MODULE, [], [] ).
 
 
