@@ -23,7 +23,8 @@
 %% Function Exports
 %% =============================================================================
 
--export( [start_link/0, submit/1, format_optlist/1, get_optlist/2, stage_reply/5] ).
+-export( [start_link/0, submit/1, format_optlist/1, get_optlist/2,
+          stage_reply/5] ).
 
 -behaviour( gen_server ).
 -export( [code_change/3, handle_cast/2, handle_info/2, init/1, terminate/2,
@@ -42,7 +43,10 @@
 %% =============================================================================
 
 -callback init() -> ok.
--callback stage( Lam::lam(), Fa::#{string() => [str()]}, R::pos_integer() ) -> tuple().
+-callback stage( Lam, Fa, R ) -> tuple()
+when Lam :: lam(),
+     Fa  :: #{string() => [str()]},
+     R   :: pos_integer().
 
 
 %% =============================================================================
@@ -118,10 +122,10 @@ format_optlist( OptList ) ->
 -spec get_optlist( Lam::lam(), Fa::#{string() => [str()]} ) -> [{atom(), _}].
 
 get_optlist( {lam, _, Name, {sign, Lo, Li}, {forbody, Lang, _}}, Fa ) ->
-  GeneralOpt = [{lang, Lang}, {taskname, Name}],                         % general info
-  OutputOpt  = [acc_out( N, Pl ) || {param, {name, N, _}, Pl} <- Lo],    % output names
-  InputOpt   = [acc_in( N, Pl, Fa ) || {param, {name, N, _}, Pl} <- Li], % input parameters
-  FileOpt    = lists:foldl( fun acc_file/2, [], Lo++Li ),                % input and output file declarations
+  GeneralOpt = [{lang, Lang}, {taskname, Name}],
+  OutputOpt  = [acc_out( N, Pl ) || {param, {name, N, _}, Pl} <- Lo],
+  InputOpt   = [acc_in( N, Pl, Fa ) || {param, {name, N, _}, Pl} <- Li],
+  FileOpt    = lists:foldl( fun acc_file/2, [], Lo++Li ),
   GeneralOpt++OutputOpt++InputOpt++FileOpt.
 
 -spec stage_reply( From, Lam, Fa, Mod, R ) -> tuple()
