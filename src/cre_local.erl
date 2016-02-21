@@ -36,13 +36,13 @@ stage( Lam={lam, _LamLine, LamName, _Sign, {forbody, Lang, Script}}, Fa, R ) ->
   Prefix = integer_to_list( R ),
   Dir = string:join( [?BASEDIR, ?WORK, Prefix], "/" ),
   RepoDir = string:join( [?BASEDIR, ?REPO], "/" ),
-  _ScriptFilename = string:join( [string:join( [LamName, Prefix], "_" ), atom_to_list( Lang )], "." ),
-
+  
   % make sure working directory exists
   filelib:ensure_dir( [Dir, "/"] ),
 
   % create option list for effi
-  OptList = [{dir, Dir}, {prefix, Prefix}, {refactor, true}, {repodir, RepoDir}|cre:get_optlist( Lam, Fa )],
+  OptList = [{dir, Dir}, {prefix, Prefix}, {refactor, true}, {repodir, RepoDir}
+             |cre:get_optlist( Lam, Fa )],
 
   % start effi
   effi:check_run( OptList, Script ).
