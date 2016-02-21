@@ -23,14 +23,14 @@
 %% Callback Function Declarations
 %% =============================================================================
 
--callback stage( A::app(), R::pos_integer() ) -> fut().
-
+-callback init() -> ok.
+-callback stage( Lam::lam(), Fa::#{string() => [str()]}, R::pos_integer() ) -> tuple().
 
 %% =============================================================================
 %% Function Exports
 %% =============================================================================
 
--export( [start_link/0, submit/1, format_optlist/1, get_optlist/1] ).
+-export( [start_link/0, submit/1, format_optlist/1, get_optlist/2, stage_reply/5] ).
 
 -behavior( gen_server ).
 -export( [code_change/3, handle_cast/2, handle_info/2, init/1, terminate/2,
@@ -66,22 +66,38 @@
 
 code_change( _OldVsn, State, _Extra ) -> {ok, State}.
 handle_cast( _Request, State )        -> {noreply, State}.
-handle_info( _Info, State )           -> {noreply, State}.
-init( [] )                            -> {ok, {cre_local, 1}}.
 terminate( _Reason, _State )          -> ok.
+
+%% Initialization %%
+
+init( [] ) ->
+  Mod = cre_local, % CRE callback module implementing the stage function
+  R = 1,           % Next id
+  {ok, {Mod, R}}.
 
 %% Call Handler %%
 
-handle_call( {submit, A={app, _, _, {lam, _, Name, {sign, Lo, _}, _}, _}},
+handle_call( {submit, {app, _, _, Lam={lam, _, Name, {sign, Lo, _}, _}, Fa}},
              _From, {Mod, R} ) ->
+  
+  _Pid = spawn_link( ?MODULE, stage_reply, [self(), Lam, Fa, Mod, R] ),
 
-  _Pid = spawn_link( Mod, stage, [A, R] ),
+  {reply, {fut, Name, R, Lo}, {R+1}};
 
-  {reply, {fut, Name, R, Lo}, {R+1}}.
+handle_call( Request, _From, State ) ->
+  {reply, {error, invalid_request, Request}, State}.
+
+%% Info Handler %%
+
+handle_info( {}, State ) ->
+  {noreply, State}.
 
 %% =============================================================================
 %% API Functions
 %% =============================================================================
+
+-spec start_link() -> {ok, pid()} | ignore | {error, Error}
+when Error :: {already_started, pid()} | term().
 
 start_link() ->
   gen_server:start_link( {local, ?MODULE}, ?MODULE, [], [] ).
@@ -89,7 +105,7 @@ start_link() ->
 
 -spec submit( App :: app() ) -> fut().
 
-submit( App ) when is_tuple( App ) ->
+submit( App ) ->
   gen_server:call( ?MODULE, {submit, App} ).
 
 
@@ -98,14 +114,25 @@ submit( App ) when is_tuple( App ) ->
 format_optlist( OptList ) ->
   string:join( [format_optpair( OptPair ) || OptPair <- OptList], " " ).
 
--spec get_optlist( A::app() ) -> [{atom(), _}].
+-spec get_optlist( Lam::lam(), Fa::#{string() => [str()]} ) -> [{atom(), _}].
 
-get_optlist( {app, _, _, {lam, _, Name, {sign, Lo, Li}, {forbody, Lang, _}}, Fa} ) ->
+get_optlist( {lam, _, Name, {sign, Lo, Li}, {forbody, Lang, _}}, Fa ) ->
   GeneralOpt = [{lang, Lang}, {taskname, Name}],                         % general info
   OutputOpt  = [acc_out( N, Pl ) || {param, {name, N, _}, Pl} <- Lo],    % output names
   InputOpt   = [acc_in( N, Pl, Fa ) || {param, {name, N, _}, Pl} <- Li], % input parameters
   FileOpt    = lists:foldl( fun acc_file/2, [], Lo++Li ),                % input and output file declarations
   GeneralOpt++OutputOpt++InputOpt++FileOpt.
+
+-spec stage_reply( From, Lam, Fa, Mod, R ) -> tuple()
+when From :: pid(),
+     Lam  :: lam(),
+     Fa   :: #{string() => str()},
+     Mod  :: atom(),
+     R    :: pos_integer().
+
+stage_reply( From, Lam, Fa, Mod, R ) ->
+  From ! apply( Mod, stage, [Lam, Fa, R] ).
+
 
 %% =============================================================================
 %% Internal Functions

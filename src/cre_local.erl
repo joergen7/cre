@@ -20,22 +20,28 @@
 -author( "Jorgen Brandt <brandjoe@hu-berlin.de>" ).
 
 -behavior( cre ).
+-export( [init/0, stage/3] ).
 
 -define( BASEDIR, "/tmp/cf" ).
 -define( WORKDIR, "work" ).
 
+init() ->
+  _Output = os:cmd( string:join( ["rm", "-rf", ?BASEDIR], " " ) ),
+  ok.
 
-stage( App={app, AppLine, Channel, {lam, LamLine, LamName, Sign, {forbody, Lang, Script}}, Fa}, R ) ->
+
+stage( Lam={lam, _LamLine, LamName, _Sign, {forbody, Lang, Script}}, Fa, R ) ->
 
   Prefix = integer_to_list( R ),
   Dir = string:join( [?BASEDIR, ?WORKDIR, Prefix], "/" ),
-  ScriptFilename = string:join( [string:join( [LamName, Prefix], "_" ), Lang], "." ),
+  LangStr = atom_to_list( Lang ),
+  _ScriptFilename = string:join( [string:join( [LamName, Prefix], "_" ), LangStr], "." ),
 
   % make sure working directory exists
   filelib:ensure_dir( [Dir, "/"] ),
 
   % create option list for effi
-  OptList = [{dir, Dir}, {prefix, Prefix}|cre:get_optlist( App )],
+  OptList = [{dir, Dir}, {prefix, Prefix}|cre:get_optlist( Lam, Fa )],
 
   % start effi
   effi:check_run( OptList, Script ).
