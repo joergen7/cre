@@ -20,19 +20,12 @@
 -author( "Jorgen Brandt <brandjoe@hu-berlin.de>" ).
 
 %% =============================================================================
-%% Callback Function Declarations
-%% =============================================================================
-
--callback init() -> ok.
--callback stage( Lam::lam(), Fa::#{string() => [str()]}, R::pos_integer() ) -> tuple().
-
-%% =============================================================================
 %% Function Exports
 %% =============================================================================
 
 -export( [start_link/0, submit/1, format_optlist/1, get_optlist/2, stage_reply/5] ).
 
--behavior( gen_server ).
+-behaviour( gen_server ).
 -export( [code_change/3, handle_cast/2, handle_info/2, init/1, terminate/2,
           handle_call/3] ).
 
@@ -43,6 +36,14 @@
 -ifdef( TEST ).
 -include_lib( "eunit/include/eunit.hrl" ).
 -endif.
+
+%% =============================================================================
+%% Callback Function Declarations
+%% =============================================================================
+
+-callback init() -> ok.
+-callback stage( Lam::lam(), Fa::#{string() => [str()]}, R::pos_integer() ) -> tuple().
+
 
 %% =============================================================================
 %% Abstract Syntax
