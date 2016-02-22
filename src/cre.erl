@@ -23,7 +23,7 @@
 %% Function Exports
 %% =============================================================================
 
--export( [start_link/0, submit/1, format_optlist/1, get_optlist/2,
+-export( [start_link/0, submit/1, format_optlist/1, get_optlist/4,
           stage_reply/5] ).
 
 -behaviour( gen_server ).
@@ -38,6 +38,8 @@
 -include_lib( "eunit/include/eunit.hrl" ).
 -endif.
 
+-include( "abstract_syntax.hrl" ).
+
 %% =============================================================================
 %% Callback Function Declarations
 %% =============================================================================
@@ -48,22 +50,6 @@ when Lam :: lam(),
      Fa  :: #{string() => [str()]},
      R   :: pos_integer().
 
-
-%% =============================================================================
-%% Abstract Syntax
-%% =============================================================================
-
--type str()     :: {str, S::string()}.
--type fut()     :: {fut, Name::string(), R::pos_integer(), Lo::[param()]}.
--type app()     :: {app, Line::pos_integer(), C::pos_integer(),
-                         Lambda::lam(), Fa::#{string() => [str()]}}.
--type lam()     :: {lam, Line::pos_integer(), Name::string(),
-                         S::sign(), B::forbody()}.
--type sign()    :: {sign, Lo::[param()], Li::[param()]}.
--type param()   :: {param, M::name(), Pl::boolean()}.
--type name()    :: {name, N::string(), Pf::boolean()}.
--type forbody() :: {forbody, L::lang(), S::string()}.
--type lang()    :: bash | python | r.
 
 %% =============================================================================
 %% Generic Server Functions
@@ -119,10 +105,14 @@ submit( App ) ->
 format_optlist( OptList ) ->
   string:join( [format_optpair( OptPair ) || OptPair <- OptList], " " ).
 
--spec get_optlist( Lam::lam(), Fa::#{string() => [str()]} ) -> [{atom(), _}].
+-spec get_optlist( Lam, Fa, Dir, R ) -> [{atom(), _}]
+when Lam :: lam(),
+     Fa  :: #{string() => [str()]},
+     Dir :: string(),
+     R   :: pos_integer().
 
-get_optlist( {lam, _, Name, {sign, Lo, Li}, {forbody, Lang, _}}, Fa ) ->
-  GeneralOpt = [{lang, Lang}, {taskname, Name}],
+get_optlist( {lam, _, Name, {sign, Lo, Li}, {forbody, Lang, _}}, Fa, Dir, R ) ->
+  GeneralOpt = [{dir, Dir}, {prefix, R}, {lang, Lang}, {taskname, Name}],
   OutputOpt  = [acc_out( N, Pl ) || {param, {name, N, _}, Pl} <- Lo],
   InputOpt   = [acc_in( N, Pl, Fa ) || {param, {name, N, _}, Pl} <- Li],
   FileOpt    = lists:foldl( fun acc_file/2, [], Lo++Li ),

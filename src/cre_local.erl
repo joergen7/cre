@@ -31,18 +31,18 @@ init() ->
   ok.
 
 
-stage( Lam={lam, _LamLine, LamName, _Sign, {forbody, Lang, Script}}, Fa, R ) ->
+stage( Lam={lam, _LamLine, _LamName, _Sign, {forbody, _Lang, Script}}, Fa, R ) ->
 
-  Prefix = integer_to_list( R ),
-  Dir = string:join( [?BASEDIR, ?WORK, Prefix], "/" ),
-  RepoDir = string:join( [?BASEDIR, ?REPO], "/" ),
+  Dir = string:join( [?BASEDIR, ?WORK, integer_to_list( R )], "/" ),
+  _RepoDir = string:join( [?BASEDIR, ?REPO], "/" ),
+
+  % refactor pre
   
-  % make sure working directory exists
-  filelib:ensure_dir( [Dir, "/"] ),
 
   % create option list for effi
-  OptList = [{dir, Dir}, {prefix, Prefix}, {refactor, true}, {repodir, RepoDir}
-             |cre:get_optlist( Lam, Fa )],
+  OptList = cre:get_optlist( Lam, Fa, Dir, R ),
 
   % start effi
   effi:check_run( OptList, Script ).
+
+  % refactor post
