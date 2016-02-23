@@ -160,7 +160,7 @@ when N  :: string(),
 
 acc_in( N, Pl, Fa ) ->
   StrList = maps:get( N, Fa ),
-  CommaSeparated = string:join( [S|| {str, S} <- StrList], "," ),
+  CommaSeparated = string:join( [S || {str, S} <- StrList], "," ),
   V = lists:flatten( io_lib:format( "~s:~s", [N, CommaSeparated] ) ),
   K = case Pl of
     true -> listin;
@@ -181,5 +181,11 @@ format_optpair_formats_python_test() ->
 format_optpair_formats_r_test() ->
   S = format_optpair( {lang, r} ),
   ?assertEqual( "-l r", lists:flatten( S ) ).
+
+acc_in_should_compose_single_binding_test() ->
+  N = "a",
+  Pl = false,
+  Fa = #{"a" => [{str, "blub"}]},
+  ?assertEqual( {singin, "a:blub"}, acc_in( N, Pl, Fa ) ).
 
 -endif.
