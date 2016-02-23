@@ -56,6 +56,7 @@ stage( Lam={lam, _LamLine, _LamName, {sign, Lo, Li}, {forbody, _Lang, Script}},
 
       % create option list for effi
       OptList = cre:get_optlist( Lam, Fa1, Dir, R ),
+      io:format( "~p~n", [OptList] ),
 
       % start effi
       case effi:check_run( OptList, Script ) of
