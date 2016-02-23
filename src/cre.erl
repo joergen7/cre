@@ -70,8 +70,8 @@ init( [] ) ->
 
 handle_call( {submit, {app, _, _, Lam={lam, _, Name, {sign, Lo, _}, _}, Fa}},
              _From, {Mod, R} ) ->
-  
-  _Pid = spawn_link( ?MODULE, stage_reply, [self(), Lam, Fa, Mod, R] ),
+
+  _Pid = spawn_link( ?MODULE, stage_reply, [self(), Lam, Fa, Mod, "/home/jorgen/data", R] ),
 
   {reply, {fut, Name, R, Lo}, {R+1}};
 
@@ -118,15 +118,16 @@ get_optlist( {lam, _, Name, {sign, Lo, Li}, {forbody, Lang, _}}, Fa, Dir, R ) ->
   FileOpt    = lists:foldl( fun acc_file/2, [], Lo++Li ),
   GeneralOpt++OutputOpt++InputOpt++FileOpt.
 
--spec stage_reply( From, Lam, Fa, Mod, R ) -> tuple()
-when From :: pid(),
-     Lam  :: lam(),
-     Fa   :: #{string() => str()},
-     Mod  :: atom(),
-     R    :: pos_integer().
+-spec stage_reply( From, Lam, Fa, Mod, DataDir, R ) -> tuple()
+when From    :: pid(),
+     Lam     :: lam(),
+     Fa      :: #{string() => str()},
+     Mod     :: atom(),
+     DataDir :: string(),
+     R       :: pos_integer().
 
-stage_reply( From, Lam, Fa, Mod, R ) ->
-  From ! apply( Mod, stage, [Lam, Fa, R] ).
+stage_reply( From, Lam, Fa, Mod, DataDir, R ) ->
+  From ! apply( Mod, stage, [Lam, Fa, DataDir, R] ).
 
 
 %% =============================================================================
