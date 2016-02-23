@@ -23,7 +23,7 @@
 %% API exports
 %% =============================================================================
 
--export( [get_refactoring/5] ).
+-export( [get_refactoring/5, apply_refactoring/1] ).
 
 
 %% =============================================================================
@@ -32,7 +32,14 @@
 
 -include( "abstract_syntax.hrl" ).
 
--spec get_refactoring( ParamLst, Fa0, DestDir, SrcDirLst, R ) -> {RefactorLst, MissingLst, Fa1}
+%% =============================================================================
+%% API Functions
+%% =============================================================================
+
+%% get_refactoring %%
+
+-spec get_refactoring( ParamLst, Fa0, DestDir, SrcDirLst, R ) ->
+  {RefactorLst, MissingLst, Fa1}
 when ParamLst    :: [param()],
      Fa0         :: #{string() => [str()]},
      DestDir     :: string(),
@@ -48,9 +55,53 @@ get_refactoring( ParamLst, Fa0, DestDir, SrcDirLst, R ) ->
                end,
                {[], [], #{}}, ParamLst ).
 
-acc_refactoring( {param, {name, _N, false}, _Pl}, AccIn, _Fa0, _DestDir,
-                 _SrcDirList, _R ) ->
-  AccIn;
+%% apply_refactoring %%
+
+-spec apply_refactoring( Refactor ) -> ok
+when Refactor :: {string(), string()} | [{string(), string()}].
+
+apply_refactoring( RefactorLst ) when is_list( RefactorLst ) ->
+  lists:foreach( fun apply_refactoring/1, RefactorLst );
+
+apply_refactoring( {Existing, New} ) ->
+
+  case filelib:ensure_dir( New ) of
+    {error, R1} -> error( {R1, ensure_dir, New} );
+    ok          -> ok
+  end,
+
+  case file:make_symlink( Existing, New ) of
+    {error, R2} -> error( {R2, make_symlink, [Existing, New]} );
+    ok          -> ok
+  end.
+
+
+
+
+%% =============================================================================
+%% Internal Functions
+%% =============================================================================
+
+%% acc_refactoring %%
+
+-spec acc_refactoring( Param, {RefactorLst, MissingLst, Fa1}, Fa0, DestDir,
+                       SrcDirLst, R ) ->
+  {RefactorLst1, MissingLst1, Fa2}
+when Param        :: param(),
+     RefactorLst  :: [{string(), string()}],
+     MissingLst   :: [string()],
+     Fa1          :: #{string() => [str()]},
+     Fa0          :: #{string() => [str()]},
+     DestDir      :: string(),
+     SrcDirLst    :: [string()],
+     R            :: pos_integer(),
+     RefactorLst1 :: [{string(), string()}],
+     MissingLst1  :: [string()],
+     Fa2          :: #{string() => [str()]}.
+
+acc_refactoring( {param, {name, N, false}, _Pl}, {RefactorLst, MissingLst, Fa1},
+                 Fa0, _DestDir, _SrcDirList, _R ) ->
+  {RefactorLst, MissingLst, Fa1#{N => maps:get( N, Fa0 )}};
 
 acc_refactoring( {param, {name, N, true}, _Pl}, {RefactorLst, MissingLst, Fa1},
                  Fa0, DestDir, SrcDirLst, R ) ->
@@ -60,21 +111,39 @@ acc_refactoring( {param, {name, N, true}, _Pl}, {RefactorLst, MissingLst, Fa1},
                    acc_file( File, AccIn, DestDir, SrcDirLst, R )
                  end,
                  {RefactorLst, MissingLst, []}, FileLst ),
-  {RefactorLst1, MissingLst1, Fa1#{N => lists:reverse( FileLst1 )}}.
+  FileLst2 = [{str, S} || S <- lists:reverse( FileLst1 )],
+  {RefactorLst1, MissingLst1, Fa1#{N => FileLst2}}.
+
+%% acc_file %%
+
+-spec acc_file( File, {RefactorLst, MissingLst, FileLst}, DestDir, SrcDirLst,
+                R ) ->
+  {RefactorLst1, MissingLst1, FileLst1}
+when File         :: string(),
+     RefactorLst  :: [{string(), string()}],
+     MissingLst   :: [string()],
+     FileLst      :: [string()],
+     DestDir      :: string(),
+     SrcDirLst    :: [string()],
+     R            :: pos_integer(),
+     RefactorLst1 :: [{string(), string()}],
+     MissingLst1  :: [string()],
+     FileLst1     :: [string()].
 
 acc_file( File, {RefactorLst, MissingLst, FileLst}, _DestDir, [], _R ) ->
-  {RefactorLst, [File|MissingLst], FileLst};
+  Basename = filename:basename( File ),
+  {RefactorLst, [File|MissingLst], [Basename|FileLst]};
 
 acc_file( File, AccIn={RefactorLst, MissingLst, FileLst}, DestDir, [H|T], R ) ->
-  Basename = filename:basename( File ),
-  AbsSrc = string:join( [H, Basename], "/" ),
+  AbsSrc = string:join( [H, File], "/" ),
+  io:format( "Looging for ~s~n", [AbsSrc] ),
   case filelib:is_regular( AbsSrc ) of
     false -> acc_file( File, AccIn, DestDir, T, R );
     true  ->
+      Basename = filename:basename( File ),
       DestName = string:join( [integer_to_list( R ), Basename], "_" ),
       AbsDest = string:join( [DestDir, DestName], "/" ),
       {[{AbsSrc, AbsDest}|RefactorLst], MissingLst, [Basename|FileLst]}
   end.
 
 
-  
