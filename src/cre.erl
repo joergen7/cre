@@ -70,12 +70,11 @@ init( [] ) ->
   % initialize CRE
   apply( Mod, init, [] ),
 
-  {ok, {Mod, R}}.
+  {ok, {Mod, SubscrLst, R}}.
 
 %% Call Handler %%
 
-handle_call( {submit, App},
-             _From, {Mod, SubscrLst, R} ) ->
+handle_call( {submit, App}, _From, {Mod, SubscrLst, R} ) ->
 
   {app, _, _, Lam, Fa} = App,
   {lam, _, Name, {sign, Lo, _}, _} = Lam,
