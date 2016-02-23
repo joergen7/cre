@@ -20,7 +20,7 @@
 -author( "Jorgen Brandt <brandjoe@hu-berlin.de>" ).
 
 -behaviour( cre ).
--export( [init/0, stage/3] ).
+-export( [init/0, stage/4] ).
 
 -define( BASEDIR, "/tmp/cf" ).
 -define( WORK, "work" ).
@@ -39,7 +39,7 @@ stage( Lam={lam, _LamLine, _LamName, {sign, Lo, Li}, {forbody, _Lang, Script}},
 
   % create working directory
   case filelib:ensure_dir( [Dir, "/"] ) of
-    {error, R1} -> error( {R1, ensure_dir, [Dir, "/"]} ),
+    {error, R1} -> error( {R1, ensure_dir, [Dir, "/"]} );
     ok          -> ok
   end,
 
@@ -60,12 +60,12 @@ stage( Lam={lam, _LamLine, _LamName, {sign, Lo, Li}, {forbody, _Lang, Script}},
       % start effi
       case effi:check_run( OptList, Script ) of
         {failed, R2, Data} -> {failed, R2, Data};
-        {finished, Sum1}    ->
+        {finished, Sum}   ->
 
           Ret1 = maps:get( ret, Sum ),
 
           % resolve output files
-          Triple2 = refactor:get_refactoring( Lo, Ret, RepoDir, [Dir], R ),
+          Triple2 = refactor:get_refactoring( Lo, Ret1, RepoDir, [Dir], R ),
           {RefactorLst2, [], Ret2} = Triple2,
 
           % link out output files
@@ -74,4 +74,4 @@ stage( Lam={lam, _LamLine, _LamName, {sign, Lo, Li}, {forbody, _Lang, Script}},
           % update result map
           Sum#{ret => Ret2}
       end
-  end
+  end.
