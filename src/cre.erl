@@ -63,26 +63,35 @@ terminate( _Reason, _State )          -> ok.
 %% Initialization %%
 
 init( [] ) ->
-  Mod = cre_local, % CRE callback module implementing the stage function
-  R = 1,           % Next id
+  Mod       = cre_local, % CRE callback module implementing the stage function
+  SubscrLst = [],        % list of subscribers
+  R         = 1,         % next id
+
+  % initialize CRE
+  apply( Mod, init, [] ),
+
   {ok, {Mod, R}}.
 
 %% Call Handler %%
 
 handle_call( {submit, {app, _, _, Lam={lam, _, Name, {sign, Lo, _}, _}, Fa}},
-             _From, {Mod, R} ) ->
+             _From, {Mod, SubscrLst, R} ) ->
 
   _Pid = spawn_link( ?MODULE, stage_reply, [self(), Lam, Fa, Mod, "/home/jorgen/data", R] ),
 
-  {reply, {fut, Name, R, Lo}, {R+1}};
+  {reply, {fut, Name, R, Lo}, {Mod, SubscrLst, R+1}};
 
 handle_call( Request, _From, State ) ->
   {reply, {error, invalid_request, Request}, State}.
 
 %% Info Handler %%
 
-handle_info( {}, State ) ->
-  {noreply, State}.
+handle_info( {failed, Reason, Data}, {Mod, SubscrLst, R} ) ->
+  lists:foreach( fun( Subscr ) ->
+                   Subscr ! {failed, Reason, Data}
+                 end,
+                 SubscrLst ),
+  {noreply, {Mod, [], R}}.
 
 %% =============================================================================
 %% API Functions

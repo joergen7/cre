@@ -27,6 +27,7 @@
 -define( REPO, "repo" ).
 
 init() ->
+  io:format( "Deleting base directory: ~p~n", [?BASEDIR] ),
   _Output = os:cmd( string:join( ["rm", "-rf", ?BASEDIR], " " ) ),
   ok.
 
