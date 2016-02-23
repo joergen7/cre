@@ -105,13 +105,13 @@ acc_refactoring( {param, {name, N, false}, _Pl}, {RefactorLst, MissingLst, Fa1},
 
 acc_refactoring( {param, {name, N, true}, _Pl}, {RefactorLst, MissingLst, Fa1},
                  Fa0, DestDir, SrcDirLst, R ) ->
-  FileLst = [S || {str, S} <- maps:get( N, Fa0 )],
+  FileLst = [S || {str, _, S} <- maps:get( N, Fa0 )],
   {RefactorLst1, MissingLst1, FileLst1} =
     lists:foldl( fun( File, AccIn ) ->
                    acc_file( File, AccIn, DestDir, SrcDirLst, R )
                  end,
                  {RefactorLst, MissingLst, []}, FileLst ),
-  FileLst2 = [{str, S} || S <- lists:reverse( FileLst1 )],
+  FileLst2 = [{str, _, S} || S <- lists:reverse( FileLst1 )],
   {RefactorLst1, MissingLst1, Fa1#{N => FileLst2}}.
 
 %% acc_file %%

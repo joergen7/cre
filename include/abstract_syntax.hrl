@@ -2,7 +2,7 @@
 %% Abstract Syntax
 %% =============================================================================
 
--type str()     :: {str, S::string()}.
+-type str()     :: {str, Line::pos_integer(), S::string()}.
 -type fut()     :: {fut, Name::string(), R::pos_integer(), Lo::[param()]}.
 -type app()     :: {app, Line::pos_integer(), C::pos_integer(),
                          Lambda::lam(), Fa::#{string() => [str()]}}.
