@@ -4,9 +4,9 @@
 
 -type str()     :: {str, Line::pos_integer(), S::string()}.
 -type fut()     :: {fut, Name::string(), R::pos_integer(), Lo::[param()]}.
--type app()     :: {app, Line::pos_integer(), C::pos_integer(),
+-type app()     :: {app, AppLine::pos_integer(), C::pos_integer(),
                          Lambda::lam(), Fa::#{string() => [str()]}}.
--type lam()     :: {lam, Line::pos_integer(), Name::string(),
+-type lam()     :: {lam, LamLine::pos_integer(), Name::string(),
                          S::sign(), B::forbody()}.
 -type sign()    :: {sign, Lo::[param()], Li::[param()]}.
 -type param()   :: {param, M::name(), Pl::boolean()}.

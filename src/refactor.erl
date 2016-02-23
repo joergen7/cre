@@ -143,7 +143,7 @@ acc_file( File={str, Line, Filename}, AccIn={RefactorLst, MissingLst, FileLst}, 
       Basename = filename:basename( Filename ),
       DestName = string:join( [integer_to_list( R ), Basename], "_" ),
       AbsDest = string:join( [DestDir, DestName], "/" ),
-      {[{AbsSrc, AbsDest}|RefactorLst], MissingLst, [{str, Line, Basename}|FileLst]}
+      {[{AbsSrc, AbsDest}|RefactorLst], MissingLst, [{str, Line, DestName}|FileLst]}
   end.
 
 

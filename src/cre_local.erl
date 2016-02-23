@@ -61,10 +61,13 @@ stage( Lam={lam, _LamLine, _LamName, {sign, Lo, Li}, {forbody, _Lang, Script}},
 
       % start effi
       case effi:check_run( OptList, Script ) of
-        {failed, R2, Data} -> {failed, R2, Data};
-        {finished, Sum}   ->
+        {failed, R2, Data} ->
+          io:format( "Check_run failed! aborting ...~n" ),
+          {failed, R2, Data};
+        {finished, Sum}    ->
 
-          Ret1 = maps:get( ret, Sum ),
+          Ret0 = maps:get( ret, Sum ),
+          Ret1 = maps:map( fun( _N, X ) -> [{str, 0, S} || S <- X] end, Ret0 ),
 
           % resolve output files
           Triple2 = refactor:get_refactoring( Lo, Ret1, RepoDir, [Dir], R ),
@@ -74,6 +77,6 @@ stage( Lam={lam, _LamLine, _LamName, {sign, Lo, Li}, {forbody, _Lang, Script}},
           refactor:apply_refactoring( RefactorLst2 ),
 
           % update result map
-          Sum#{ret => Ret2}
+          {finished, Sum#{ret => Ret2}}
       end
   end.

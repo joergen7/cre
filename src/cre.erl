@@ -57,7 +57,7 @@ when Lam     :: lam(),
 %% =============================================================================
 
 code_change( _OldVsn, State, _Extra ) -> {ok, State}.
-handle_cast( _Request, State )        -> {noreply, State}.
+handle_cast( Request, _State )        -> error( {bad_request, Request} ).
 terminate( _Reason, _State )          -> ok.
 
 %% Initialization %%
@@ -74,26 +74,37 @@ init( [] ) ->
 
 %% Call Handler %%
 
-handle_call( {submit, App}, _From, {Mod, SubscrLst, R} ) ->
+handle_call( {submit, App}, {Pid, _Tag}, {Mod, SubscrLst, R} ) ->
 
   {app, _, _, Lam, Fa} = App,
   {lam, _, Name, {sign, Lo, _}, _} = Lam,
 
   _Pid = spawn_link( ?MODULE, stage_reply, [self(), Lam, Fa, Mod, "/home/jorgen/data", R] ),
 
-  {reply, {fut, Name, R, Lo}, {Mod, SubscrLst, R+1}};
+  {reply, {fut, Name, R, Lo}, {Mod, [Pid|SubscrLst], R+1}};
 
-handle_call( Request, _From, State ) ->
-  {reply, {error, invalid_request, Request}, State}.
+handle_call( Request, _From, _State ) ->
+  error( {bad_request, Request} ).
 
 %% Info Handler %%
 
 handle_info( {failed, Reason, Data}, {Mod, SubscrLst, R} ) ->
+  io:format( "Got failed message. Notifying subscribers ...~n" ),
   lists:foreach( fun( Subscr ) ->
                    Subscr ! {failed, Reason, Data}
                  end,
                  SubscrLst ),
-  {noreply, {Mod, [], R}}.
+  {noreply, {Mod, [], R}};
+
+handle_info( {finished, Sum}, {Mod, SubscrLst, R} ) ->
+
+  lists:foreach( fun( Subscr ) ->
+                   Subscr ! {finished, Sum}
+                 end, SubscrLst ),
+  {noreply, {Mod, SubscrLst, R}};
+
+handle_info( Info, _State ) ->
+  error( {bad_msg, Info} ).
 
 %% =============================================================================
 %% API Functions
@@ -139,7 +150,9 @@ when From    :: pid(),
      R       :: pos_integer().
 
 stage_reply( From, Lam, Fa, Mod, DataDir, R ) ->
-  From ! apply( Mod, stage, [Lam, Fa, DataDir, R] ).
+  Result = apply( Mod, stage, [Lam, Fa, DataDir, R] ),
+  io:format( "Received something.~nSending this back to CRE ...~n" ),
+  From ! Result.
 
 
 %% =============================================================================
