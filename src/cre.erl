@@ -74,8 +74,11 @@ init( [] ) ->
 
 %% Call Handler %%
 
-handle_call( {submit, {app, _, _, Lam={lam, _, Name, {sign, Lo, _}, _}, Fa}},
+handle_call( {submit, App},
              _From, {Mod, SubscrLst, R} ) ->
+
+  {app, _, _, Lam, Fa} = App,
+  {lam, _, Name, {sign, Lo, _}, _} = Lam,
 
   _Pid = spawn_link( ?MODULE, stage_reply, [self(), Lam, Fa, Mod, "/home/jorgen/data", R] ),
 
