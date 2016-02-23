@@ -23,7 +23,7 @@
 %% Function Exports
 %% =============================================================================
 
--export( [start_link/0, submit/1, format_optlist/1, get_optlist/4,
+-export( [start_link/0, submit/2, format_optlist/1, get_optlist/4,
           stage_reply/6] ).
 
 -behaviour( gen_server ).
@@ -74,12 +74,12 @@ init( [] ) ->
 
 %% Call Handler %%
 
-handle_call( {submit, App}, {Pid, _Tag}, {Mod, SubscrLst, R} ) ->
+handle_call( {submit, App, DataDir}, {Pid, _Tag}, {Mod, SubscrLst, R} ) ->
 
   {app, _, _, Lam, Fa} = App,
   {lam, _, Name, {sign, Lo, _}, _} = Lam,
 
-  _Pid = spawn_link( ?MODULE, stage_reply, [self(), Lam, Fa, Mod, "/home/jorgen/data", R] ),
+  _Pid = spawn_link( ?MODULE, stage_reply, [self(), Lam, Fa, Mod, DataDir, R] ),
 
   {reply, {fut, Name, R, Lo}, {Mod, [Pid|SubscrLst], R+1}};
 
@@ -117,10 +117,10 @@ start_link() ->
   gen_server:start_link( {local, ?MODULE}, ?MODULE, [], [] ).
 
 
--spec submit( App :: app() ) -> fut().
+-spec submit( App::app(), DataDir::string() ) -> fut().
 
-submit( App ) ->
-  gen_server:call( ?MODULE, {submit, App} ).
+submit( App, DataDir ) ->
+  gen_server:call( ?MODULE, {submit, App, DataDir} ).
 
 
 -spec format_optlist( OptList::[{atom(), _}] ) -> iolist().
@@ -184,7 +184,7 @@ when N  :: string(),
 
 acc_in( N, Pl, Fa ) ->
   StrList = maps:get( N, Fa ),
-  CommaSeparated = string:join( [S || {str, _, S} <- StrList], "," ),
+  CommaSeparated = string:join( [S || {str, S} <- StrList], "," ),
   V = lists:flatten( io_lib:format( "~s:~s", [N, CommaSeparated] ) ),
   K = case Pl of
     true -> listin;
@@ -209,7 +209,7 @@ format_optpair_formats_r_test() ->
 acc_in_should_compose_single_binding_test() ->
   N = "a",
   Pl = false,
-  Fa = #{"a" => [{str, 2, "blub"}]},
+  Fa = #{"a" => [{str, "blub"}]},
   ?assertEqual( {singin, "a:blub"}, acc_in( N, Pl, Fa ) ).
 
 -endif.

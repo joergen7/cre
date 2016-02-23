@@ -130,11 +130,11 @@ when File         :: str(),
      MissingLst1  :: [string()],
      FileLst1     :: [str()].
 
-acc_file( File={str, Line, Filename}, {RefactorLst, MissingLst, FileLst}, _DestDir, [], _R ) ->
+acc_file( File={str, Filename}, {RefactorLst, MissingLst, FileLst}, _DestDir, [], _R ) ->
   Basename = filename:basename( Filename ),
-  {RefactorLst, [File|MissingLst], [{str, Line, Basename}|FileLst]};
+  {RefactorLst, [File|MissingLst], [{str, Basename}|FileLst]};
 
-acc_file( File={str, Line, Filename}, AccIn={RefactorLst, MissingLst, FileLst}, DestDir, [H|T], R ) ->
+acc_file( File={str, Filename}, AccIn={RefactorLst, MissingLst, FileLst}, DestDir, [H|T], R ) ->
   AbsSrc = string:join( [H, Filename], "/" ),
   io:format( "Looging for ~s~n", [AbsSrc] ),
   case filelib:is_regular( AbsSrc ) of
@@ -143,7 +143,7 @@ acc_file( File={str, Line, Filename}, AccIn={RefactorLst, MissingLst, FileLst}, 
       Basename = filename:basename( Filename ),
       DestName = string:join( [integer_to_list( R ), Basename], "_" ),
       AbsDest = string:join( [DestDir, DestName], "/" ),
-      {[{AbsSrc, AbsDest}|RefactorLst], MissingLst, [{str, Line, DestName}|FileLst]}
+      {[{AbsSrc, AbsDest}|RefactorLst], MissingLst, [{str, DestName}|FileLst]}
   end.
 
 
