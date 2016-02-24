@@ -27,12 +27,6 @@
 
 
 %% =============================================================================
-%% Includes
-%% =============================================================================
-
--include( "abstract_syntax.hrl" ).
-
-%% =============================================================================
 %% API Functions
 %% =============================================================================
 
@@ -40,14 +34,14 @@
 
 -spec get_refactoring( ParamLst, Fa0, DestDir, SrcDirLst, R ) ->
   {RefactorLst, MissingLst, Fa1}
-when ParamLst    :: [param()],
-     Fa0         :: #{string() => [str()]},
+when ParamLst    :: [cre:param()],
+     Fa0         :: #{string() => [cre:str()]},
      DestDir     :: string(),
      SrcDirLst   :: [string()],
      R           :: pos_integer(),
      RefactorLst :: [{string(), string()}],
      MissingLst  :: [string()],
-     Fa1         :: #{string() => [str()]}.
+     Fa1         :: #{string() => [cre:str()]}.
 
 get_refactoring( ParamLst, Fa0, DestDir, SrcDirLst, R ) ->
   lists:foldl( fun( Param, AccIn ) ->
@@ -87,17 +81,17 @@ apply_refactoring( {Existing, New} ) ->
 -spec acc_refactoring( Param, {RefactorLst, MissingLst, Fa1}, Fa0, DestDir,
                        SrcDirLst, R ) ->
   {RefactorLst1, MissingLst1, Fa2}
-when Param        :: param(),
+when Param        :: cre:param(),
      RefactorLst  :: [{string(), string()}],
      MissingLst   :: [string()],
-     Fa1          :: #{string() => [str()]},
-     Fa0          :: #{string() => [str()]},
+     Fa1          :: #{string() => [cre:str()]},
+     Fa0          :: #{string() => [cre:str()]},
      DestDir      :: string(),
      SrcDirLst    :: [string()],
      R            :: pos_integer(),
      RefactorLst1 :: [{string(), string()}],
      MissingLst1  :: [string()],
-     Fa2          :: #{string() => [str()]}.
+     Fa2          :: #{string() => [cre:str()]}.
 
 acc_refactoring( {param, {name, N, false}, _Pl}, {RefactorLst, MissingLst, Fa1},
                  Fa0, _DestDir, _SrcDirList, _R ) ->
@@ -119,26 +113,29 @@ acc_refactoring( {param, {name, N, true}, _Pl}, {RefactorLst, MissingLst, Fa1},
 -spec acc_file( File, {RefactorLst, MissingLst, FileLst}, DestDir, SrcDirLst,
                 R ) ->
   {RefactorLst1, MissingLst1, FileLst1}
-when File         :: str(),
+when File         :: string() | cre:str(),
      RefactorLst  :: [{string(), string()}],
      MissingLst   :: [string()],
-     FileLst      :: [str()],
+     FileLst      :: [cre:str()],
      DestDir      :: string(),
      SrcDirLst    :: [string()],
      R            :: pos_integer(),
      RefactorLst1 :: [{string(), string()}],
      MissingLst1  :: [string()],
-     FileLst1     :: [str()].
+     FileLst1     :: [cre:str()].
 
-acc_file( File={str, Filename}, {RefactorLst, MissingLst, FileLst}, _DestDir, [], _R ) ->
+acc_file( File={str, Filename}, Acc, DestDir, SrcDirLst, R ) ->
+  acc_file( Filename, Acc, DestDir, SrcDirLst, R );
+
+acc_file( Filename, {RefactorLst, MissingLst, FileLst}, _DestDir, [], _R ) ->
   Basename = filename:basename( Filename ),
-  {RefactorLst, [File|MissingLst], [{str, Basename}|FileLst]};
+  {RefactorLst, [Filename|MissingLst], [{str, Basename}|FileLst]};
 
-acc_file( File={str, Filename}, AccIn={RefactorLst, MissingLst, FileLst}, DestDir, [H|T], R ) ->
+acc_file( Filename, AccIn={RefactorLst, MissingLst, FileLst}, DestDir, [H|T], R ) ->
   AbsSrc = string:join( [H, Filename], "/" ),
   io:format( "Looging for ~s~n", [AbsSrc] ),
   case filelib:is_regular( AbsSrc ) of
-    false -> acc_file( File, AccIn, DestDir, T, R );
+    false -> acc_file( Filename, AccIn, DestDir, T, R );
     true  ->
       Basename = filename:basename( Filename ),
       DestName = string:join( [integer_to_list( R ), Basename], "_" ),

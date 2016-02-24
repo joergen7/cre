@@ -66,8 +66,7 @@ stage( Lam={lam, _LamLine, _LamName, {sign, Lo, Li}, {forbody, _Lang, Script}},
           {failed, R2, Data};
         {finished, Sum}    ->
 
-          Ret0 = maps:get( ret, Sum ),
-          Ret1 = maps:map( fun( _N, X ) -> [{str, S} || S <- X] end, Ret0 ),
+          Ret1 = maps:get( ret, Sum ),
 
           % resolve output files
           Triple2 = refactor:get_refactoring( Lo, Ret1, RepoDir, [Dir], R ),

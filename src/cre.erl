@@ -38,8 +38,6 @@
 -include_lib( "eunit/include/eunit.hrl" ).
 -endif.
 
--include( "abstract_syntax.hrl" ).
-
 %% =============================================================================
 %% Callback Function Declarations
 %% =============================================================================
@@ -53,12 +51,28 @@ when Lam     :: lam(),
 
 
 %% =============================================================================
+%% Abstract Syntax
+%% =============================================================================
+
+-type str()     :: {str, S::string()}.
+-type fut()     :: {fut, Name::string(), R::pos_integer(), Lo::[param()]}.
+-type app()     :: {app, AppLine::pos_integer(), C::pos_integer(),
+                         Lambda::lam(), Fa::#{string() => [str()]}}.
+-type lam()     :: {lam, LamLine::pos_integer(), Name::string(),
+                         S::sign(), B::forbody()}.
+-type sign()    :: {sign, Lo::[param()], Li::[param()]}.
+-type param()   :: {param, M::name(), Pl::boolean()}.
+-type name()    :: {name, N::string(), Pf::boolean()}.
+-type forbody() :: {forbody, L::lang(), S::string()}.
+-type lang()    :: bash | python | r.
+
+%% =============================================================================
 %% Generic Server Functions
 %% =============================================================================
 
 code_change( _OldVsn, State, _Extra ) -> {ok, State}.
-handle_cast( Request, _State )        -> error( {bad_request, Request} ).
-terminate( _Reason, _State )          -> ok.
+handle_cast( Request, _State ) -> error( {bad_request, Request} ).
+terminate( _Reason, _State ) -> ok.
 
 %% Initialization %%
 
