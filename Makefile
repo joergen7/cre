@@ -1,5 +1,5 @@
 all: .rebar/cre_18.2.1_plt
-	rebar co eu dialyze doc
+	rebar co eu dialyze
 
 clean:
 	rebar clean
