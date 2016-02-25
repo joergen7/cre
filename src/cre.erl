@@ -77,45 +77,69 @@ terminate( _Reason, _State ) -> ok.
 %% Initialization %%
 
 init( [] ) ->
-  Mod       = cre_local, % CRE callback module implementing the stage function
-  SubscrLst = [],        % list of subscribers
-  R         = 1,         % next id
+  Mod       = cre_local,  % CRE callback module implementing the stage function
+  SubscrSet = sets:new(), % list of subscribers
+  Cache     = #{},        % cache
+  R         = 1,          % next id
 
   % initialize CRE
   apply( Mod, init, [] ),
 
-  {ok, {Mod, SubscrLst, R}}.
+  {ok, {Mod, SubscrSet, Cache, R}}.
 
 %% Call Handler %%
 
-handle_call( {submit, App, DataDir}, {Pid, _Tag}, {Mod, SubscrLst, R} ) ->
+handle_call( {submit, App, DataDir}, {Pid, _Tag}, {Mod, SubscrSet, Cache, R} ) ->
 
   {app, _, _, Lam, Fa} = App,
   {lam, _, Name, {sign, Lo, _}, _} = Lam,
 
-  _Pid = spawn_link( ?MODULE, stage_reply, [self(), Lam, Fa, Mod, DataDir, R] ),
+  % construct cache key
+  Ckey = {Lam, Fa, DataDir},
 
-  {reply, {fut, Name, R, Lo}, {Mod, [Pid|SubscrLst], R+1}};
+  % add pid to set of subscribers
+  SubscrSet1 = sets:add_element( Pid, SubscrSet ),
+
+  case maps:is_key( Ckey, Cache ) of
+
+    false ->
+
+      % create new future
+      Fut = {fut, Name, R, Lo},
+
+      % start process
+      _Pid = spawn_link( ?MODULE, stage_reply, [self(), Lam, Fa, Mod, DataDir, R] ),
+
+
+      {reply, Fut, {Mod, SubscrSet1, Cache#{Ckey => Fut}, R+1}};
+
+    true ->
+
+      % retrieve future from cache
+      Fut = maps:get( Ckey, Cache ),
+
+      {reply, Fut, {Mod, SubscrSet1, Cache, R}}
+  end;
 
 handle_call( Request, _From, _State ) ->
   error( {bad_request, Request} ).
 
 %% Info Handler %%
 
-handle_info( {failed, Reason, Data}, {Mod, SubscrLst, R} ) ->
-  io:format( "Got failed message. Notifying subscribers ...~n" ),
+handle_info( {failed, Reason, Data}, {Mod, SubscrSet, Cache, R} ) ->
   lists:foreach( fun( Subscr ) ->
                    Subscr ! {failed, Reason, Data}
                  end,
-                 SubscrLst ),
-  {noreply, {Mod, [], R}};
+                 sets:to_list( SubscrSet ) ),
+  {noreply, {Mod, sets:new(), Cache, R}};
 
-handle_info( {finished, Sum}, {Mod, SubscrLst, R} ) ->
+handle_info( {finished, Sum}, {Mod, SubscrSet, Cache, R} ) ->
 
   lists:foreach( fun( Subscr ) ->
                    Subscr ! {finished, Sum}
-                 end, SubscrLst ),
-  {noreply, {Mod, SubscrLst, R}};
+                 end,
+                 sets:to_list( SubscrSet ) ),
+  {noreply, {Mod, SubscrSet, Cache, R}};
 
 handle_info( Info, _State ) ->
   error( {bad_msg, Info} ).
@@ -165,7 +189,6 @@ when From    :: pid(),
 
 stage_reply( From, Lam, Fa, Mod, DataDir, R ) ->
   Result = apply( Mod, stage, [Lam, Fa, DataDir, R] ),
-  io:format( "Received something.~nSending this back to CRE ...~n" ),
   From ! Result.
 
 

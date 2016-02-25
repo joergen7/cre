@@ -27,7 +27,6 @@
 -define( REPO, "repo" ).
 
 init() ->
-  io:format( "Deleting base directory: ~p~n", [?BASEDIR] ),
   _Output = os:cmd( string:join( ["rm", "-rf", ?BASEDIR], " " ) ),
   ok.
 
@@ -57,13 +56,10 @@ stage( Lam={lam, _LamLine, _LamName, {sign, Lo, Li}, {forbody, _Lang, Script}},
 
       % create option list for effi
       OptList = cre:get_optlist( Lam, Fa1, Dir, R ),
-      io:format( "Fa: ~p~nLam: ~p~nFa1: ~p~nDir: ~p~nR: ~p~nOptList: ~p~n", [Fa, Lam, Fa1, Dir, R, OptList] ),
 
       % start effi
       case effi:check_run( OptList, Script ) of
-        {failed, R2, Data} ->
-          io:format( "Check_run failed! aborting ...~n" ),
-          {failed, R2, Data};
+        {failed, R2, Data} -> {failed, R2, Data};
         {finished, Sum}    ->
 
           Ret1 = maps:get( ret, Sum ),
