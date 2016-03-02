@@ -110,7 +110,6 @@ handle_call( {submit, App, DataDir}, {Pid, _Tag}, {Mod, SubscrSet, Cache, R} ) -
       % start process
       _Pid = spawn_link( ?MODULE, stage_reply, [self(), Lam, Fa, Mod, DataDir, R] ),
 
-
       {reply, Fut, {Mod, SubscrSet1, Cache#{Ckey => Fut}, R+1}};
 
     true ->
@@ -173,6 +172,7 @@ when Lam :: lam(),
      R   :: pos_integer().
 
 get_optlist( {lam, _, Name, {sign, Lo, Li}, {forbody, Lang, _}}, Fa, Dir, R ) ->
+
   GeneralOpt = [{dir, Dir}, {prefix, R}, {lang, Lang}, {taskname, Name}],
   OutputOpt  = [acc_out( N, Pl ) || {param, {name, N, _}, Pl} <- Lo],
   InputOpt   = [acc_in( N, Pl, Fa ) || {param, {name, N, _}, Pl} <- Li],
@@ -220,6 +220,7 @@ when N  :: string(),
      Fa :: #{string() => [str()]}.
 
 acc_in( N, Pl, Fa ) ->
+
   StrList = maps:get( N, Fa ),
   CommaSeparated = string:join( [S || {str, S} <- StrList], "," ),
   V = lists:flatten( io_lib:format( "~s:~s", [N, CommaSeparated] ) ),

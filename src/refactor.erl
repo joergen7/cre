@@ -25,6 +25,13 @@
 
 -export( [get_refactoring/5, apply_refactoring/1] ).
 
+%% =============================================================================
+%% Includes
+%% =============================================================================
+
+-ifdef( TEST ).
+-include_lib( "eunit/include/eunit.hrl" ).
+-endif.
 
 %% =============================================================================
 %% API Functions
@@ -126,8 +133,8 @@ when File         :: string() | cre:str(),
 
 acc_file( {str, Filename}, Acc, DestDir, SrcDirLst, R ) ->
   Acc1 = acc_file( Filename, Acc, DestDir, SrcDirLst, R ),
-  {RefactorLst, MissingLst, FileLst} = Acc1,
-  {RefactorLst, MissingLst, [{str, S}|| S <- FileLst]};
+  {RefactorLst, MissingLst, [H|T]} = Acc1,
+  {RefactorLst, MissingLst, [{str, H}|T]};
 
 acc_file( Filename, {RefactorLst, MissingLst, FileLst}, _DestDir, [], _R ) ->
   Basename = filename:basename( Filename ),
@@ -145,3 +152,30 @@ acc_file( Filename, AccIn={RefactorLst, MissingLst, FileLst}, DestDir, [H|T], R 
   end.
 
 
+-ifdef( TEST ).
+
+acc_file_should_add_missing_file_to_missinglst_for_empty_srclst_test() ->
+  Filename = "some/file/that/does/not/exist",
+  X = acc_file( Filename, {[], [], []}, "/dest/dir", [], 12 ),
+  ?assertEqual( {[], [Filename], ["exist"]}, X ).
+
+acc_file_should_add_missing_file_to_missinglst_for_one_element_srclst_test() ->
+  Filename = "some/file/that/does/not/exist",
+  X = acc_file( Filename, {[], [], []}, "/dest/dir", ["/some/src/dir"], 12 ),
+  ?assertEqual( {[], [Filename], ["exist"]}, X ).
+
+acc_file_should_add_missing_file_to_missinglst_for_two_element_srclst_test() ->
+  Filename = "some/file/that/does/not/exist",
+  X = acc_file( Filename, {[], [], []}, "/dest/dir", ["/some/src/dir", "/some/other/src/dir"], 12 ),
+  ?assertEqual( {[], [Filename], ["exist"]}, X ).
+
+acc_file_should_add_missing_file_to_missinglst_for_str_test() ->
+  Filename = "some/file/that/does/not/exist",
+  X = acc_file( {str, Filename}, {[], [], []}, "/dest/dir", [], 12 ),
+  ?assertEqual( {[], [Filename], [{str, "exist"}]}, X ).
+
+acc_refactoring_should_work_test() ->
+  X = acc_refactoring( {param, {name, "x", true}, true}, {[], [], #{}}, #{"x" => [{str, "1"}, {str, "2"}]}, "/dest/dir", [], 13 ),
+  ?assertEqual( {[], ["2", "1"], #{"x" => [{str, "1"}, {str, "2"}]}}, X ).
+
+-endif.
