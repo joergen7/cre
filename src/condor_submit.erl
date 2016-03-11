@@ -51,20 +51,20 @@ generate_condor_submit(CFParams) -> generate_condor_submit(CFParams, #{}).
 %% 2. declared default condor parameters
 %%
 generate_condor_submit(#{ executable := Executable,
-                          log := Log,
-                          output := Output,
-                          error := Error,
-                          initialdir := InitialDir} = CFParams,
-                          DeclaredParams) when
+  log := Log,
+  output := Output,
+  error := Error,
+  initialdir := InitialDir} = CFParams,
+    DeclaredParams) when
   is_list(Executable), length(Executable) > 0,
   is_list(Log), length(Log) > 0,
   is_list(Output), length(Output) > 0,
   is_list(Error), length(Error) > 0,
   is_list(InitialDir), length(InitialDir) > 0,
   is_map(DeclaredParams) ->
-    CondorParams0  = combine_params(CFParams, DeclaredParams),
-    CondorParams = maps:merge(CondorParams0, ?VANILLA_DEFAULTS),
-    create_submitfile(CondorParams).
+  CondorParams0  = combine_params(CFParams, DeclaredParams),
+  CondorParams = maps:merge(CondorParams0, ?VANILLA_DEFAULTS),
+  create_submitfile(CondorParams).
 
 %%
 %% This method expects 3 arguments:
@@ -74,8 +74,8 @@ generate_condor_submit(#{ executable := Executable,
 %%
 generate_condor_submit(CFParams, DeclaredDefaultParams, DeclaredTaskParams)
   when is_map(DeclaredDefaultParams), is_map(DeclaredTaskParams)->
-    DefaultParams = combine_params(DeclaredTaskParams, DeclaredDefaultParams),
-    generate_condor_submit(CFParams, DefaultParams).
+  DefaultParams = combine_params(DeclaredTaskParams, DeclaredDefaultParams),
+  generate_condor_submit(CFParams, DefaultParams).
 
 
 %% INTERNAL methods
@@ -84,10 +84,10 @@ validate_input_files( #{ transfer_input_files := [] } = Params) ->
   maps:remove(transfer_input_files, Params);
 validate_input_files( #{ transfer_input_files := InputFiles} = Params)
   when is_list(InputFiles) ->
-    case lists:all(fun(Elem) -> filelib:is_file(Elem) end, InputFiles) of
-      true -> Params;
-      false -> {error, io_lib:format("Invalid input file(s) in ~p!", [InputFiles])}
-    end;
+  case lists:all(fun(Elem) -> filelib:is_file(Elem) end, InputFiles) of
+    true -> Params;
+    false -> {error, io_lib:format("Invalid input file(s) in ~p!", [InputFiles])}
+  end;
 validate_input_files(#{} = Params) -> Params.
 
 
@@ -95,7 +95,7 @@ validate_input_files(#{} = Params) -> Params.
 %% Params1 will take precedence over Params2, but if there is tranfer_input_files parameter
 %% present in both it will merge the list of input files into one
 combine_params( #{ transfer_input_files := InputFiles1 } = Params1,
-                #{ transfer_input_files := InputFiles2 } = Params2 )
+    #{ transfer_input_files := InputFiles2 } = Params2 )
   when is_list(InputFiles1), is_list(InputFiles2) ->
   InputFiles = InputFiles1 ++ InputFiles2,
   combine_params(
@@ -104,7 +104,7 @@ combine_params( #{ transfer_input_files := InputFiles1 } = Params1,
   );
 combine_params(Params1, Params2) when is_map(Params1), is_map(Params2) ->
   maps:merge(validate_input_files(Params1),
-             validate_input_files(Params2)).
+    validate_input_files(Params2)).
 
 
 %%% The only parameter that might come here as a list instead of complete cs-string
@@ -131,17 +131,18 @@ create_submitfile(CondorParams0) ->
 
 -define (GOOD_CF_PARAMS,
   #{ executable => "do_something.sh",
-  log => "job123.log",
-  output => "job123.stdout",
-  error => "job123.stderr",
-  initialdir => "."}).
+    log => "job123.log",
+    output => "job123.stdout",
+    error => "job123.stderr",
+    initialdir => ".",
+    transfer_input_files => []}).
 
 %%% For testing with condor create `do_something.sh` in the same dir where you run
 %%% `condor_submit /tmp/cf_params_test
 cf_params_test() ->
   CondorSubmitStr = generate_condor_submit(?GOOD_CF_PARAMS),
   file:write_file("/tmp/cf_params_test", [CondorSubmitStr]).
-
+%%   condor_submit("/tmp/cf_params_test").
 
 %%% If files at the end aren't deleted it produces a valid submitfile: /tmp/default_parameters_test
 %%% If run with `condor_submit /tmp/default_parameters_test`
@@ -155,22 +156,57 @@ default_params_test() ->
     should_transfer_files => "NO" },
 
   CFParams = maps:put(transfer_input_files, ["/tmp/cf1.tmp", "/tmp/cf2.tmp", "/tmp/cf3.tmp"], ?GOOD_CF_PARAMS),
+
+%%   generate_condor_submit(CFParams, DefaultParams),
+
   Files = maps:get(transfer_input_files, DefaultParams) ++ maps:get(transfer_input_files, CFParams),
   create_temp_files(Files),
   CondorSubmitStr = generate_condor_submit(CFParams, DefaultParams),
   file:write_file("/tmp/default_params_test", CondorSubmitStr).
-%%   delete_temp_files(Files).
+%%   condor_submit("/tmp/default_params_test").
 
+task_params_test() ->
+  DefaultParams = #{ universe => "docker",
+    docker_image => "some_image:latest",
+    transfer_input_files => ["/tmp/d1.tmp", "/tmp/d2.tmp"],
+    should_transfer_files => "NO" },
+
+  TaskParams = #{ requestMemory => "256M",
+    transfer_input_files => ["/tmp/t1.tmp", "/tmp/t2.tmp"]},
+
+  CFParams = maps:put(transfer_input_files, ["/tmp/cf1.tmp", "/tmp/cf2.tmp", "/tmp/cf3.tmp"], ?GOOD_CF_PARAMS),
+
+%%   generate_condor_submit(CFParams, DefaultParams, TaskParams),
+
+  Files = maps:get(transfer_input_files, DefaultParams) ++
+    maps:get(transfer_input_files, TaskParams) ++
+    maps:get(transfer_input_files, CFParams),
+
+  CondorSubmitStr = generate_condor_submit(CFParams, DefaultParams, TaskParams),
+  file:write_file("/tmp/task_params_test_error", CondorSubmitStr),
+
+  create_temp_files(Files),
+  CondorSubmitStr = generate_condor_submit(CFParams, DefaultParams, TaskParams),
+  file:write_file("/tmp/task_params_test", CondorSubmitStr).
+%%   condor_submit("/tmp/task_params_test").
 
 create_temp_files(Files) when is_list(Files) ->
   lists:foreach(fun(F) -> file:write_file(F, "") end, Files).
 
-delete_temp_files(Files) ->
-  lists:foreach(fun(F) -> file:delete(F) end, Files).
+%%% TODO: move out of here into CT, IMPROVE TEST COVERAGE, and uncomment condor_submits
 
-%%% TODO: MORE TESTS ARE COMING
+%% DELETE to test with condor
+%% delete_temp_files(Files) ->
+%%   lists:foreach(fun(F) -> file:delete(F) end, Files).
+
+%% condor_submit(CondorSubmitFile) ->
+%%   Out = os:cmd(["condor_submit", CondorSubmitFile]),
+%%   OutFile = io_lib:format("/tmp/~s_submit_result", [CondorSubmitFile]),
+%%   file:write_file(OutFile, Out).
 
 -endif.
+
+
 
 
 
