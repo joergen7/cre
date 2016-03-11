@@ -23,8 +23,7 @@
 %% Function Exports
 %% =============================================================================
 
--export( [start_link/0, submit/2, format_optlist/1, get_optlist/4,
-          stage_reply/6] ).
+-export( [start_link/0, submit/2, stage_reply/6] ).
 
 -behaviour( gen_server ).
 -export( [code_change/3, handle_cast/2, handle_info/2, init/1, terminate/2,
@@ -44,8 +43,8 @@
 
 -callback init() -> ok.
 -callback stage( Lam, Fa, DataDir, R ) -> tuple()
-when Lam     :: lam(),
-     Fa      :: #{string() => [str()]},
+when Lam     :: effi:lam(),
+     Fa      :: #{string() => [effi:str()]},
      DataDir :: string(),
      R       :: pos_integer().
 
@@ -54,17 +53,9 @@ when Lam     :: lam(),
 %% Abstract Syntax
 %% =============================================================================
 
--type str()     :: {str, S::string()}.
--type fut()     :: {fut, Name::string(), R::pos_integer(), Lo::[param()]}.
+-type fut()     :: {fut, Name::string(), R::pos_integer(), Lo::[effi:param()]}.
 -type app()     :: {app, AppLine::pos_integer(), C::pos_integer(),
-                         Lambda::lam(), Fa::#{string() => [str()]}}.
--type lam()     :: {lam, LamLine::pos_integer(), Name::string(),
-                         S::sign(), B::forbody()}.
--type sign()    :: {sign, Lo::[param()], Li::[param()]}.
--type param()   :: {param, M::name(), Pl::boolean()}.
--type name()    :: {name, N::string(), Pf::boolean()}.
--type forbody() :: {forbody, L::lang(), S::string()}.
--type lang()    :: bash | python | r.
+                         Lambda::effi:lam(), Fa::#{string() => [effi:str()]}}.
 
 %% =============================================================================
 %% Generic Server Functions
@@ -159,30 +150,10 @@ start_link() ->
 submit( App, DataDir ) ->
   gen_server:call( ?MODULE, {submit, App, DataDir} ).
 
-
--spec format_optlist( OptList::[{atom(), _}] ) -> iolist().
-
-format_optlist( OptList ) ->
-  string:join( [format_optpair( OptPair ) || OptPair <- OptList], " " ).
-
--spec get_optlist( Lam, Fa, Dir, R ) -> [{atom(), _}]
-when Lam :: lam(),
-     Fa  :: #{string() => [str()]},
-     Dir :: string(),
-     R   :: pos_integer().
-
-get_optlist( {lam, _, Name, {sign, Lo, Li}, {forbody, Lang, _}}, Fa, Dir, R ) ->
-
-  GeneralOpt = [{dir, Dir}, {prefix, R}, {lang, Lang}, {taskname, Name}],
-  OutputOpt  = [acc_out( N, Pl ) || {param, {name, N, _}, Pl} <- Lo],
-  InputOpt   = [acc_in( N, Pl, Fa ) || {param, {name, N, _}, Pl} <- Li],
-  FileOpt    = lists:foldl( fun acc_file/2, [], Lo++Li ),
-  GeneralOpt++OutputOpt++InputOpt++FileOpt.
-
 -spec stage_reply( From, Lam, Fa, Mod, DataDir, R ) -> tuple()
 when From    :: pid(),
-     Lam     :: lam(),
-     Fa      :: #{string() => str()},
+     Lam     :: effi:lam(),
+     Fa      :: #{string() => effi:str()},
      Mod     :: atom(),
      DataDir :: string(),
      R       :: pos_integer().
@@ -196,58 +167,8 @@ stage_reply( From, Lam, Fa, Mod, DataDir, R ) ->
 %% Internal Functions
 %% =============================================================================
 
--spec format_optpair( OptPair::{atom(), _} ) -> iolist().
-
-format_optpair( {lang, L} ) -> io_lib:format( "-l ~w", [L] ).
-
--spec acc_out( N::string(), Pl::boolean() ) -> {atom(), string()}.
-
-acc_out( N, Pl ) ->
-  K = case Pl of
-        true -> listout;
-        false -> singout
-      end,
-  {K, N}.
-
--spec acc_file( A::app(), Acc0::[{atom(), string()}] ) -> [{atom(), string()}].
-
-acc_file( {param, {name, N, Pf}, _}, Acc0 ) when Pf -> [{file, N}|Acc0];
-acc_file( _,                         Acc0 )         -> Acc0.
-
--spec acc_in( N, Pl, Fa ) -> {atom(), string()}
-when N  :: string(),
-     Pl :: boolean(),
-     Fa :: #{string() => [str()]}.
-
-acc_in( N, Pl, Fa ) ->
-
-  StrList = maps:get( N, Fa ),
-  CommaSeparated = string:join( [S || {str, S} <- StrList], "," ),
-  V = lists:flatten( io_lib:format( "~s:~s", [N, CommaSeparated] ) ),
-  K = case Pl of
-    true -> listin;
-    false -> singin
-  end,
-  {K, V}.
 
 -ifdef( TEST ).
 
-format_optpair_formats_bash_test() ->
-  S = format_optpair( {lang, bash} ),
-  ?assertEqual( "-l bash", lists:flatten( S ) ).
-
-format_optpair_formats_python_test() ->
-  S = format_optpair( {lang, python} ),
-  ?assertEqual( "-l python", lists:flatten( S ) ).
-
-format_optpair_formats_r_test() ->
-  S = format_optpair( {lang, r} ),
-  ?assertEqual( "-l r", lists:flatten( S ) ).
-
-acc_in_should_compose_single_binding_test() ->
-  N = "a",
-  Pl = false,
-  Fa = #{"a" => [{str, "blub"}]},
-  ?assertEqual( {singin, "a:blub"}, acc_in( N, Pl, Fa ) ).
 
 -endif.

@@ -31,7 +31,7 @@ init() ->
   ok.
 
 
-stage( Lam={lam, _LamLine, _LamName, {sign, Lo, Li}, {forbody, _Lang, Script}},
+stage( Lam={lam, _LamLine, _LamName, {sign, Lo, Li}, _Body},
        Fa, DataDir, R ) ->
 
   Dir = string:join( [?BASEDIR, ?WORK, integer_to_list( R )], "/" ),
@@ -56,11 +56,8 @@ stage( Lam={lam, _LamLine, _LamName, {sign, Lo, Li}, {forbody, _Lang, Script}},
       % link in input files
       refactor:apply_refactoring( RefactorLst1 ),
 
-      % create option list for effi
-      OptList = cre:get_optlist( Lam, Fa1, Dir, R ),
-
       % start effi
-      case effi:check_run( OptList, Script ) of
+      case effi:check_run( Lam, Fa1, Dir ) of
         {failed, R2, Data} -> {failed, R2, Data};
         {finished, Sum}    ->
 
