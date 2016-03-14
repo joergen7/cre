@@ -42,11 +42,11 @@
 %% =============================================================================
 
 -callback init() -> ok.
--callback stage( Lam, Fa, DataDir, R ) -> tuple()
+-callback stage( Lam, Fa, R, DataDir ) -> tuple()
 when Lam     :: effi:lam(),
      Fa      :: #{string() => [effi:str()]},
-     DataDir :: string(),
-     R       :: pos_integer().
+     R       :: pos_integer(),
+     DataDir :: string().
 
 
 %% =============================================================================
@@ -68,7 +68,7 @@ terminate( _Reason, _State ) -> ok.
 %% Initialization %%
 
 init( [] ) ->
-  Mod       = cre_local,  % CRE callback module implementing the stage function
+  Mod       = native,     % CRE callback module implementing the stage function
   SubscrSet = sets:new(), % list of subscribers
   Cache     = #{},        % cache
   R         = 1,          % next id
@@ -99,7 +99,7 @@ handle_call( {submit, App, DataDir}, {Pid, _Tag}, {Mod, SubscrSet, Cache, R} ) -
       Fut = {fut, Name, R, Lo},
 
       % start process
-      _Pid = spawn_link( ?MODULE, stage_reply, [self(), Lam, Fa, Mod, DataDir, R] ),
+      _Pid = spawn_link( ?MODULE, stage_reply, [self(), Lam, Fa, Mod, R, DataDir] ),
 
       {reply, Fut, {Mod, SubscrSet1, Cache#{Ckey => Fut}, R+1}};
 

@@ -16,7 +16,7 @@
 % See the License for the specific language governing permissions and
 % limitations under the License.
 
--module( cre_local ).
+-module( native ).
 -author( "Jorgen Brandt <brandjoe@hu-berlin.de>" ).
 
 -behaviour( cre ).
@@ -32,7 +32,7 @@ init() ->
 
 
 stage( Lam={lam, _LamLine, _LamName, {sign, Lo, Li}, _Body},
-       Fa, DataDir, R ) ->
+       Fa, R, DataDir ) ->
 
   Dir = string:join( [?BASEDIR, ?WORK, integer_to_list( R )], "/" ),
   RepoDir = string:join( [?BASEDIR, ?REPO], "/" ),
@@ -57,7 +57,7 @@ stage( Lam={lam, _LamLine, _LamName, {sign, Lo, Li}, _Body},
       refactor:apply_refactoring( RefactorLst1 ),
 
       % start effi
-      case effi:check_run( Lam, Fa1, Dir ) of
+      case effi:check_run( Lam, Fa1, R, Dir ) of
         {failed, R2, Data} -> {failed, R2, Data};
         {finished, Sum}    ->
 
