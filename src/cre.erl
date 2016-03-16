@@ -16,6 +16,17 @@
 % See the License for the specific language governing permissions and
 % limitations under the License.
 
+%% @author Jörgen Brandt <brandjoe@hu-berlin.de>
+%% @doc The Cuneiform Runtime Environment (CRE).
+%% ```+-------+   +-------+
+%%    | Query |   | Query |
+%%    +-------+   +-------+
+%%            \   /
+%%           +-----+
+%%           | CRE |
+%%           +-----+'''
+
+
 -module( cre ).
 -author( "Jorgen Brandt <brandjoe@hu-berlin.de>" ).
 
@@ -43,8 +54,8 @@
 
 -callback init() -> ok.
 -callback stage( Lam, Fa, R, DataDir ) -> tuple()
-when Lam     :: effi:lam(),
-     Fa      :: #{string() => [effi:str()]},
+when Lam     :: lam(),
+     Fa      :: #{string() => [str()]},
      R       :: pos_integer(),
      DataDir :: string().
 
@@ -53,13 +64,28 @@ when Lam     :: effi:lam(),
 %% Type Definitions
 %% =============================================================================
 
+-type str()       :: {str, S::string()}.
+
+-type lam()       :: {lam, LamLine::pos_integer(), Name::string(),
+                           S::sign(), B::forbody()}.
+
+-type sign()      :: {sign, Lo::[param()], Li::[param()]}.
+
+-type param()     :: {param, M::name(), Pl::boolean()}.
+
+-type name()      :: {name, N::string(), Pf::boolean()}.
+
+-type forbody()   :: {forbody, L::lang(), S::string()}.
+
+-type lang()      :: bash | python | r.
+
 -type fut()       :: {fut, LamName::string(), R::pos_integer(),
-                           Lo::[effi:param()]}.
+                           Lo::[param()]}.
 
 -type app()       :: {app, AppLine::pos_integer(), C::pos_integer(),
-                           Lambda::effi:lam(), Fa::#{string() => [effi:str()]}}.
+                           Lambda::lam(), Fa::#{string() => [str()]}}.
 
--type ckey()      :: {effi:lam(), #{string() => [effi:str()]}, string()}.
+-type ckey()      :: {lam(), #{string() => [str()]}, string()}.
 
 -type response()  :: {failed, pos_integer(), atom(), term()}
                    | {finished, #{atom() => term()}}.
@@ -78,12 +104,12 @@ code_change( _OldVsn, State, _Extra ) -> {ok, State}.
 handle_cast( Request, _State ) -> error( {bad_request, Request} ).
 terminate( _Reason, _State ) -> ok.
 
-%% Initialization %%
+%% @doc Generates the initial state of the CRE.
 
 -spec init( [] ) -> {ok, cre_state()}.
 
 init( [] ) ->
-  Mod       = native,     % CRE callback module implementing the stage function
+  Mod       = local,      % CRE callback module implementing the stage function
   SubscrMap = #{},        % mapping of a future to a set of subscriber pids
   ReplyMap  = #{},        % mapping of a future to a response
   Cache     = #{},        % cache mapping a cache key to a future
@@ -94,8 +120,21 @@ init( [] ) ->
 
   {ok, {Mod, SubscrMap, ReplyMap, Cache, R}}.
 
-%% Call Handler %%
-
+%% @doc On receiving a call containing a subission, a future is generated and
+%%      returned.
+%%
+%%      When a submission request is received by the CRE, it returns a future by
+%%      either creating a future, and spawning a corresponding job, or by
+%%      returning a future from its cache, if a corresponding job has already
+%%      been started.
+%%
+%%      Additionally, the source of the call is added to the subscriber list for
+%%      the corresponding future. All subscribers to a future eventually
+%%      receive a notification about the result of the submission.
+%%
+%%      If the future is served from the cache and a reply has already been
+%%      received, the subscriber is immediately notified.
+%%
 -spec handle_call( Request, From, State ) -> {reply, fut(), cre_state()}
 when Request :: submit(),
      From    :: {pid(), term()},
@@ -205,8 +244,8 @@ submit( App, DataDir ) ->
 
 -spec stage_reply( From, Lam, Fa, Mod, DataDir, R ) -> tuple()
 when From    :: pid(),
-     Lam     :: effi:lam(),
-     Fa      :: #{string() => effi:str()},
+     Lam     :: lam(),
+     Fa      :: #{string() => str()},
      Mod     :: atom(),
      DataDir :: string(),
      R       :: pos_integer().
