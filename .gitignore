@@ -9,6 +9,9 @@ rel/example_project
 .concrete/DEV_MODE
 .rebar
 *~
-doc
+doc/*.png
+doc/*.css
+doc/*.html
+doc/edoc-info
 _build
 rebar.lock
