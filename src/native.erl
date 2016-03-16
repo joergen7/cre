@@ -50,7 +50,7 @@ stage( Lam={lam, _LamLine, _LamName, {sign, Lo, Li}, _Body},
   {RefactorLst1, MissingLst1, Fa1} = Triple1,
 
   case MissingLst1 of
-    [_|_] -> {failed, not_found, MissingLst1};
+    [_|_] -> {failed, R, not_found, MissingLst1};
     []    ->
 
       % link in input files
@@ -58,7 +58,7 @@ stage( Lam={lam, _LamLine, _LamName, {sign, Lo, Li}, _Body},
 
       % start effi
       case effi:check_run( Lam, Fa1, R, Dir ) of
-        {failed, R2, Data} -> {failed, R2, Data};
+        {failed, R, R2, Data} -> {failed, R, R2, Data};
         {finished, Sum}    ->
 
           Ret1 = maps:get( ret, Sum ),

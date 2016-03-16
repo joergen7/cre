@@ -50,12 +50,25 @@ when Lam     :: effi:lam(),
 
 
 %% =============================================================================
-%% Abstract Syntax
+%% Type Definitions
 %% =============================================================================
 
--type fut()     :: {fut, Name::string(), R::pos_integer(), Lo::[effi:param()]}.
--type app()     :: {app, AppLine::pos_integer(), C::pos_integer(),
-                         Lambda::effi:lam(), Fa::#{string() => [effi:str()]}}.
+-type fut()       :: {fut, LamName::string(), R::pos_integer(),
+                           Lo::[effi:param()]}.
+
+-type app()       :: {app, AppLine::pos_integer(), C::pos_integer(),
+                           Lambda::effi:lam(), Fa::#{string() => [effi:str()]}}.
+
+-type ckey()      :: {effi:lam(), #{string() => [effi:str()]}, string()}.
+
+-type response()  :: {failed, pos_integer(), atom(), term()}
+                   | {finished, #{atom() => term()}}.
+
+-type cre_state() :: {atom(), #{pos_integer() => sets:set( pid() )},
+                      #{pos_integer() => response()}, #{ckey() => fut()},
+                      pos_integer()}.
+
+-type submit()    :: {submit, app(), string()}.
 
 %% =============================================================================
 %% Generic Server Functions
@@ -67,48 +80,67 @@ terminate( _Reason, _State ) -> ok.
 
 %% Initialization %%
 
+-spec init( [] ) -> {ok, cre_state()}.
+
 init( [] ) ->
   Mod       = native,     % CRE callback module implementing the stage function
-  SubscrSet = sets:new(), % list of subscribers
-  Cache     = #{},        % cache
+  SubscrMap = #{},        % mapping of a future to a set of subscriber pids
+  ReplyMap  = #{},        % mapping of a future to a response
+  Cache     = #{},        % cache mapping a cache key to a future
   R         = 1,          % next id
 
   % initialize CRE
   apply( Mod, init, [] ),
 
-  {ok, {Mod, SubscrSet, Cache, R}}.
+  {ok, {Mod, SubscrMap, ReplyMap, Cache, R}}.
 
 %% Call Handler %%
 
-handle_call( {submit, App, DataDir}, {Pid, _Tag}, {Mod, SubscrSet, Cache, R} ) ->
+-spec handle_call( Request, From, State ) -> {reply, fut(), cre_state()}
+when Request :: submit(),
+     From    :: {pid(), term()},
+     State   :: cre_state().
 
-  {app, _, _, Lam, Fa} = App,
-  {lam, _, Name, {sign, Lo, _}, _} = Lam,
+handle_call( {submit, App, DataDir}, {Pid, _Tag}, {Mod, SubscrMap, ReplyMap, Cache, R} ) ->
+
+  {app, _AppLine, _Channel, Lam, Fa} = App,
+  {lam, _LamLine, LamName, {sign, Lo, _Li}, _Body} = Lam,
 
   % construct cache key
   Ckey = {Lam, Fa, DataDir},
-
-  % add pid to set of subscribers
-  SubscrSet1 = sets:add_element( Pid, SubscrSet ),
 
   case maps:is_key( Ckey, Cache ) of
 
     false ->
 
       % create new future
-      Fut = {fut, Name, R, Lo},
+      Fut = {fut, LamName, R, Lo},
 
       % start process
       _Pid = spawn_link( ?MODULE, stage_reply, [self(), Lam, Fa, Mod, R, DataDir] ),
 
-      {reply, Fut, {Mod, SubscrSet1, Cache#{Ckey => Fut}, R+1}};
+      SubscrMap1 = SubscrMap#{R => sets:from_list( [Pid] )},
+      Cache1 = Cache#{Ckey => Fut},
+      R1 = R+1,
+
+      {reply, Fut, {Mod, SubscrMap1, ReplyMap, Cache1, R1}};
 
     true ->
 
       % retrieve future from cache
       Fut = maps:get( Ckey, Cache ),
 
-      {reply, Fut, {Mod, SubscrSet1, Cache, R}}
+      {fut, _, S, _} = Fut,
+      #{S := SubscrSet} = SubscrMap,
+
+      SubscrMap1 = SubscrMap#{S => sets:add_element( Pid, SubscrSet )},
+
+      case maps:is_key( S, ReplyMap ) of
+        false -> ok;
+        true  -> Pid ! maps:get( S, ReplyMap )
+      end,
+
+      {reply, Fut, {Mod, SubscrMap1, ReplyMap, Cache, R}}
   end;
 
 handle_call( Request, _From, _State ) ->
@@ -116,20 +148,41 @@ handle_call( Request, _From, _State ) ->
 
 %% Info Handler %%
 
-handle_info( {failed, Reason, Data}, {Mod, SubscrSet, Cache, R} ) ->
+-spec handle_info( Info, State ) -> {noreply, cre_state()}
+when Info  :: response(),
+     State :: cre_state().
+
+handle_info( Info={failed, R, Reason, Data}, {Mod, SubscrMap, ReplyMap, Cache, R} ) ->
+
+  % retrieve subscriber set
+  #{R := SubscrSet} = SubscrMap,
+
+  % notify subscribers
   lists:foreach( fun( Subscr ) ->
                    Subscr ! {failed, Reason, Data}
                  end,
                  sets:to_list( SubscrSet ) ),
-  {noreply, {Mod, sets:new(), Cache, R}};
 
-handle_info( {finished, Sum}, {Mod, SubscrSet, Cache, R} ) ->
+  ReplyMap1 = ReplyMap#{R => Info},
 
+  {noreply, {Mod, SubscrMap, ReplyMap1, Cache, R}};
+
+handle_info( Info={finished, Sum}, {Mod, SubscrMap, ReplyMap, Cache, R} ) ->
+
+  % retrieve subscriber set
+  #{id := S} = Sum,
+  #{S := SubscrSet} = SubscrMap,
+
+  % notify subscribers
   lists:foreach( fun( Subscr ) ->
                    Subscr ! {finished, Sum}
                  end,
                  sets:to_list( SubscrSet ) ),
-  {noreply, {Mod, SubscrSet, Cache, R}};
+
+
+  ReplyMap1 = ReplyMap#{S => Info},
+
+  {noreply, {Mod, SubscrMap, ReplyMap1, Cache, R}};
 
 handle_info( Info, _State ) ->
   error( {bad_msg, Info} ).

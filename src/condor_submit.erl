@@ -165,29 +165,29 @@ default_params_test() ->
   file:write_file("/tmp/default_params_test", CondorSubmitStr).
 %%   condor_submit("/tmp/default_params_test").
 
-task_params_test() ->
-  DefaultParams = #{ universe => "docker",
-    docker_image => "some_image:latest",
-    transfer_input_files => ["/tmp/d1.tmp", "/tmp/d2.tmp"],
-    should_transfer_files => "NO" },
+% task_params_test() ->
+%   DefaultParams = #{ universe => "docker",
+%     docker_image => "some_image:latest",
+%     transfer_input_files => ["/tmp/d1.tmp", "/tmp/d2.tmp"],
+%     should_transfer_files => "NO" },
 
-  TaskParams = #{ requestMemory => "256M",
-    transfer_input_files => ["/tmp/t1.tmp", "/tmp/t2.tmp"]},
+%   TaskParams = #{ requestMemory => "256M",
+%     transfer_input_files => ["/tmp/t1.tmp", "/tmp/t2.tmp"]},
 
-  CFParams = maps:put(transfer_input_files, ["/tmp/cf1.tmp", "/tmp/cf2.tmp", "/tmp/cf3.tmp"], ?GOOD_CF_PARAMS),
+%   CFParams = maps:put(transfer_input_files, ["/tmp/cf1.tmp", "/tmp/cf2.tmp", "/tmp/cf3.tmp"], ?GOOD_CF_PARAMS),
 
-%%   generate_condor_submit(CFParams, DefaultParams, TaskParams),
+% %%   generate_condor_submit(CFParams, DefaultParams, TaskParams),
 
-  Files = maps:get(transfer_input_files, DefaultParams) ++
-    maps:get(transfer_input_files, TaskParams) ++
-    maps:get(transfer_input_files, CFParams),
+%   Files = maps:get(transfer_input_files, DefaultParams) ++
+%     maps:get(transfer_input_files, TaskParams) ++
+%     maps:get(transfer_input_files, CFParams),
 
-  CondorSubmitStr = generate_condor_submit(CFParams, DefaultParams, TaskParams),
-  file:write_file("/tmp/task_params_test_error", CondorSubmitStr),
+%   CondorSubmitStr = generate_condor_submit(CFParams, DefaultParams, TaskParams),
+%   file:write_file("/tmp/task_params_test_error", CondorSubmitStr),
 
-  create_temp_files(Files),
-  CondorSubmitStr = generate_condor_submit(CFParams, DefaultParams, TaskParams),
-  file:write_file("/tmp/task_params_test", CondorSubmitStr).
+%   create_temp_files(Files),
+%   CondorSubmitStr = generate_condor_submit(CFParams, DefaultParams, TaskParams),
+%   file:write_file("/tmp/task_params_test", CondorSubmitStr).
 %%   condor_submit("/tmp/task_params_test").
 
 create_temp_files(Files) when is_list(Files) ->
