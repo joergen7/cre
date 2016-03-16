@@ -242,7 +242,7 @@ start_link() ->
 submit( App, DataDir ) ->
   gen_server:call( ?MODULE, {submit, App, DataDir} ).
 
--spec stage_reply( From, Lam, Fa, Mod, DataDir, R ) -> tuple()
+-spec stage_reply( From, Lam, Fa, Mod, DataDir, R ) -> response()
 when From    :: pid(),
      Lam     :: lam(),
      Fa      :: #{string() => str()},
