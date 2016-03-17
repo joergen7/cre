@@ -20,16 +20,35 @@
 -author( "Jorgen Brandt <brandjoe@hu-berlin.de>" ).
 
 -behaviour( cre ).
--export( [init/0, stage/4] ).
+-export( [init/0, handle_submit/5, stage/4] ).
 
 -define( BASEDIR, "/tmp/cf" ).
 -define( WORK, "work" ).
 -define( REPO, "repo" ).
 
+-spec init() -> {ok, pid()}.
+
 init() ->
   _Output = os:cmd( string:join( ["rm", "-rf", ?BASEDIR], " " ) ),
-  ok.
+  jobqueue:start_link().
 
+
+-spec handle_submit( Lam, Fa, R, DataDir, QueueRef ) -> ok
+when Lam      :: cre:lam(),
+     Fa       :: #{string() => [cre:str()]},
+     R        :: pos_integer(),
+     DataDir  :: string(),
+     QueueRef :: pid().
+
+handle_submit( Lam, Fa, R, DataDir, QueueRef ) ->
+  gen_server:cast( QueueRef, {request, self(), {?MODULE, stage, [Lam, Fa, R, DataDir]}} ).
+
+
+-spec stage( Lam, Fa, R, DataDir ) -> cre:response()
+when Lam     :: cre:lam(),
+     Fa      :: #{string() => [cre:str()]},
+     R       :: pos_integer(),
+     DataDir :: string().
 
 stage( Lam={lam, _LamLine, _LamName, {sign, Lo, Li}, _Body},
        Fa, R, DataDir ) ->
@@ -44,8 +63,6 @@ stage( Lam={lam, _LamLine, _LamName, {sign, Lo, Li}, _Body},
   end,
 
   % resolve input files
-
-
   Triple1 = refactor:get_refactoring( Li, Fa, Dir, [DataDir, RepoDir], R ),
   {RefactorLst1, MissingLst1, Fa1} = Triple1,
 

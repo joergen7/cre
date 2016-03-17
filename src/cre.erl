@@ -29,14 +29,14 @@
 
 -module( cre ).
 -author( "Jorgen Brandt <brandjoe@hu-berlin.de>" ).
+-behaviour( gen_server ).
 
 %% =============================================================================
 %% Function Exports
 %% =============================================================================
 
--export( [start_link/0, submit/2, stage_reply/6] ).
+-export( [start_link/0, submit/2] ).
 
--behaviour( gen_server ).
 -export( [code_change/3, handle_cast/2, handle_info/2, init/1, terminate/2,
           handle_call/3] ).
 
@@ -52,13 +52,15 @@
 %% Callback Function Declarations
 %% =============================================================================
 
--callback init() -> ok.
--callback stage( Lam, Fa, R, DataDir ) -> tuple()
-when Lam     :: lam(),
-     Fa      :: #{string() => [str()]},
-     R       :: pos_integer(),
-     DataDir :: string().
 
+-callback init() -> {ok, State::term()}.
+
+-callback handle_submit( Lam, Fa, R, DataDir, ModState ) -> ok
+when Lam      :: lam(),
+     Fa       :: #{string() => [str()]},
+     R        :: pos_integer(),
+     DataDir  :: string(),
+     ModState :: term().
 
 %% =============================================================================
 %% Type Definitions
@@ -90,9 +92,12 @@ when Lam     :: lam(),
 -type response()  :: {failed, pos_integer(), atom(), term()}
                    | {finished, #{atom() => term()}}.
 
--type cre_state() :: {atom(), #{pos_integer() => sets:set( pid() )},
-                      #{pos_integer() => response()}, #{ckey() => fut()},
-                      pos_integer()}.
+-type cre_state() :: {Mod::atom(),
+                      SubscrMap::#{pos_integer() => sets:set( pid() )},
+                      ReplyMap::#{pos_integer() => response()},
+                      Cache::#{ckey() => fut()},
+                      R::pos_integer(),
+                      ModState::term()}.
 
 -type submit()    :: {submit, app(), string()}.
 
@@ -116,9 +121,9 @@ init( [] ) ->
   R         = 1,          % next id
 
   % initialize CRE
-  apply( Mod, init, [] ),
+  {ok, ModState} = apply( Mod, init, [] ),
 
-  {ok, {Mod, SubscrMap, ReplyMap, Cache, R}}.
+  {ok, {Mod, SubscrMap, ReplyMap, Cache, R, ModState}}.
 
 %% @doc On receiving a call containing a subission, a future is generated and
 %%      returned.
@@ -140,7 +145,7 @@ when Request :: submit(),
      From    :: {pid(), term()},
      State   :: cre_state().
 
-handle_call( {submit, App, DataDir}, {Pid, _Tag}, {Mod, SubscrMap, ReplyMap, Cache, R} ) ->
+handle_call( {submit, App, DataDir}, {Pid, _Tag}, {Mod, SubscrMap, ReplyMap, Cache, R, ModState} ) ->
 
   {app, _AppLine, _Channel, Lam, Fa} = App,
   {lam, _LamLine, LamName, {sign, Lo, _Li}, _Body} = Lam,
@@ -156,13 +161,13 @@ handle_call( {submit, App, DataDir}, {Pid, _Tag}, {Mod, SubscrMap, ReplyMap, Cac
       Fut = {fut, LamName, R, Lo},
 
       % start process
-      _Pid = spawn_link( ?MODULE, stage_reply, [self(), Lam, Fa, Mod, R, DataDir] ),
+      apply( Mod, handle_submit, [Lam, Fa, R, DataDir, ModState] ),
 
       SubscrMap1 = SubscrMap#{R => sets:from_list( [Pid] )},
       Cache1 = Cache#{Ckey => Fut},
       R1 = R+1,
 
-      {reply, Fut, {Mod, SubscrMap1, ReplyMap, Cache1, R1}};
+      {reply, Fut, {Mod, SubscrMap1, ReplyMap, Cache1, R1, ModState}};
 
     true ->
 
@@ -179,7 +184,7 @@ handle_call( {submit, App, DataDir}, {Pid, _Tag}, {Mod, SubscrMap, ReplyMap, Cac
         true  -> Pid ! maps:get( S, ReplyMap )
       end,
 
-      {reply, Fut, {Mod, SubscrMap1, ReplyMap, Cache, R}}
+      {reply, Fut, {Mod, SubscrMap1, ReplyMap, Cache, R, ModState}}
   end;
 
 handle_call( Request, _From, _State ) ->
@@ -191,7 +196,7 @@ handle_call( Request, _From, _State ) ->
 when Info  :: response(),
      State :: cre_state().
 
-handle_info( Info={failed, R, Reason, Data}, {Mod, SubscrMap, ReplyMap, Cache, R} ) ->
+handle_info( Info={failed, R, Reason, Data}, {Mod, SubscrMap, ReplyMap, Cache, R, ModState} ) ->
 
   % retrieve subscriber set
   #{R := SubscrSet} = SubscrMap,
@@ -204,9 +209,9 @@ handle_info( Info={failed, R, Reason, Data}, {Mod, SubscrMap, ReplyMap, Cache, R
 
   ReplyMap1 = ReplyMap#{R => Info},
 
-  {noreply, {Mod, SubscrMap, ReplyMap1, Cache, R}};
+  {noreply, {Mod, SubscrMap, ReplyMap1, Cache, R, ModState}};
 
-handle_info( Info={finished, Sum}, {Mod, SubscrMap, ReplyMap, Cache, R} ) ->
+handle_info( Info={finished, Sum}, {Mod, SubscrMap, ReplyMap, Cache, R, ModState} ) ->
 
   % retrieve subscriber set
   #{id := S} = Sum,
@@ -221,7 +226,7 @@ handle_info( Info={finished, Sum}, {Mod, SubscrMap, ReplyMap, Cache, R} ) ->
 
   ReplyMap1 = ReplyMap#{S => Info},
 
-  {noreply, {Mod, SubscrMap, ReplyMap1, Cache, R}};
+  {noreply, {Mod, SubscrMap, ReplyMap1, Cache, R, ModState}};
 
 handle_info( Info, _State ) ->
   error( {bad_msg, Info} ).
@@ -241,19 +246,6 @@ start_link() ->
 
 submit( App, DataDir ) ->
   gen_server:call( ?MODULE, {submit, App, DataDir} ).
-
--spec stage_reply( From, Lam, Fa, Mod, DataDir, R ) -> response()
-when From    :: pid(),
-     Lam     :: lam(),
-     Fa      :: #{string() => str()},
-     Mod     :: atom(),
-     DataDir :: string(),
-     R       :: pos_integer().
-
-stage_reply( From, Lam, Fa, Mod, DataDir, R ) ->
-  Result = apply( Mod, stage, [Lam, Fa, DataDir, R] ),
-  From ! Result.
-
 
 %% =============================================================================
 %% Internal Functions
