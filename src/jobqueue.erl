@@ -86,7 +86,7 @@ start_link( NSlot )
 when is_integer( NSlot ), NSlot > 0 ->
   gen_server:start_link( ?MODULE, NSlot, [] ).
 
--spec stage_reply( QueueRef, Request ) -> term()
+-spec stage_reply( QueueRef, Request ) -> ok
 when QueueRef :: pid(),
      Request  :: request().
 
