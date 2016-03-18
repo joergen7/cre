@@ -66,11 +66,7 @@ handle_cast( Request, {0, Q} ) ->
 
 handle_cast( Request, {NSlot, []} ) ->
   stage_reply( self(), Request ),
-  {noreply, {NSlot-1, []}};
-
-handle_cast( Request, _State ) ->
-  error( {bad_request, Request} ).
-
+  {noreply, {NSlot-1, []}}.
 
 %% =============================================================================
 %% API Functions

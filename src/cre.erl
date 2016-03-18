@@ -185,10 +185,7 @@ handle_call( {submit, App, DataDir}, {Pid, _Tag}, {Mod, SubscrMap, ReplyMap, Cac
       end,
 
       {reply, Fut, {Mod, SubscrMap1, ReplyMap, Cache, R, ModState}}
-  end;
-
-handle_call( Request, _From, _State ) ->
-  error( {bad_request, Request} ).
+  end.
 
 %% Info Handler %%
 
@@ -227,9 +224,6 @@ handle_info( Info={finished, Sum}, {Mod, SubscrMap, ReplyMap, Cache, R, ModState
   ReplyMap1 = ReplyMap#{S => Info},
 
   {noreply, {Mod, SubscrMap, ReplyMap1, Cache, R, ModState}}.
-
-%handle_info( Info, _State ) ->
-%  error( {bad_info, Info} ).
 
 %% =============================================================================
 %% API Functions
