@@ -196,18 +196,18 @@ handle_call( Request, _From, _State ) ->
 when Info  :: response(),
      State :: cre_state().
 
-handle_info( Info={failed, R, Reason, Data}, {Mod, SubscrMap, ReplyMap, Cache, R, ModState} ) ->
+handle_info( Info={failed, S, Reason, CallInfo, Data}, {Mod, SubscrMap, ReplyMap, Cache, R, ModState} ) ->
 
   % retrieve subscriber set
-  #{R := SubscrSet} = SubscrMap,
+  #{S := SubscrSet} = SubscrMap,
 
   % notify subscribers
   lists:foreach( fun( Subscr ) ->
-                   Subscr ! {failed, Reason, Data}
+                   Subscr ! {failed, S, Reason, CallInfo, Data}
                  end,
                  sets:to_list( SubscrSet ) ),
 
-  ReplyMap1 = ReplyMap#{R => Info},
+  ReplyMap1 = ReplyMap#{S => Info},
 
   {noreply, {Mod, SubscrMap, ReplyMap1, Cache, R, ModState}};
 
@@ -226,10 +226,10 @@ handle_info( Info={finished, Sum}, {Mod, SubscrMap, ReplyMap, Cache, R, ModState
 
   ReplyMap1 = ReplyMap#{S => Info},
 
-  {noreply, {Mod, SubscrMap, ReplyMap1, Cache, R, ModState}};
+  {noreply, {Mod, SubscrMap, ReplyMap1, Cache, R, ModState}}.
 
-handle_info( Info, _State ) ->
-  error( {bad_info, Info} ).
+%handle_info( Info, _State ) ->
+%  error( {bad_info, Info} ).
 
 %% =============================================================================
 %% API Functions
