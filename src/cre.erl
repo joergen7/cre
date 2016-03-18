@@ -229,7 +229,7 @@ handle_info( Info={finished, Sum}, {Mod, SubscrMap, ReplyMap, Cache, R, ModState
   {noreply, {Mod, SubscrMap, ReplyMap1, Cache, R, ModState}};
 
 handle_info( Info, _State ) ->
-  error( {bad_msg, Info} ).
+  error( {bad_info, Info} ).
 
 %% =============================================================================
 %% API Functions
