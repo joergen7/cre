@@ -50,7 +50,7 @@ when Lam     :: cre:lam(),
      R       :: pos_integer(),
      DataDir :: string().
 
-stage( Lam={lam, LamLine, LamName, {sign, Lo, Li}, _Body},
+stage( Lam={lam, _LamLine, _LamName, {sign, Lo, Li}, _Body},
        Fa, R, DataDir ) ->
 
   Dir = string:join( [?BASEDIR, ?WORK, integer_to_list( R )], "/" ),
@@ -67,7 +67,7 @@ stage( Lam={lam, LamLine, LamName, {sign, Lo, Li}, _Body},
   {RefactorLst1, MissingLst1, Fa1} = Triple1,
 
   case MissingLst1 of
-    [_|_] -> {failed, R, not_found, {LamLine, LamName, Fa1}, MissingLst1};
+    [_|_] -> {failed, precond, R, MissingLst1};
     []    ->
 
       % link in input files
@@ -76,8 +76,7 @@ stage( Lam={lam, LamLine, LamName, {sign, Lo, Li}, _Body},
       % start effi
       case effi:check_run( Lam, Fa1, R, Dir ) of
 
-        {failed, R, R2, Data} ->
-          {failed, R, R2, {LamLine, LamName, Fa1}, Data};
+        {failed, R2, R, Data} -> {failed, R2, R, Data};
 
         {finished, Sum}    ->
 

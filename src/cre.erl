@@ -193,14 +193,14 @@ handle_call( {submit, App, DataDir}, {Pid, _Tag}, {Mod, SubscrMap, ReplyMap, Cac
 when Info  :: response(),
      State :: cre_state().
 
-handle_info( Info={failed, S, Reason, CallInfo, Data}, {Mod, SubscrMap, ReplyMap, Cache, R, ModState} ) ->
+handle_info( Info={failed, Reason, S, Data}, {Mod, SubscrMap, ReplyMap, Cache, R, ModState} ) ->
 
   % retrieve subscriber set
   #{S := SubscrSet} = SubscrMap,
 
   % notify subscribers
   lists:foreach( fun( Subscr ) ->
-                   Subscr ! {failed, S, Reason, CallInfo, Data}
+                   Subscr ! {failed, Reason, S, Data}
                  end,
                  sets:to_list( SubscrSet ) ),
 
