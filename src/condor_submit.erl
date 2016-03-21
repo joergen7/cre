@@ -63,7 +63,7 @@ generate_condor_submit(#{ executable := Executable,
   is_list(InitialDir), length(InitialDir) > 0,
   is_map(DeclaredParams) ->
   CondorParams0  = combine_params(CFParams, DeclaredParams),
-  CondorParams = maps:merge(CondorParams0, ?VANILLA_DEFAULTS),
+  CondorParams = maps:merge(?VANILLA_DEFAULTS, CondorParams0),
   create_submitfile(CondorParams).
 
 %%
@@ -95,7 +95,7 @@ validate_input_files(#{} = Params) -> Params.
 %% Params1 will take precedence over Params2, but if there is tranfer_input_files parameter
 %% present in both it will merge the list of input files into one
 combine_params( #{ transfer_input_files := InputFiles1 } = Params1,
-    #{ transfer_input_files := InputFiles2 } = Params2 )
+                #{ transfer_input_files := InputFiles2 } = Params2 )
   when is_list(InputFiles1), is_list(InputFiles2) ->
   InputFiles = InputFiles1 ++ InputFiles2,
   combine_params(
@@ -103,8 +103,7 @@ combine_params( #{ transfer_input_files := InputFiles1 } = Params1,
     maps:remove(transfer_input_files, Params2)
   );
 combine_params(Params1, Params2) when is_map(Params1), is_map(Params2) ->
-  maps:merge(validate_input_files(Params1),
-    validate_input_files(Params2)).
+  maps:merge(validate_input_files(Params2), validate_input_files(Params1)).
 
 
 %%% The only parameter that might come here as a list instead of complete cs-string
