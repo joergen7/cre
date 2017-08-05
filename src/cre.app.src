@@ -1,12 +1,17 @@
 {application, cre,
- [
-  {description, "Cuneiform Runtime Environment"},
+ [{description, "A common runtime environment for distributed workflow languages."},
   {vsn, "0.1.0"},
-  {modules, [cre]},
-  {registered, [cre]},
+  {registered, []},
   {applications, [
                   kernel,
                   stdlib
                  ]},
-  {env, []}
+  {env, []},
+  {modules, [cre]},
+
+  {maintainers, ["Jorgen Brandt"]},
+  {licenses, ["Apache 2.0"]},
+  {links, [
+           {"GitHub", "https://github.com/joergen7/cre/"}
+          ]}
  ]}.
