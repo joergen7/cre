@@ -75,10 +75,39 @@ trigger( _Place, _Token, _NetState ) -> pass.
 %% Petri net callback functions
 %%====================================================================
 
-place_lst() -> [].
+place_lst() ->
+ [
+  % client interface
+  'AddClient', 'ExitClient', 'Demand', 'CreRequest', 'CreReply',
 
-trsn_lst() -> [].
+  % worker interface
+  'AddWorker', 'ExitWorker', 'WorkerRequest', 'WorkerOk', 'WorkerError',
 
+  % demand cycle
+  'ClientPool', 'BadClient', 'DemandPool', 'SentDemand', 'BusyDemand',
+
+  % cache cylce
+  'Introduced', 'Released', 'Guard', 'Cache',
+
+  % invocation cycle
+  'Allowed', 'WorkerPool', 'BusyWorker', 'Returned', 'Surplus'
+ ].
+
+trsn_lst() ->
+  [
+   % demand cycle
+   link_client, remove_client, send_demand, recover_demand, introduce, address,
+
+   % cache cycle
+   allow, lookup,
+
+   % invocation cycle
+   link_worker, remove_worker, reallow, schedule, release, return_ok,
+   return_error
+  ].
+
+init_marking( 'Guard', _ )       -> [[]];
+init_marking( 'Cache', _ )       -> [#{}];
 init_marking( _Place, _UsrInfo ) -> [].
 
 preset( _Trsn ) -> [].
