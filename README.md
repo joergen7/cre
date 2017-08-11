@@ -16,7 +16,7 @@
 ## Resources
 
 - [joergen7/cre_client](https://github.com/joergen7/cre_client). A client behavior for the common runtime environment (cre).
-- [joergen7/cre_worker](https://github.com/joergen7/cre). The common runtime environment (cre).
+- [joergen7/cre_worker](https://github.com/joergen7/cre_worker). The common runtime environment (cre).
 - [joergen7/gen_pnet](https://github.com/joergen7/gen_pnet). A generic Petri net OTP behavior.
 
 ## Authors
