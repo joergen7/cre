@@ -110,7 +110,21 @@ init_marking( 'Guard', _ )       -> [[]];
 init_marking( 'Cache', _ )       -> [#{}];
 init_marking( _Place, _UsrInfo ) -> [].
 
-preset( _Trsn ) -> [].
+preset( link_client )    -> ['AddClient'];
+preset( remove_client )  -> ['ClientPool', 'ExitClient'];
+preset( send_demand )    -> ['DemandPool', 'ClientPool'];
+preset( recover_demand ) -> ['SentDemand', 'BadClient'];
+preset( introduce )      -> ['SentDemand', 'CreRequest'];
+preset( address )        -> ['Released', 'BusyDemand'];
+preset( allow )          -> ['Introduced', 'Guard'];
+preset( lookup )         -> ['Introduced', 'Cache'];
+preset( link_worker )    -> ['AddWorker'];
+preset( remove_worker )  -> ['ExitWorker', 'WorkerPool'];
+preset( reallow )        -> ['ExitWorker', 'BusyWorker'];
+preset( schedule )       -> ['Allowed', 'WorkerPool'];
+preset( release )        -> ['Returned', 'BusyWorker'];
+preset( return_ok )      -> ['WorkerOk'];
+preset( return_error )   -> ['WorkerError'].
 
 is_enabled( _Trsn, _Mode, _UsrInfo ) -> false.
 
