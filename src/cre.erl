@@ -126,6 +126,21 @@ preset( release )        -> ['Returned', 'BusyWorker'];
 preset( return_ok )      -> ['WorkerOk'];
 preset( return_error )   -> ['WorkerError'].
 
+is_enabled( link_client,    _,                                                          _ ) -> true;
+is_enabled( remove_client,  #{ 'ClientPool' := [Q], 'ExitClient' := [Q] },              _ ) -> true;
+is_enabled( send_demand,    _,                                                          _ ) -> true;
+is_enabled( recover_demand, #{ 'SentDemand' := [Q], 'BadClient' := [Q] },               _ ) -> true;
+is_enabled( introduce,      #{ 'SentDemand' := [Q], 'CreRequest' := [{{Q, _}, _}] },    _ ) -> true;
+is_enabled( address,        #{ 'Released' := [{A, _}], 'BusyDemand' := [{_, A}] },      _ ) -> true;
+is_enabled( allow,          #{ 'Introduced' := [A], 'Guard' := [Alst] },                _ ) -> not lists:member( A, Alst );
+is_enabled( lookup,         #{ 'Introduced' := [A], 'Cache' := [CMap] },                _ ) -> maps:is_key( A, CMap );
+is_enabled( link_worker,    _,                                                          _ ) -> true;
+is_enabled( remove_worker,  #{ 'ExitWorker' := [P], 'WorkerPool' := [P] },              _ ) -> true;
+is_enabled( reallow,        #{ 'ExitWorker' := [P], 'BusyWorker' := [{P, _}] },         _ ) -> true;
+is_enabled( schedule,       _,                                                          _ ) -> true;
+is_enabled( release,        #{ 'Returned' := [{{P, A}, _}], 'BusyWorker' := [{P, A}] }, _ ) -> true;
+is_enabled( return_ok,      _,                                                          _ ) -> true;
+is_enabled( return_error,   _,                                                          _ ) -> true;
 is_enabled( _Trsn, _Mode, _UsrInfo ) -> false.
 
 fire( _Trsn, _Mode, _UsrInfo ) -> abort.
