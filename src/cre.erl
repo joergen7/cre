@@ -143,6 +143,19 @@ is_enabled( return_ok,      _,                                                  
 is_enabled( return_error,   _,                                                          _ ) -> true;
 is_enabled( _Trsn, _Mode, _UsrInfo ) -> false.
 
+
+fire( link_client, #{ 'AddClient' := [Q] }, _ ) ->
+  true = link( Q ),
+  {produce, #{ 'ClientPool' => [Q] }};
+
+fire( remove_client, #{ 'ClientPool' := [Q], 'ExitClient' := [Q] }, _ ) ->
+  {produce, #{ 'BadClient' => [Q] }};
+
+fire( send_demand, #{ 'DemandPool' := [unit], 'ClientPool' := [Q] }, _ ) ->
+  {produce, #{ 'ClientPool' => [Q], 'Demand' => [unit], 'SentDemand' => [Q] }};
+
+
+
 fire( _Trsn, _Mode, _UsrInfo ) -> abort.
 
 
