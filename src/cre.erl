@@ -87,7 +87,7 @@ place_lst() ->
   'AddClient', 'ExitClient', 'Demand', 'CreRequest', 'CreReply',
 
   % worker interface
-  'AddWorker', 'ExitWorker', 'WorkerRequest', 'WorkerOk', 'WorkerError',
+  'AddWorker', 'ExitWorker', 'WorkerRequest', 'WorkerResult',
 
   % demand cycle
   'ClientPool', 'BadClient', 'DemandPool', 'SentDemand', 'BusyDemand',
@@ -96,7 +96,7 @@ place_lst() ->
   'Introduced', 'Released', 'Guard', 'Cache',
 
   % invocation cycle
-  'Allowed', 'WorkerPool', 'BusyWorker', 'Returned', 'Surplus'
+  'Allowed', 'WorkerPool', 'BusyWorker', 'Surplus'
  ].
 
 trsn_lst() ->
@@ -108,8 +108,7 @@ trsn_lst() ->
    allow, lookup,
 
    % invocation cycle
-   link_worker, remove_worker, reallow, schedule, release, return_ok,
-   return_error, remove_demand
+   link_worker, remove_worker, reallow, schedule, release, remove_demand
   ].
 
 init_marking( 'Guard', _ ) -> [[]];
@@ -127,27 +126,23 @@ preset( link_worker )    -> ['AddWorker'];
 preset( remove_worker )  -> ['ExitWorker', 'WorkerPool'];
 preset( reallow )        -> ['ExitWorker', 'BusyWorker'];
 preset( schedule )       -> ['Allowed', 'WorkerPool'];
-preset( release )        -> ['Returned', 'BusyWorker'];
-preset( return_ok )      -> ['WorkerOk'];
-preset( return_error )   -> ['WorkerError'];
-preset( remove_demand )  -> ['Surplus'].
+preset( release )        -> ['WorkerResult', 'BusyWorker'];
+preset( remove_demand )  -> ['Surplus', 'DemandPool'].
 
-is_enabled( link_client,    _,                                                          _ ) -> true;
-is_enabled( remove_client,  #{ 'ClientPool' := [Q], 'ExitClient' := [Q] },              _ ) -> true;
-is_enabled( send_demand,    _,                                                          _ ) -> true;
-is_enabled( recover_demand, #{ 'SentDemand' := [Q], 'BadClient' := [Q] },               _ ) -> true;
-is_enabled( introduce,      #{ 'SentDemand' := [Q], 'CreRequest' := [{{Q, _}, _}] },    _ ) -> true;
-is_enabled( address,        #{ 'Released' := [{A, _}], 'BusyDemand' := [{_, A}] },      _ ) -> true;
-is_enabled( allow,          #{ 'Introduced' := [A], 'Guard' := [Alst] },                _ ) -> not lists:member( A, Alst );
-is_enabled( lookup,         #{ 'Introduced' := [A], 'Cache' := [{A, _}] },              _ ) -> true;
-is_enabled( link_worker,    _,                                                          _ ) -> true;
-is_enabled( remove_worker,  #{ 'ExitWorker' := [P], 'WorkerPool' := [P] },              _ ) -> true;
-is_enabled( reallow,        #{ 'ExitWorker' := [P], 'BusyWorker' := [{P, _}] },         _ ) -> true;
-is_enabled( schedule,       _,                                                          _ ) -> true;
-is_enabled( release,        #{ 'Returned' := [{{P, A}, _}], 'BusyWorker' := [{P, A}] }, _ ) -> true;
-is_enabled( return_ok,      _,                                                          _ ) -> true;
-is_enabled( return_error,   _,                                                          _ ) -> true;
-is_enabled( remove_demand,  _,                                                          _ ) -> true;
+is_enabled( link_client,    _,                                                              _ ) -> true;
+is_enabled( remove_client,  #{ 'ClientPool' := [Q], 'ExitClient' := [Q] },                  _ ) -> true;
+is_enabled( send_demand,    _,                                                              _ ) -> true;
+is_enabled( recover_demand, #{ 'SentDemand' := [Q], 'BadClient' := [Q] },                   _ ) -> true;
+is_enabled( introduce,      #{ 'SentDemand' := [Q], 'CreRequest' := [{{Q, _}, _}] },        _ ) -> true;
+is_enabled( address,        #{ 'Released' := [{A, _}], 'BusyDemand' := [{_, A}] },          _ ) -> true;
+is_enabled( allow,          #{ 'Introduced' := [A], 'Guard' := [Alst] },                    _ ) -> not lists:member( A, Alst );
+is_enabled( lookup,         #{ 'Introduced' := [A], 'Cache' := [{A, _}] },                  _ ) -> true;
+is_enabled( link_worker,    _,                                                              _ ) -> true;
+is_enabled( remove_worker,  #{ 'ExitWorker' := [P], 'WorkerPool' := [P] },                  _ ) -> true;
+is_enabled( reallow,        #{ 'ExitWorker' := [P], 'BusyWorker' := [{P, _}] },             _ ) -> true;
+is_enabled( schedule,       _,                                                              _ ) -> true;
+is_enabled( release,        #{ 'WorkerResult' := [{{P, A}, _}], 'BusyWorker' := [{P, A}] }, _ ) -> true;
+is_enabled( remove_demand,  _,                                                              _ ) -> true;
 is_enabled( _Trsn, _Mode, _UsrInfo ) -> false.
 
 
@@ -208,15 +203,13 @@ fire( schedule, #{ 'Allowed'    := [A],
   {produce, #{ 'WorkerRequest' => [{P, A}],
                'BusyWorker'    => [{P, A}] }};
 
-fire( release, #{ 'Returned'   := [{{P, A}, Delta}],
-                  'BusyWorker' := [{P, A}] }, _ ) ->
+fire( release, #{ 'WorkerResult' := [{{P, A}, Delta}],
+                  'BusyWorker'   := [{P, A}] }, _ ) ->
   {produce, #{ 'WorkerPool' => [P],
                'Cache'      => [{A, Delta}],
                'Released'   => [{A, Delta}] }};
 
-
-
-
-fire( _Trsn, _Mode, _UsrInfo ) -> abort.
+fire( remove_demand, _, _ ) ->
+  {produce, #{}}.
 
 
