@@ -28,23 +28,44 @@
 %% @end
 %% -------------------------------------------------------------------
 
--module( cre_app ).
--behaviour( application ).
+-module( cre_sup ).
+-behaviour( supervisor ).
 
 
 %%====================================================================
 %% Exports
 %%====================================================================
 
--export( [start/2, stop/1] ).
+-export( [start_link/0] ).
+-export( [init/1] ).
 
+
+%%====================================================================
+%% API functions
+%%====================================================================
+
+start_link() ->
+  supervisor:start_link( ?MODULE, [] ).
 
 %%====================================================================
 %% Application callback functions
 %%====================================================================
 
-start( _Type, _Args ) ->
-  cre_sup:start_link().
-  
-stop( _State ) ->
-  ok.
+init( _Args ) ->
+
+    SupFlags = #{
+                  strategy  => one_for_one,
+                  intensity => 0,
+                  period    => 1
+                },
+
+    ChildSpec = #{
+                   id       => undefined,
+                   start    => {cre_master, start_link, []},
+                   restart  => temporary,
+                   shutdown => 5000,
+                   type     => worker,
+                   modules  => [cre]
+                 },
+
+    {ok, {SupFlags, [ChildSpec]}}.

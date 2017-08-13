@@ -6,9 +6,9 @@
 The common runtime environment (CRE) is a scalable execution environment for data analysis workloads running on top of [distributed Erlang](https://www.erlang.org). It is responsible for managing communication with a client, e.g., a language interpreter, and a number of application-specific worker processes. Herein, the common runtime environment performs scheduling, client and worker failure recovery, client back-pressure, and caching. The common runtime environment itself is application-independent. To specialize it towards a particular application, e.g., a workflow language, the [cre_client](https://github.com/joergen7/cre_client) and [cre_worker](https://github.com/joergen7/cre_worker) behaviors must be implemented. The common runtime environment is based on the [gen_pnet](https://github.com/joergen7/gen_pnet) OTP behavior for modeling concurrent systems as Petri nets and is the featured execution environment for the [Cuneiform](https://cuneiform-lang.org) workflow language.
 
 
-![cre Petri net model](priv/cre_pnet.png)
+![cre Petri net model](priv/cre_master_pnet.png)
 
-*Figure 1: Petri net model of the common runtime environment's master application. It provides interfaces to client applications (left) and worker processes (right)*
+*Figure 1: Petri net model of the common runtime environment's master application. It provides interfaces to client applications (left) and worker processes (right).*
 
 ## CRE Master Application
 
@@ -30,9 +30,18 @@ TODO
 
 TODO
 
+![cre Petri net model](priv/cre_client_pnet.png)
+
+*Figure 2: Petri net model of the common runtime environment's client application. It provides a user interface (top and bottom) and an interface to the master application.*
+
 ## CRE Client Applications
 
 TODO
+
+
+![cre Petri net model](priv/cre_worker_pnet.png)
+
+*Figure 3: Petri net model of the common runtime environment's worker application. It provides interfaces only to the master application.*
 
 ## CRE Workers
 
