@@ -1,9 +1,9 @@
 # cre
 ###### A common runtime environment (CRE) for distributed workflow languages.
 
-The common runtime environment (CRE) is a data analysis runtime environment running on top of [distributed Erlang](https://www.erlang.org). The CRE is responsible for managing communication with a CRE client, e.g., a language interpreter, and a number of application-specific worker processes. Herein, the CRE performs scheduling, client and worker failure recovery, client back-pressure, and caching. The CRE itself is application-independent. To specialize the CRE towards a particular application, e.g., a workflow language, the [cre_client](https://github.com/joergen7/cre_client) and [cre_worker](https://github.com/joergen7/cre_worker) behaviors must be implemented. The CRE is based on the [gen_pnet](https://github.com/joergen7/gen_pnet) OTP behavior for modeling concurrent systems and is the featured execution environment for the [Cuneiform](https://cuneiform-lang.org).
-
 [![hex.pm](https://img.shields.io/hexpm/v/cre.svg?style=flat-square)](https://hex.pm/packages/cre) [![Build Status](https://travis-ci.org/joergen7/cre.svg?branch=master)](https://travis-ci.org/joergen7/cre)
+
+The common runtime environment (CRE) is a data analysis runtime environment running on top of [distributed Erlang](https://www.erlang.org). The CRE is responsible for managing communication with a CRE client, e.g., a language interpreter, and a number of application-specific worker processes. Herein, the CRE performs scheduling, client and worker failure recovery, client back-pressure, and caching. The CRE itself is application-independent. To specialize the CRE towards a particular application, e.g., a workflow language, the [cre_client](https://github.com/joergen7/cre_client) and [cre_worker](https://github.com/joergen7/cre_worker) behaviors must be implemented. The CRE is based on the [gen_pnet](https://github.com/joergen7/gen_pnet) OTP behavior for modeling concurrent systems and is the featured execution environment for the [Cuneiform](https://cuneiform-lang.org).
 
 
 ![cre Petri net model](priv/cre_pnet.png)
