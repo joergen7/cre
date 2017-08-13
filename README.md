@@ -30,6 +30,12 @@ TODO
 
 TODO
 
+### Actor Environment
+
+#### Client Interface
+
+#### Worker Interface
+
 ![cre Petri net model](priv/cre_client_pnet.png)
 
 *Figure 2: Petri net model of the common runtime environment's client application. It provides a user interface (top and bottom) and an interface to the master application.*
@@ -38,14 +44,24 @@ TODO
 
 TODO
 
+### Actor Environment
+
+#### User Interface
+
+#### CRE Master Interface
+
 
 ![cre Petri net model](priv/cre_worker_pnet.png)
 
 *Figure 3: Petri net model of the common runtime environment's worker application. It interfaces only to the master application.*
 
-## CRE Workers
+## CRE Worker Applications
 
 TODO
+
+### Actor Environment
+
+#### CRE Master Interface
 
 ## Related Projects
 
