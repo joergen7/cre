@@ -20,7 +20,11 @@
 %% @author Jörgen Brandt <joergen.brandt@onlinehome.de>
 %% @version 0.1.0
 %% @copyright 2015-2017 Jörgen Brandt
-%% @doc
+%%
+%% @doc A module implementing the behavior of the common runtime environment
+%%      (CRE).
+%%
+%%
 %%
 %%
 %% @end
@@ -53,21 +57,65 @@
 %% API functions
 %%====================================================================
 
+%% @doc Starts an anonymous CRE instance.
+%%
+%%      Returns `{ok, Pid}` on success where `Pid` is the process id of the
+%%      newly created process.
+%%
+%% @see start_link/1
+%%
 start_link() ->
   gen_pnet:start_link( ?MODULE, [], [] ).
 
+
+%% @doc Starts a named CRE instance.
+%%
+%%      Returns `{ok, Pid}` on success where `Pid` is the process id of the
+%%      newly created process.
+%%
+%% @see start_link/0
+%%
 start_link( ServerName ) ->
   gen_pnet:start_link( ServerName, ?MODULE, [], [] ).
 
+
+%% @doc Registers a worker process with a given CRE instance.
+%%
+%%      Takes the name of a CRE instance `CreName` and the name of a worker
+%%      instance `WorkerName` and adds the worker to the worker pool of the CRE.
+%%      The presence of workers is a precondition for the CRE to send out demand
+%%      or perform work. A CRE without workers, thus, can accept clients but can
+%%      never make progress.
+%%
 add_worker( CreName, WorkerName ) ->
   gen_pnet:cast( CreName, {add_worker, WorkerName} ).
 
+
+%% @doc Sends the result of a previously computed application to the CRE.
+%%
+%%      When a worker has computed the result of an application that has
+%%      previously been requested from it the worker sends the result back to
+%%      the CRE using this function.
+%%
 worker_result( CreName, WorkerName, A, Delta ) ->
   gen_pnet:cast( CreName, {worker_result, WorkerName, A, Delta} ).
 
+
+%% @doc Registers a client process with a given CRE instance.
+%%
+%%      Takes the name of a CRE instance `CreName` and the name of a client
+%%      instance `ClientName` and adds the client to the client pool of the CRE.
+%%
 add_client( CreName, ClientName ) ->
   gen_pnet:cast( CreName, {add_client, ClientName} ).
 
+%% @doc Requests the computation of an application from a given CRE intance.
+%%
+%%      When a client with the name `ClientName` that has received demand has
+%%      generated an application `A` belonging to a program with the program
+%%      identifier `I` it uses this function to send the application to the CRE
+%%      instance with the name `CreName`.
+%%
 cre_request( CreName, ClientName, I, A ) ->
   gen_pnet:cast( CreName, {cre_request, ClientName, I, A} ).
 
