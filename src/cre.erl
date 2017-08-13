@@ -40,8 +40,8 @@
 -export( [place_lst/0, trsn_lst/0, init_marking/2, preset/1, is_enabled/3,
           fire/3] ).
 
--export( [start_link/0, add_worker/2, worker_result/4, add_client/2,
-          cre_request/4] ).
+-export( [start_link/0, start_link/1, add_worker/2, worker_result/4,
+          add_client/2, cre_request/4] ).
 
 %%====================================================================
 %% Macro definitions
@@ -55,6 +55,9 @@
 
 start_link() ->
   gen_pnet:start_link( ?MODULE, [], [] ).
+
+start_link( ServerName ) ->
+  gen_pnet:start_link( ServerName, ?MODULE, [], [] ).
 
 add_worker( CreName, WorkerName ) ->
   gen_pnet:cast( CreName, {add_worker, WorkerName} ).
