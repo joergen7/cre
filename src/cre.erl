@@ -130,7 +130,7 @@ preset( schedule )       -> ['Allowed', 'WorkerPool'];
 preset( release )        -> ['Returned', 'BusyWorker'];
 preset( return_ok )      -> ['WorkerOk'];
 preset( return_error )   -> ['WorkerError'];
-preset( remove_demand )  -> ['Surplus']
+preset( remove_demand )  -> ['Surplus'].
 
 is_enabled( link_client,    _,                                                          _ ) -> true;
 is_enabled( remove_client,  #{ 'ClientPool' := [Q], 'ExitClient' := [Q] },              _ ) -> true;
