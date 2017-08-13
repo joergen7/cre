@@ -1663,6 +1663,13 @@
      id="layer1"
      style="display:inline"
      sodipodi:insensitive="true">
+    <rect
+       style="display:inline;fill:none;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:2, 2;stroke-dashoffset:0;stroke-opacity:1"
+       id="rect48362"
+       width="800"
+       height="475.00003"
+       x="100"
+       y="527.36218" />
     <circle
        r="7.7012835"
        cy="802.36218"
@@ -2175,13 +2182,6 @@
        id="path5539"
        d="m 466.20579,754.62092 c 24.26176,8.83056 43.87402,8.63134 66.55738,0.37527"
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.40000001;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker5545)" />
-    <rect
-       style="display:inline;fill:none;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:2, 2;stroke-dashoffset:0;stroke-opacity:1"
-       id="rect48362"
-       width="800"
-       height="475.00003"
-       x="100"
-       y="527.36218" />
     <circle
        r="7.7012835"
        cy="802.36218"
