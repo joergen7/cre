@@ -77,8 +77,6 @@ TODO
 
 ## Resources
 
-- [joergen7/cre_client](https://github.com/joergen7/cre_client). A client behavior for the common runtime environment (cre).
-- [joergen7/cre_worker](https://github.com/joergen7/cre_worker). The common runtime environment (cre).
 - [joergen7/gen_pnet](https://github.com/joergen7/gen_pnet). A generic Petri net OTP behavior, the CRE is based on.
 - [joergen7/cuneiform](https://github.com/joergen7/cuneiform). A functional workflow language which can be executed with a Cuneiform-specific CRE.
 
