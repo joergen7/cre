@@ -1,5 +1,5 @@
 # cre
-###### A common runtime environment for distributed workflow languages.
+###### A common runtime environment (CRE) for distributed workflow languages.
 
 [![hex.pm](https://img.shields.io/hexpm/v/cre.svg?style=flat-square)](https://hex.pm/packages/cre) [![Build Status](https://travis-ci.org/joergen7/cre.svg?branch=master)](https://travis-ci.org/joergen7/cre)
 
@@ -21,7 +21,7 @@
 
 ## Authors
 
-- Jörgen Brandt (joergen7) [joergen.brandt@onlinehome.de](mailto:joergen.brandt@onlinehome.de)
+- Jörgen Brandt ([@joergen7](https://github.com/joergen7/)) [joergen.brandt@onlinehome.de](mailto:joergen.brandt@onlinehome.de)
 
 ## License
 

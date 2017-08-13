@@ -1,6 +1,6 @@
 %% -*- erlang -*-
 %%
-%% A common runtime environment for distributed workflow languages.
+%% A common runtime environment (CRE) for distributed workflow languages.
 %%
 %% Copyright 2015-2017 Jörgen Brandt
 %%
@@ -40,7 +40,8 @@
 -export( [place_lst/0, trsn_lst/0, init_marking/2, preset/1, is_enabled/3,
           fire/3] ).
 
--export( [start_link/0] ).
+-export( [start_link/0, add_worker/2, worker_result/4, add_client/2,
+          cre_request/4] ).
 
 %%====================================================================
 %% Macro definitions
@@ -55,27 +56,86 @@
 start_link() ->
   gen_pnet:start_link( ?MODULE, [], [] ).
 
+add_worker( CreName, WorkerName ) ->
+  gen_pnet:cast( CreName, {add_worker, WorkerName} ).
+
+worker_result( CreName, WorkerName, A, Delta ) ->
+  gen_pnet:cast( CreName, {worker_result, WorkerName, A, Delta} ).
+
+add_client( CreName, ClientName ) ->
+  gen_pnet:cast( CreName, {add_client, ClientName} ).
+
+cre_request( CreName, ClientName, I, A ) ->
+  gen_pnet:cast( CreName, {cre_request, ClientName, I, A} ).
+
 
 %%====================================================================
 %% Interface callback functions
 %%====================================================================
 
-code_change( _OldVsn, NetState, _Extra ) -> {ok, NetState}.
-
+code_change( _OldVsn, NetState, _Extra )  -> {ok, NetState}.
 handle_call( _Request, _From, _NetState ) -> {reply, {error, bad_msg}}.
+init( [] )                                -> {ok, gen_pnet:new( ?MODULE, [] )}.
+terminate( _Reason, _NetState )           -> ok.
 
-handle_cast( _Request, _NetState ) -> noreply.
 
-handle_info( _Request, _NetState ) -> noreply.
+handle_cast( {add_worker, P}, _ ) ->
+  {noreply, #{}, #{ 'AddWorker' => [P] }};
 
-init( [] ) ->
+handle_cast( {worker_result, P, A, Delta}, _ ) ->
+  {noreply, #{}, #{ 'WorkerResult' => [{{P, A}, Delta}] }};
 
-  {ok, gen_pnet:new( ?MODULE, [] )}.
+handle_cast( {add_client, Q}, _ ) ->
+  {noreply, #{}, #{ 'AddClient' => [Q] }};
 
-terminate( _Reason, _NetState ) -> ok.
+handle_cast( {cre_request, Q, I, A}, _ ) ->
+  {noreply, #{}, #{ 'CreRequest' => [{{Q, I}, A}] }};
 
-trigger( _Place, _Token, _NetState ) -> pass.
+handle_cast( _Request, _NetState ) ->
+  noreply.
 
+
+handle_info( {'EXIT', FromPid, _}, NetState ) ->
+
+  #{ 'AddClient'  := AddClient,
+     'ClientPool' := ClientPool,
+     'AddWorker'  := AddWorker,
+     'WorkerPool' := WorkerPool,
+     'BusyWorker' := BusyWorker } = NetState,
+
+  QLst = AddClient++ClientPool,
+  PLst = AddWorker++WorkerPool++BusyWorker,
+
+  ExitClient = case lists:member( FromPid, QLst ) of
+    true  -> [FromPid];
+    false -> []
+  end,
+
+  ExitWorker = case lists:member( FromPid, PLst ) of
+    true  -> [FromPid];
+    false -> []
+  end,
+
+  {noreply, #{}, #{ 'ExitClient' => ExitClient, 'ExitWorker' => ExitWorker }};
+
+handle_info( _Info, _NetState ) ->
+  noreply.
+
+
+trigger( 'Demand', Q, _ ) ->
+  gen_pnet:cast( Q, demand ),
+  drop;
+
+trigger( 'CreReply', {{Q, I}, A, Delta}, _ ) ->
+  gen_pnet:cast( Q, {cre_reply, I, A, Delta} ),
+  drop;
+
+trigger( 'WorkerRequest', {P, A}, _ ) ->
+  gen_pnet:cast( P, {worker_request, A} ),
+  drop;
+
+trigger( _Place, _Token, _NetState ) ->
+  pass.
 
 %%====================================================================
 %% Petri net callback functions
@@ -143,7 +203,7 @@ is_enabled( reallow,        #{ 'ExitWorker' := [P], 'BusyWorker' := [{P, _}] }, 
 is_enabled( schedule,       _,                                                              _ ) -> true;
 is_enabled( release,        #{ 'WorkerResult' := [{{P, A}, _}], 'BusyWorker' := [{P, A}] }, _ ) -> true;
 is_enabled( remove_demand,  _,                                                              _ ) -> true;
-is_enabled( _Trsn, _Mode, _UsrInfo ) -> false.
+is_enabled( _Trsn,          _,                                                              _ ) -> false.
 
 
 fire( link_client, #{ 'AddClient' := [Q] }, _ ) ->
