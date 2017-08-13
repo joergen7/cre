@@ -8,7 +8,7 @@ The common runtime environment (CRE) is a scalable execution environment for dat
 
 ![cre Petri net model](priv/cre_pnet.png)
 
-*Figure 1: Petri net model of the common runtime environment.*
+*Figure 1: Petri net model of the common runtime environment's master application. It provides interfaces to client applications (left) and worker processes (right)*
 
 ## CRE Master Application
 
