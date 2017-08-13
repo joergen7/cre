@@ -15,10 +15,10 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.92.1 r15371"
-   sodipodi:docname="cre_pnet.svg"
-   inkscape:export-filename="/home/jorgen/git/cre/priv/cre_pnet.png"
-   inkscape:export-xdpi="163.80002"
-   inkscape:export-ydpi="163.80002">
+   sodipodi:docname="cre_master_pnet.svg"
+   inkscape:export-filename="/home/jorgen/git/cre/priv/cre_master_pnet.png"
+   inkscape:export-xdpi="400"
+   inkscape:export-ydpi="400">
   <defs
      id="defs4">
     <marker
@@ -1099,10 +1099,10 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.9899495"
-     inkscape:cx="608.53751"
-     inkscape:cy="315.54806"
+     inkscape:cx="507.52226"
+     inkscape:cy="215.54296"
      inkscape:document-units="px"
-     inkscape:current-layer="layer1"
+     inkscape:current-layer="svg2"
      showgrid="false"
      showborder="false"
      showguides="false"
@@ -2778,14 +2778,14 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="240.51758"
+       x="189.49829"
        y="940.44958"
        id="text9549"><tspan
          sodipodi:role="line"
          id="tspan9551"
-         x="240.51758"
+         x="189.49829"
          y="940.44958"
-         style="font-size:25px;line-height:1.25">cre</tspan></text>
+         style="font-size:25px;line-height:1.25">cre_master</tspan></text>
     <g
        id="g11522"
        transform="translate(-2.9983521)">
