@@ -10,6 +10,34 @@ The common runtime environment (CRE) is a scalable execution environment for dat
 
 *Figure 1: Petri net model of the common runtime environment.*
 
+## CRE Master Application
+
+TODO
+
+### Scheduling
+
+TODO
+
+### Failure Recovery
+
+TODO
+
+### Back-pressure
+
+TODO
+
+### Caching
+
+TODO
+
+## CRE Client Applications
+
+TODO
+
+## CRE Workers
+
+TODO
+
 ## Related Projects
 
 - [Hadoop YARN](https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/YARN.html) is a large-scale data analysis platform that performs resource- and application management. YARN's resource manager is comparable with the CRE since it manages data analysis workloads by performing scheduling and failure recovery for a number of containers. YARN's application master is comparable with a [CRE client](https://github.com/joergen7/cre_client) implementation. Used with the [Hi-WAY](https://github.com/marcbux/Hi-WAY) application master Hadoop YARN can run workflows specified in [Cuneiform](https://cuneiform-lang.org), [Galaxy](https://galaxyproject.org), and [Pegasus DAX](https://pegasus.isi.edu).
