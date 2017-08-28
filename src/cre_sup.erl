@@ -45,7 +45,7 @@
 %%====================================================================
 
 start_link() ->
-  supervisor:start_link( ?MODULE, [] ).
+  supervisor:start_link( {global, cre_sup}, ?MODULE, [] ).
 
 %%====================================================================
 %% Application callback functions
@@ -65,7 +65,7 @@ init( _Args ) ->
                    restart  => temporary,
                    shutdown => 5000,
                    type     => worker,
-                   modules  => [cre]
+                   modules  => [cre_master]
                  },
 
     {ok, {SupFlags, [ChildSpec]}}.

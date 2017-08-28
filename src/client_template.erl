@@ -1,0 +1,1 @@
+-module( client_template ).

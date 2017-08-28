@@ -75,8 +75,8 @@ start_link() ->
 %%
 %% @see start_link/0
 %%
-start_link( ServerName ) ->
-  gen_pnet:start_link( ServerName, ?MODULE, [], [] ).
+start_link( CreName ) ->
+  gen_pnet:start_link( CreName, ?MODULE, [], [] ).
 
 
 %% @doc Registers a worker process with a given CRE instance.

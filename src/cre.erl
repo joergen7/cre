@@ -28,7 +28,7 @@
 %% @end
 %% -------------------------------------------------------------------
 
--module( cre_app ).
+-module( cre ).
 -behaviour( application ).
 
 
@@ -37,7 +37,7 @@
 %%====================================================================
 
 -export( [start/2, stop/1] ).
-
+-export( [start/0, pid/0, start_worker/2] ).
 
 %%====================================================================
 %% Application callback functions
@@ -48,3 +48,16 @@ start( _Type, _Args ) ->
   
 stop( _State ) ->
   ok.
+
+%%====================================================================
+%% API functions
+%%====================================================================
+
+start() ->
+  application:start( cre ).
+
+pid() ->
+  SupPid = global:whereis_name( cre_sup ),
+  Children = supervisor:which_children( SupPid ),
+  [{undefined, CrePid, worker, [cre_master]}] = Children,
+  CrePid.
