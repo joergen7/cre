@@ -92,9 +92,12 @@ handle_cast( {worker_request, A}, _NetState ) ->
 
 handle_cast( _Request, _NetState ) -> noreply.
 
-handle_info( _Request, _NetState ) -> noreply.
+handle_info( {'EXIT', _FromPid, Reason}, NetState ) ->
+  {stop, Reason, NetState}.
 
 init( {CreName, WrkMod, WrkArg} ) ->
+
+  process_flag( trap_exit, true ),
 
   UsrInfo = WrkMod:init( WrkArg ),
 
@@ -106,7 +109,6 @@ init( {CreName, WrkMod, WrkArg} ) ->
 
   {ok, gen_pnet:new( ?MODULE, WrkState )}.
 
-terminate( shutdown, _NetState ) -> shutdown;
 terminate( _Reason, _NetState ) -> ok.
 
 trigger( 'WorkerOk', {A, Ra}, NetState ) ->
