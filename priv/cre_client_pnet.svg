@@ -16,9 +16,9 @@
    version="1.1"
    inkscape:version="0.92.1 r15371"
    sodipodi:docname="cre_client_pnet.svg"
-   inkscape:export-filename="/home/jorgen/git/cre_client/priv/cre_client_pnet.png"
-   inkscape:export-xdpi="273.44"
-   inkscape:export-ydpi="273.44">
+   inkscape:export-filename="/home/jorgen/git/cre/priv/cre_client_pnet.png"
+   inkscape:export-xdpi="399.9895"
+   inkscape:export-ydpi="399.9895">
   <defs
      id="defs4">
     <marker
@@ -353,9 +353,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.979899"
-     inkscape:cx="360.12153"
-     inkscape:cy="367.41037"
+     inkscape:zoom="0.9899495"
+     inkscape:cx="282.08725"
+     inkscape:cy="529.03477"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -1431,5 +1431,16 @@
          x="288.95264"
          id="tspan4728"
          sodipodi:role="line">recv</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:37.5px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.9375"
+       x="404.90967"
+       y="774.19617"
+       id="text4310"><tspan
+         sodipodi:role="line"
+         id="tspan4308"
+         x="404.90967"
+         y="774.19617"
+         style="font-size:10px;stroke-width:0.9375">Guard</tspan></text>
   </g>
 </svg>

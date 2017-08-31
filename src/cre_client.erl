@@ -112,7 +112,10 @@ trigger( _Place, _Token, _NetState ) -> pass.
 %% Petri net callback functions
 %%====================================================================
 
-place_lst() -> [].
+place_lst() ->
+  ['ClientRequest', 'ClientReply',
+   'Demand', 'CreRequest', 'CreReply',
+   'Program', 'Guard'].
 
 trsn_lst() -> [].
 
