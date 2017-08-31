@@ -60,10 +60,7 @@ start() ->
 -spec pid() -> {ok, pid()} | {error, undefined}.
 
 pid() ->
-  case global:whereis_name( cre_sup ) of
+  case global:whereis_name( cre ) of
   	undefined -> {error, undefined};
-  	SupPid    ->
-      Children = supervisor:which_children( SupPid ),
-      [{undefined, CrePid, worker, [cre_master]}] = Children,
-      {ok, CrePid}
+  	CrePid    -> {ok, CrePid}
   end.
