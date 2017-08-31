@@ -51,6 +51,11 @@ start() ->
 -spec pid() -> {ok, pid()} | {error, undefined}.
 
 pid() ->
+
+  % update global process table
+  global:sync(),
+
+  % query cre process pid
   case global:whereis_name( cre ) of
     undefined -> {error, undefined};
     CrePid    -> {ok, CrePid}
