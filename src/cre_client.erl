@@ -77,7 +77,11 @@
 %% Includes
 %%====================================================================
 
--include_lib( "gen_pnet/include/gen_pnet.hrl" ).
+%%====================================================================
+%% Record definitions
+%%====================================================================
+
+-record( client_state, {cre_name, client_mod, usr_info} ).
 
 
 %%====================================================================
@@ -101,7 +105,11 @@ handle_cast( _Request, _NetState ) -> noreply.
 
 handle_info( _Request, _NetState ) -> noreply.
 
-init( _Args ) -> {ok, gen_pnet:new( ?MODULE, [] )}.
+init( {CreName, ClientMod, ClientArg} ) ->
+
+  ClientState = #client_state{}
+
+  {ok, gen_pnet:new( ?MODULE, [] )}.
 
 terminate( _Reason, _NetState ) -> ok.
 
@@ -117,11 +125,21 @@ place_lst() ->
    'Demand', 'CreRequest', 'CreReply',
    'Program', 'Guard'].
 
-trsn_lst() -> [].
+trsn_lst() ->
+  [start, terminate, step, send, recv].
 
-init_marking( _Place, _UsrInfo ) -> [].
+init_marking( 'Guard', _UsrInfo ) -> [[]];
+init_marking( _Place, _UsrInfo )  -> [].
 
-preset( _Trsn ) -> [].
+preset( start )     -> ['ClientRequest'];
+preset( terminate ) -> ['Program'];
+preset( step )      -> ['Program'];
+preset( send )      -> ['Program', 'Demand', 'Guard'];
+preset( recv )      -> ['Program', 'CreReply'].
+
+is_enabled( start, _, _ ) -> true;
+is_enabled( terminate, #{ 'Program' := [{_I, {[], [], T}}] },  ) ->
+  
 
 is_enabled( _Trsn, _Mode, _UsrInfo ) -> false.
 
