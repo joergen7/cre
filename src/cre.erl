@@ -36,18 +36,9 @@
 %% Exports
 %%====================================================================
 
--export( [start/2, stop/1] ).
 -export( [start/0, pid/0] ).
-
-%%====================================================================
-%% Application callback functions
-%%====================================================================
-
-start( _Type, _Args ) ->
-  cre_sup:start_link().
-  
-stop( _State ) ->
-  ok.
+-export( [start/2, stop/1] ).
+-export( [main/1] ).
 
 %%====================================================================
 %% API functions
@@ -61,6 +52,33 @@ start() ->
 
 pid() ->
   case global:whereis_name( cre ) of
-  	undefined -> {error, undefined};
-  	CrePid    -> {ok, CrePid}
+    undefined -> {error, undefined};
+    CrePid    -> {ok, CrePid}
+  end.
+
+
+%%====================================================================
+%% Application callback functions
+%%====================================================================
+
+start( _Type, _Args ) ->
+  cre_sup:start_link().
+  
+stop( _State ) ->
+  ok.
+
+
+%%====================================================================
+%% Escript main function
+%%====================================================================
+
+main( _ ) ->
+
+  % start the application
+  ok = start(),
+  io:format( "CRE application started as ~p~n", [node()] ),
+
+  % wait indefinitely
+  receive
+  	_ -> ok
   end.
