@@ -55,8 +55,8 @@ init( _Args ) ->
 
     SupFlags = #{
                   strategy  => one_for_one,
-                  intensity => 0,
-                  period    => 1
+                  intensity => 1,
+                  period    => 5
                 },
 
     ChildSpec = #{
