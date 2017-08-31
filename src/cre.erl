@@ -74,9 +74,11 @@ stop( _State ) ->
 
 main( _ ) ->
 
+  io:format( "application:      cre~nErlang node name: ~p~n", [node()] ),
+
   % start the application
   ok = start(),
-  io:format( "CRE application started as ~p~n", [node()] ),
+  io:format( "state:            ok~n" ),
 
   % wait indefinitely
   receive
