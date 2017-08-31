@@ -106,6 +106,7 @@ init( {CreName, WrkMod, WrkArg} ) ->
 
   {ok, gen_pnet:new( ?MODULE, WrkState )}.
 
+terminate( shutdown, _NetState ) -> shutdown;
 terminate( _Reason, _NetState ) -> ok.
 
 trigger( 'WorkerOk', {A, Ra}, NetState ) ->
