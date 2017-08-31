@@ -37,7 +37,7 @@
 %%====================================================================
 
 -export( [start/2, stop/1] ).
--export( [start/0, pid/0, start_worker/2] ).
+-export( [start/0, pid/0] ).
 
 %%====================================================================
 %% Application callback functions
@@ -56,8 +56,14 @@ stop( _State ) ->
 start() ->
   application:start( cre ).
 
+
+-spec pid() -> {ok, pid()} | {error, undefined}.
+
 pid() ->
-  SupPid = global:whereis_name( cre_sup ),
-  Children = supervisor:which_children( SupPid ),
-  [{undefined, CrePid, worker, [cre_master]}] = Children,
-  CrePid.
+  case global:whereis_name( cre_sup ) of
+  	undefined -> {error, undefined};
+  	SupPid    ->
+      Children = supervisor:which_children( SupPid ),
+      [{undefined, CrePid, worker, [cre_master]}] = Children,
+      {ok, CrePid}
+  end.

@@ -28,7 +28,7 @@
 %% @end
 %% -------------------------------------------------------------------
 
--module( worker_template ).
+-module( default_worker ).
 -behaviour( cre_worker ).
 
 
@@ -36,7 +36,8 @@
 %% Exports
 %%====================================================================
 
--export( [do_stagein/3, do_stageout/3, init/1] ).
+-export( [do_stagein/3, do_stageout/3, init/1, run/2, stagein_lst/1,
+          stageout_lst/2] ).
 
 
 %%====================================================================
@@ -50,7 +51,7 @@ do_stagein( _A, _F, _UsrInfo ) -> ok.
 
 -spec do_stageout( A :: _, F :: _, UsrInfo :: _ ) -> ok | {error, enoent}.
 
-do_stageout( _A, _F, UsrInfo ) -> ok.
+do_stageout( _A, _F, _UsrInfo ) -> ok.
 
 
 -spec init( WrkArg :: _ ) -> UsrInfo :: _.
@@ -70,4 +71,4 @@ stagein_lst( _A ) -> [].
 
 -spec stageout_lst( A :: _, R :: _ ) -> [F :: _].
 
-stageout_lst( _A ) -> [].
+stageout_lst( _A, _R ) -> [].
