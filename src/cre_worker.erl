@@ -60,9 +60,9 @@
 
 -callback run( A :: _, UsrInfo :: _ ) -> {ok, R :: _} | {error, Reason :: _}.
 
--callback stagein_lst( A :: _ ) -> [F :: _].
+-callback stagein_lst( A :: _, UsrInfo :: _ ) -> [F :: _].
 
--callback stageout_lst( A :: _, R :: _ ) -> [F :: _].
+-callback stageout_lst( A :: _, R :: _, UsrInfo :: _ ) -> [F :: _].
 
 
 %%====================================================================
@@ -163,40 +163,43 @@ is_enabled( sync_outok, _, _ )     -> true;
 is_enabled( sync_outerror, _ , _ ) -> true;
 
 is_enabled( ret_preerror, #{ 'PreSync' := [{A, F1, F2}] },
-                          #wrk_state{ wrk_mod = WrkMod } )
+                          #wrk_state{ wrk_mod  = WrkMod,
+                                      usr_info = UsrInfo } )
 when length( F2 ) > 0 ->
   F1uF2 = ordsets:union( F1, F2 ),
-  Fa = ordsets:from_list( WrkMod:stagein_lst( A ) ),
+  Fa = ordsets:from_list( WrkMod:stagein_lst( A, UsrInfo ) ),
   Fa =:= F1uF2;
 
 is_enabled( ret_preerror, _, _ ) -> false;
 
 is_enabled( run, #{ 'PreSync' := [{A, F1, []}] }, 
-                 #wrk_state{ wrk_mod = WrkMod } ) ->
-  Fa = ordsets:from_list( WrkMod:stagein_lst( A ) ),
+                 #wrk_state{ wrk_mod = WrkMod, usr_info = UsrInfo } ) ->
+  Fa = ordsets:from_list( WrkMod:stagein_lst( A, UsrInfo ) ),
   Fa =:= F1;
 
 is_enabled( run, _, _ ) -> false;
 
 is_enabled( ret_posterror, #{ 'PostSync' := [{A, Ra, F1, F2}] },
-                           #wrk_state{ wrk_mod = WrkMod } )
+                           #wrk_state{ wrk_mod  = WrkMod,
+                                       usr_info = UsrInfo } )
 when length( F2 ) > 0 ->
   F1uF2 = ordsets:union( F1, F2 ),
-  Fa = ordsets:from_list( WrkMod:stageout_lst( A, Ra ) ),
+  Fa = ordsets:from_list( WrkMod:stageout_lst( A, Ra, UsrInfo ) ),
   Fa =:= F1uF2;
 
 is_enabled( ret_posterror, _, _ ) -> false;
 
 is_enabled( ret_ok, #{ 'PostSync' := [{A, Ra, F1, []}] },
-                    #wrk_state{ wrk_mod = WrkMod } ) ->
-  Fa = ordsets:from_list( WrkMod:stageout_lst( A, Ra ) ),
+                    #wrk_state{ wrk_mod  = WrkMod, usr_info = UsrInfo } ) ->
+  Fa = ordsets:from_list( WrkMod:stageout_lst( A, Ra, UsrInfo ) ),
   Fa =:= F1;
 
 is_enabled( ret_ok, _, _ ) -> false.
 
 
-fire( prep_stagein, #{ 'Start' := [A] }, #wrk_state{ wrk_mod = WrkMod } ) ->
-  Fa = WrkMod:stagein_lst( A ),
+fire( prep_stagein, #{ 'Start' := [A] },
+                    #wrk_state{ wrk_mod  = WrkMod, usr_info = UsrInfo } ) ->
+  Fa = WrkMod:stagein_lst( A, UsrInfo ),
   {produce, #{ 'Stagein' => [{A, F} || F <- Fa], 'PreSync' => [{A, [], []}] }};
 
 fire( do_stagein, #{ 'Stagein' := [{A, F}] },
@@ -224,8 +227,9 @@ fire( run, #{ 'PreSync' := [{A, _Fa, []}] },
     {error, Reason} -> {produce, #{ 'WorkerError' => [{A, {run, Reason}}] }}
   end;
 
-fire( prep_stageout, #{ 'Result' := [{A, Ra}]}, #wrk_state{ wrk_mod = WrkMod } ) ->
-  Fra = WrkMod:stageout_lst( A, Ra ),
+fire( prep_stageout, #{ 'Result' := [{A, Ra}]},
+                     #wrk_state{ wrk_mod = WrkMod, usr_info = UsrInfo } ) ->
+  Fra = WrkMod:stageout_lst( A, Ra, UsrInfo ),
   {produce, #{ 'Stageout' => [{A, F} || F <- Fra], 'PostSync' => [{A, Ra, [], []}] }};
 
 fire( do_stageout, #{ 'Stageout' := [{A, F}] },

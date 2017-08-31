@@ -78,6 +78,18 @@
 %%====================================================================
 
 %%====================================================================
+%% Callback definitions
+%%====================================================================
+
+-callback init( Arg :: _ ) -> UsrInfo :: _.
+
+-callback is_value( T :: _, UsrInfo :: _ ) -> boolean().
+
+-callback step( {Q :: [_], C :: #{}, T :: _}, UsrInfo :: _ ) ->
+            {Q1 :: [_], C :: #{}, T1 :: _}.
+
+
+%%====================================================================
 %% Record definitions
 %%====================================================================
 
@@ -97,21 +109,62 @@ start_link( ServerName ) -> gen_pnet:start_link( ServerName, ?MODULE, [], [] ).
 %% Interface callback functions
 %%====================================================================
 
+-spec code_change( OldVsn :: _, NetState :: _, Extra :: _ ) ->
+        {ok, _} | {error, _}.
+
 code_change( _OldVsn, NetState, _Extra ) -> {ok, NetState}.
+
+
+-spec handle_call( Request :: _, From :: {pid(), _},
+                   NetState :: _ ) ->
+              {reply, _}
+            | {reply, _, #{ atom() => [_] }, #{ atom() => [_] }}
+            | noreply
+            | {noreply, #{ atom() => [_] }, #{ atom() => [_] }}
+            | {stop, _, _}.
 
 handle_call( _Request, _From, _NetState ) -> {reply, {error, bad_msg}}.
 
+
+-spec handle_cast( Request :: _, NetState :: _ ) ->
+              noreply
+            | {noreply, #{ atom() => [_] }, #{ atom() => [_] }}
+            | {stop, _}.
+
 handle_cast( _Request, _NetState ) -> noreply.
+
+
+-spec handle_info( Info :: _, NetState :: _ ) ->
+              noreply
+            | {noreply, #{ atom() => [_] }, #{ atom() => [_] }}
+            | {stop, _}.
 
 handle_info( _Request, _NetState ) -> noreply.
 
-init( {CreName, ClientMod, ClientArg} ) ->
 
-  ClientState = #client_state{}
+-spec init( {CreName, ClientMod, ClientArg} ) -> {ok, _}
+when CreName   :: gen_pnet:name(),
+     ClientMod :: atom(),
+     ClientArg :: _.
 
-  {ok, gen_pnet:new( ?MODULE, [] )}.
+init( {CreName, ClientMod, ClientArg} )
+when is_atom( ClientMod ) ->
+
+  UsrInfo = ClientMod:init( ClientArg ),
+
+  ClientState = #client_state{ cre_name   = CreName,
+                               client_mod = ClientMod,
+                               usr_info   = UsrInfo },
+
+  {ok, gen_pnet:new( ?MODULE, ClientState )}.
+
+
+-spec terminate( Reason :: _, NetState :: _ ) -> ok.
 
 terminate( _Reason, _NetState ) -> ok.
+
+
+-spec trigger( Place :: atom(), Token :: _, NetState :: _ ) -> pass | drop.
 
 trigger( _Place, _Token, _NetState ) -> pass.
 
@@ -120,16 +173,26 @@ trigger( _Place, _Token, _NetState ) -> pass.
 %% Petri net callback functions
 %%====================================================================
 
+-spec place_lst() -> [atom()].
+
 place_lst() ->
   ['ClientRequest', 'ClientReply',
    'Demand', 'CreRequest', 'CreReply',
    'Program', 'Guard'].
 
-trsn_lst() ->
-  [start, terminate, step, send, recv].
 
-init_marking( 'Guard', _UsrInfo ) -> [[]];
-init_marking( _Place, _UsrInfo )  -> [].
+-spec trsn_lst() -> [atom()].
+
+trsn_lst() -> [start, terminate, step, send, recv].
+
+
+-spec init_marking( Place :: atom(), ClientState :: #client_state{} ) -> [_].
+
+init_marking( 'Guard', _ClientState ) -> [[]];
+init_marking( _Place, _ClientState)  -> [].
+
+
+-spec preset( Trsn :: atom() ) -> [atom()].
 
 preset( start )     -> ['ClientRequest'];
 preset( terminate ) -> ['Program'];
@@ -137,12 +200,61 @@ preset( step )      -> ['Program'];
 preset( send )      -> ['Program', 'Demand', 'Guard'];
 preset( recv )      -> ['Program', 'CreReply'].
 
-is_enabled( start, _, _ ) -> true;
-is_enabled( terminate, #{ 'Program' := [{_I, {[], [], T}}] },  ) ->
-  
 
-is_enabled( _Trsn, _Mode, _UsrInfo ) -> false.
+-spec is_enabled( Trsn, Mode, ClientState ) -> boolean()
+when Trsn        :: atom(),
+     Mode        :: #{ atom() => [_]},
+     ClientState :: #client_state{}.
 
-fire( _Trsn, _Mode, _UsrInfo ) -> abort.
+is_enabled( start, _Mode, _ClientState ) -> true;
 
+is_enabled( terminate, #{ 'Program' := [{_I, {[], _C, T}}] },
+                       #client_state{ client_mod = ClientMod,
+                                      usr_info   = UsrInfo } ) ->
+  ClientMod:is_value( T, UsrInfo );
+
+is_enabled( step, _Mode, _ClientState ) -> true;
+
+is_enabled( send, #{ 'Program' := [{_I, {Q, _C, _T}}],
+                     'Demand'  := [unit],
+                     'Guard'   := [SentLst]},
+                  _ClientState ) ->
+  lists:any( fun( A ) -> not lists:member( A, SentLst ) end, Q );
+
+is_enabled( recv, #{ 'Program'  := [{I, {_Q, _C, _T}}],
+                     'CreReply' := [{I, _A, _Delta}]},
+                  _ClientState ) ->
+  true;
+
+is_enabled( _Trsn, _Mode, _ClientState ) -> false.
+
+
+-spec fire( Trsn, Mode, ClientState ) -> abort | {produce, #{ atom() => [_] }}
+when Trsn        :: atom(),
+     Mode        :: #{ atom() => [_] },
+     ClientState :: #client_state{}.
+
+fire( start, #{ 'ClientRequest' := [{I, T}] }, _ClientState ) ->
+  {produce, #{ 'Program' => [{I, {[], #{}, T}}] }};
+
+fire( terminate, #{ 'Program' := [{I, {_Q, _C, T}}] }, _ClientState ) ->
+  {produce, #{ 'ClientReply' => [{I, T}] }};
+
+fire( step, #{ 'Program' := {I, {Q, C, T}} },
+            #client_state{ client_mod = ClientMod } ) ->
+  {Q1, C, T1} = ClientMod:step( {Q, C, T} ),
+  {produce, #{ 'Program' => [{I, {Q1, C, T1}}] }};
+
+fire( send, #{ 'Program' := [{I, {Q, C, T}}],
+	           'Demand'  := [unit],
+               'Guard'   := [SentLst] }, _ClientState ) ->
+  [A|_] = [A || A <- Q, not lists:member( A, SentLst )],
+  {produce, #{ 'Program'    => [{I, {Q, C, T}}],
+               'Guard'      => [A|SentLst],
+               'CreRequest' => [{I, A}] }};
+
+fire( recv, #{ 'Program'  := [{I, {Q, C, T}}],
+               'CreReply' := [{I, A, Delta}] }, _ClientState ) ->
+  C1 = C#{ A => Delta },
+  {produce, #{ 'Program' => [{I, {Q, C1, T}}] }}.
 
