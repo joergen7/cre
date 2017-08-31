@@ -92,12 +92,9 @@ handle_cast( {worker_request, A}, _NetState ) ->
 
 handle_cast( _Request, _NetState ) -> noreply.
 
-handle_info( {'EXIT', _FromPid, Reason}, NetState ) ->
-  {stop, Reason, NetState}.
+handle_info( _Request, _NetState ) -> noreply.
 
 init( {CreName, WrkMod, WrkArg} ) ->
-
-  process_flag( trap_exit, true ),
 
   UsrInfo = WrkMod:init( WrkArg ),
 
