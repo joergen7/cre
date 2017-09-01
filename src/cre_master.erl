@@ -158,12 +158,12 @@ handle_info( {'EXIT', FromPid, _}, NetState ) ->
   PLst = AddWorker++WorkerPool++BusyWorker,
 
   ExitClient = case lists:member( FromPid, QLst ) of
-    true  -> [FromPid];
+    true  -> io:format( "client down~n" ), [FromPid];
     false -> []
   end,
 
   ExitWorker = case lists:member( FromPid, PLst ) of
-    true  -> [FromPid];
+    true  -> io:format( "worker down~n" ), [FromPid];
     false -> []
   end,
 

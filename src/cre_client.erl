@@ -28,36 +28,6 @@
 %% @end
 %% -------------------------------------------------------------------
 
-%% -*- erlang -*-
-%%
-%% A common runtime environment (CRE) for distributed workflow languages.
-%%
-%% Copyright 2015-2017 Jörgen Brandt
-%%
-%% Licensed under the Apache License, Version 2.0 (the "License");
-%% you may not use this file except in compliance with the License.
-%% You may obtain a copy of the License at
-%%
-%%     http://www.apache.org/licenses/LICENSE-2.0
-%%
-%% Unless required by applicable law or agreed to in writing, software
-%% distributed under the License is distributed on an "AS IS" BASIS,
-%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-%% See the License for the specific language governing permissions and
-%% limitations under the License.
-%%
-%% -------------------------------------------------------------------
-%% @author Jörgen Brandt <joergen.brandt@onlinehome.de>
-%% @version 0.1.0
-%% @copyright 2015-2017 Jörgen Brandt
-%%
-%%
-%%
-%%
-%%
-%% @end
-%% -------------------------------------------------------------------
-
 -module( cre_client ).
 -behaviour( gen_pnet ).
 
@@ -100,9 +70,8 @@
 %% API functions
 %%====================================================================
 
-start_link() -> gen_pnet:start_link( ?MODULE, [], [] ).
-
-start_link( ServerName ) -> gen_pnet:start_link( ServerName, ?MODULE, [], [] ).
+start_link( CreName, ClientMod, ClientArg ) ->
+  gen_pnet:start_link( ?MODULE, {CreName, ClientMod, ClientArg}, [] ).
 
 
 %%====================================================================
@@ -123,7 +92,8 @@ code_change( _OldVsn, NetState, _Extra ) -> {ok, NetState}.
             | {noreply, #{ atom() => [_] }, #{ atom() => [_] }}
             | {stop, _, _}.
 
-handle_call( _Request, _From, _NetState ) -> {reply, {error, bad_msg}}.
+handle_call( {load, T}, From, NetState ) ->
+  {noreply, #{}, { 'ClientRequest' => [{From, T}]}}.
 
 
 -spec handle_cast( Request :: _, NetState :: _ ) ->
@@ -131,7 +101,8 @@ handle_call( _Request, _From, _NetState ) -> {reply, {error, bad_msg}}.
             | {noreply, #{ atom() => [_] }, #{ atom() => [_] }}
             | {stop, _}.
 
-handle_cast( _Request, _NetState ) -> noreply.
+handle_cast( demand, _NetState ) ->
+  {noreply, #{}, #{ 'Demand' => [unit] }}.
 
 
 -spec handle_info( Info :: _, NetState :: _ ) ->
@@ -156,6 +127,8 @@ when is_atom( ClientMod ) ->
                                client_mod = ClientMod,
                                usr_info   = UsrInfo },
 
+  cre_master:add_client( CreName self() ),
+
   {ok, gen_pnet:new( ?MODULE, ClientState )}.
 
 
@@ -166,7 +139,8 @@ terminate( _Reason, _NetState ) -> ok.
 
 -spec trigger( Place :: atom(), Token :: _, NetState :: _ ) -> pass | drop.
 
-trigger( _Place, _Token, _NetState ) -> pass.
+trigger( 'ClientReply', {I, T}, _NetState ) -> gen_server:reply( I, T );
+trigger( _Place, _Token, _NetState )        -> pass.
 
 
 %%====================================================================

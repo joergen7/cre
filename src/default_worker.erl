@@ -36,8 +36,8 @@
 %% Exports
 %%====================================================================
 
--export( [do_stagein/3, do_stageout/3, init/1, run/2, stagein_lst/1,
-          stageout_lst/2] ).
+-export( [do_stagein/3, do_stageout/3, init/1, run/2, stagein_lst/2,
+          stageout_lst/3] ).
 
 
 %%====================================================================
@@ -64,11 +64,11 @@ init( _WrkArg ) -> [].
 run( A, _UsrInfo ) -> {ok, A}.
 
 
--spec stagein_lst( A :: _ ) -> [F :: _].
+-spec stagein_lst( A :: _, UsrInfo :: _ ) -> [F :: _].
 
-stagein_lst( _A ) -> [].
+stagein_lst( _A, _UsrInfo ) -> [].
 
 
--spec stageout_lst( A :: _, R :: _ ) -> [F :: _].
+-spec stageout_lst( A :: _, R :: _, UsrInfo :: _ ) -> [F :: _].
 
-stageout_lst( _A, _R ) -> [].
+stageout_lst( _A, _R, _UsrInfo ) -> [].
