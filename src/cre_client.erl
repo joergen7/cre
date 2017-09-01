@@ -41,7 +41,7 @@
 -export( [place_lst/0, trsn_lst/0, init_marking/2, preset/1, is_enabled/3,
           fire/3] ).
 
--export( [start_link/0, start_link/1] ).
+-export( [start_link/3] ).
 
 %%====================================================================
 %% Includes
@@ -92,8 +92,8 @@ code_change( _OldVsn, NetState, _Extra ) -> {ok, NetState}.
             | {noreply, #{ atom() => [_] }, #{ atom() => [_] }}
             | {stop, _, _}.
 
-handle_call( {load, T}, From, NetState ) ->
-  {noreply, #{}, { 'ClientRequest' => [{From, T}]}}.
+handle_call( {load, T}, From, _NetState ) ->
+  {noreply, #{}, #{ 'ClientRequest' => [{From, T}] }}.
 
 
 -spec handle_cast( Request :: _, NetState :: _ ) ->
@@ -127,7 +127,7 @@ when is_atom( ClientMod ) ->
                                client_mod = ClientMod,
                                usr_info   = UsrInfo },
 
-  cre_master:add_client( CreName self() ),
+  cre_master:add_client( CreName, self() ),
 
   {ok, gen_pnet:new( ?MODULE, ClientState )}.
 
