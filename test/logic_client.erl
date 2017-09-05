@@ -64,18 +64,18 @@ is_value( false, _UsrInfo ) -> true;
 is_value( _T,    _UsrInfo ) -> false.
 
 
--spec step( {Q, C, T}, UsrInfo ) -> {ok, {Q1, C, T1}} | norule
+-spec step( {Q, C, T}, UsrInfo ) -> {ok, {Q1, C1, T1}} | norule
 when Q       :: [_],
      C       :: [{_, _}],
      T       :: _,
      UsrInfo :: _,
      Q1      :: [_],
-     C1      :: [{_, _}]
+     C1      :: [{_, _}],
      T1      :: _.
 
 step( {Q, [], T}, _UsrInfo ) ->
   case find_context( T ) of
-  	{ok, {E, TNext}}   -> {ok, {[TNext|Q], C, in_hole( E, {fut, TNext} )}};
+  	{ok, {E, TNext}}   -> {ok, {[TNext|Q], [], in_hole( E, {fut, TNext} )}};
   	{error, nocontext} -> norule
   end;
 
@@ -99,8 +99,8 @@ find_context( T ) ->
   	[H|_] -> {ok, H}
   end.
 
-find_context( T, E ) when is_boolean( T ) -> [];
-find_context( {fut, T}, E )               -> [];
+find_context( T, _E ) when is_boolean( T ) -> [];
+find_context( {fut, _T}, _E )              -> [];
 
 find_context( {'not', T}, E ) when is_boolean( T ) ->
   [{E, {'not', T}}];
@@ -113,7 +113,7 @@ find_context( {Op, T1, T2}, E ) when is_boolean( T1 ), is_boolean( T2 ) ->
 
 find_context( {Op, T1, T2}, E ) ->
   find_context( T1, in_hole( E, {Op, hole, T2} ) )++
-  find_context( T2, in_hole( E, {Op, T1, hole} ) );
+  find_context( T2, in_hole( E, {Op, T1, hole} ) ).
 
 
 subst_fut( {'not', T}, A, V ) ->
