@@ -158,7 +158,7 @@ terminate( _Reason, _NetState ) -> ok.
 -spec trigger( Place :: atom(), Token :: _, NetState :: _ ) -> pass | drop.
 
 trigger( 'ClientReply', {I, T}, _NetState ) ->
-  gen_server:reply( I, T );
+  gen_pnet:reply( I, T );
 
 trigger( 'CreRequest', {I, A}, NetState ) ->
   ClientState = gen_pnet:get_usr_info( NetState ),

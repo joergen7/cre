@@ -64,6 +64,10 @@
 
 -callback stageout_lst( A :: _, R :: _, UsrInfo :: _ ) -> [F :: _].
 
+-callback error_to_expr( A       :: _,
+                         Reason  :: {stagein | stageout, [_]} | {run, _},
+                         UsrInfo :: _ ) -> _.
+
 
 %%====================================================================
 %% Record definitions
@@ -111,17 +115,9 @@ init( {CreName, WrkMod, WrkArg} ) ->
 
 terminate( _Reason, _NetState ) -> ok.
 
-% TODO: WorkerOk and WorkerError have been replaced in the model with
-%       WorkerResult. This change must be reflected also in the net
-%       implementation.
-trigger( 'WorkerOk', {A, Ra}, NetState ) ->
+trigger( 'WorkerResult', {A, Ra}, NetState ) ->
   #wrk_state{ cre_name = CreName } = gen_pnet:get_usr_info( NetState ),
   cre_master:worker_ok( CreName, self(), A, Ra ),
-  drop;
-
-trigger( 'WorkerError', {A, Ea}, NetState ) ->
-  #wrk_state{ cre_name = CreName } = gen_pnet:get_usr_info( NetState ),
-  cre_master:return_error( CreName, self(), A, Ea ),
   drop;
 
 trigger( _Place, _Token, _NetState ) -> pass.
@@ -133,13 +129,14 @@ trigger( _Place, _Token, _NetState ) -> pass.
 
 place_lst() ->
   ['WorkerRequest', 'Stagein', 'StageinOk', 'StageinError', 'PreSync', 'Result',
-   'Stageout', 'StageoutOk', 'StageoutError', 'PostSync', 'WorkerOk',
-   'WorkerError'].
+   'Stageout', 'StageoutOk', 'StageoutError', 'PostSync', 'Error',
+   'WorkerResult'].
 
 
 trsn_lst() ->
   [prep_stagein, do_stagein, sync_inok, sync_inerror, run, prep_stageout,
-   do_stageout, sync_outok, sync_outerror, ret_ok, ret_posterror, ret_preerror].
+   do_stageout, sync_outok, sync_outerror, ret_posterror, ret_preerror,
+   return_ok, return_error].
 
 
 init_marking( _Place, _UsrInfo ) -> [].
@@ -154,9 +151,10 @@ preset( prep_stageout ) -> ['Result'];
 preset( do_stageout )   -> ['Stageout'];
 preset( sync_outok )    -> ['StageoutOk', 'PostSync'];
 preset( sync_outerror ) -> ['StageoutError', 'PostSync'];
-preset( ret_ok )        -> ['PostSync'];
+preset( ret_preerror )  -> ['PreSync'];
 preset( ret_posterror ) -> ['PostSync'];
-preset( ret_preerror )  -> ['PreSync'].
+preset( return_ok )     -> ['PostSync'];
+preset( return_error )  -> ['Error'].
 
 
 is_enabled( prep_stagein, _, _ )   -> true;
@@ -167,6 +165,7 @@ is_enabled( prep_stageout, _, _ )  -> true;
 is_enabled( do_stageout, _, _ )    -> true;
 is_enabled( sync_outok, _, _ )     -> true;
 is_enabled( sync_outerror, _ , _ ) -> true;
+is_enabled( return_error, _, _ )   -> true;
 
 is_enabled( ret_preerror, #{ 'PreSync' := [{A, F1, F2}] },
                           #wrk_state{ wrk_mod  = WrkMod,
@@ -176,14 +175,10 @@ when length( F2 ) > 0 ->
   Fa = ordsets:from_list( WrkMod:stagein_lst( A, UsrInfo ) ),
   Fa =:= F1uF2;
 
-is_enabled( ret_preerror, _, _ ) -> false;
-
 is_enabled( run, #{ 'PreSync' := [{A, F1, []}] }, 
                  #wrk_state{ wrk_mod = WrkMod, usr_info = UsrInfo } ) ->
   Fa = ordsets:from_list( WrkMod:stagein_lst( A, UsrInfo ) ),
   Fa =:= F1;
-
-is_enabled( run, _, _ ) -> false;
 
 is_enabled( ret_posterror, #{ 'PostSync' := [{A, Ra, F1, F2}] },
                            #wrk_state{ wrk_mod  = WrkMod,
@@ -193,19 +188,17 @@ when length( F2 ) > 0 ->
   Fa = ordsets:from_list( WrkMod:stageout_lst( A, Ra, UsrInfo ) ),
   Fa =:= F1uF2;
 
-is_enabled( ret_posterror, _, _ ) -> false;
-
-is_enabled( ret_ok, #{ 'PostSync' := [{A, Ra, F1, []}] },
-                    #wrk_state{ wrk_mod  = WrkMod, usr_info = UsrInfo } ) ->
+is_enabled( return_ok, #{ 'PostSync' := [{A, Ra, F1, []}] },
+                       #wrk_state{ wrk_mod  = WrkMod, usr_info = UsrInfo } ) ->
   Fa = ordsets:from_list( WrkMod:stageout_lst( A, Ra, UsrInfo ) ),
   Fa =:= F1;
 
-is_enabled( ret_ok, _, _ ) -> false.
+is_enabled( _, _, _ ) -> false.
 
 
 fire( prep_stagein, #{ 'Start' := [A] },
                     #wrk_state{ wrk_mod  = WrkMod, usr_info = UsrInfo } ) ->
-  Fa = WrkMod:stagein_lst( A, UsrInfo ),
+  Fa = ordsets:from_list( WrkMod:stagein_lst( A, UsrInfo ) ),
   {produce, #{ 'Stagein' => [{A, F} || F <- Fa], 'PreSync' => [{A, [], []}] }};
 
 fire( do_stagein, #{ 'Stagein' := [{A, F}] },
@@ -224,19 +217,20 @@ fire( sync_inerror, #{ 'StageinError' := [{A, F}], 'PreSync' := [{A, F1, F2}] },
   {produce, #{ 'PreSync' => [{A, F1, ordsets:add_element( F, F2 )}] }};
 
 fire( ret_preerror, #{ 'PreSync' := [{A, _F1, F2}] }, _WrkState ) ->
-  {produce, #{ 'WorkerError' => [{A, {stagein, F2}}] }};
+  {produce, #{ 'Error' => [{A, {stagein, F2}}] }};
 
 fire( run, #{ 'PreSync' := [{A, _Fa, []}] },
       #wrk_state{ wrk_mod = WrkMod, usr_info = UsrInfo } ) ->
   case WrkMod:run( A, UsrInfo ) of
     {ok, Ra}        -> {produce, #{ 'Result' => [{A, Ra}] }};
-    {error, Reason} -> {produce, #{ 'WorkerError' => [{A, {run, Reason}}] }}
+    {error, Reason} -> {produce, #{ 'Error' => [{A, {run, Reason}}] }}
   end;
 
 fire( prep_stageout, #{ 'Result' := [{A, Ra}]},
                      #wrk_state{ wrk_mod = WrkMod, usr_info = UsrInfo } ) ->
-  Fra = WrkMod:stageout_lst( A, Ra, UsrInfo ),
-  {produce, #{ 'Stageout' => [{A, F} || F <- Fra], 'PostSync' => [{A, Ra, [], []}] }};
+  Fra = ordsets:from_list( WrkMod:stageout_lst( A, Ra, UsrInfo ) ),
+  {produce, #{ 'Stageout' => [{A, F} || F <- Fra],
+               'PostSync' => [{A, Ra, [], []}] }};
 
 fire( do_stageout, #{ 'Stageout' := [{A, F}] },
                    #wrk_state{ wrk_mod = WrkMod, usr_info = UsrInfo } ) ->
@@ -250,12 +244,16 @@ fire( sync_outok, #{ 'StageoutOk' := [{A, F}],
   {produce, #{ 'PostSync' => [{A, Ra, ordsets:add_element( F, F1 ), F2}] }};
 
 fire( sync_outerror, #{ 'StageoutError' := [{A, F}],
-                        'PostSync'      := [{A, Ra, F1, F2}] },
-                     _WrkState ) ->
+                        'PostSync'      := [{A, Ra, F1, F2}] }, _WrkState ) ->
   {produce, #{ 'PostSync' => [{A, Ra, F1, ordsets:add_element( F, F2 )}] }};
 
 fire( ret_posterror, #{ 'PostSync' := [{A, _Ra, _F1, F2}] }, _WrkState ) ->
   {produce, #{ 'Error' => [{A, {stageout, F2}}] }};
 
-fire( ret_ok, #{ 'PostSync' := [{A, Ra, _Fa, []}] }, _WrkState ) ->
-  {produce, #{ 'WorkerOk' => [{A, Ra}] }}.
+fire( return_ok, #{ 'PostSync' := [{A, Ra, _Fa, []}] }, _WrkState ) ->
+  {produce, #{ 'WorkerResult' => [{A, Ra}] }};
+
+fire( return_error, #{ 'Error' := [{A, E}]},
+                    #wrk_state{ wrk_mod = WrkMod, usr_info = UsrInfo } ) ->
+  Ra = WrkMod:error_to_expr( A, E, UsrInfo ),
+  {produce, #{ 'WorkerResult' => [{A, Ra}] }}.

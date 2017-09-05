@@ -37,7 +37,7 @@
 %%====================================================================
 
 -export( [do_stagein/3, do_stageout/3, init/1, run/2, stagein_lst/2,
-          stageout_lst/3] ).
+          stageout_lst/3, error_to_expr/3] ).
 
 
 %%====================================================================
@@ -72,3 +72,11 @@ stagein_lst( _A, _UsrInfo ) -> [].
 -spec stageout_lst( A :: _, R :: _, UsrInfo :: _ ) -> [F :: _].
 
 stageout_lst( _A, _R, _UsrInfo ) -> [].
+
+
+-spec error_to_expr( A, Reason, UsrInfo ) -> _
+when A       :: _,
+     Reason  :: {stagein | stageout, [_]} | {run, _},
+     UsrInfo :: _.
+
+error_to_expr( _A, _Reason, _UsrInfo ) -> err.
