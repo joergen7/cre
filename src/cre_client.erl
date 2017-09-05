@@ -41,7 +41,7 @@
 -export( [place_lst/0, trsn_lst/0, init_marking/2, preset/1, is_enabled/3,
           fire/3] ).
 
--export( [start_link/3, eval/2, demand/1, cre_reply/4] ).
+-export( [start_link/3, start_link/4, eval/2, demand/1, cre_reply/4, stop/1] ).
 
 %%====================================================================
 %% Includes
@@ -73,6 +73,12 @@
 start_link( CreName, ClientMod, ClientArg ) ->
   gen_pnet:start_link( ?MODULE, {CreName, ClientMod, ClientArg}, [] ).
 
+start_link( ClientName, CreName, ClientMod, ClientArg ) ->
+  gen_pnet:start_link( ClientName,
+                       ?MODULE,
+                       {CreName, ClientMod, ClientArg},
+                       [] ).
+
 eval( ClientName, T ) ->
   gen_pnet:call( ClientName, {eval, T} ).
 
@@ -81,6 +87,9 @@ demand( ClientName ) ->
 
 cre_reply( ClientName, I, A, Delta ) ->
   gen_pnet:cast( ClientName, {cre_reply, I, A, Delta} ).
+
+stop( ClientName ) ->
+  gen_pnet:stop( ClientName ).
 
 
 %%====================================================================
@@ -158,7 +167,8 @@ terminate( _Reason, _NetState ) -> ok.
 -spec trigger( Place :: atom(), Token :: _, NetState :: _ ) -> pass | drop.
 
 trigger( 'ClientReply', {I, T}, _NetState ) ->
-  gen_pnet:reply( I, T );
+  _ = gen_pnet:reply( I, T ),
+  drop;
 
 trigger( 'CreRequest', {I, A}, NetState ) ->
   ClientState = gen_pnet:get_usr_info( NetState ),
@@ -233,14 +243,14 @@ when Trsn        :: atom(),
      ClientState :: #client_state{}.
 
 fire( start, #{ 'ClientRequest' := [{I, T}] }, _ClientState ) ->
-  {produce, #{ 'Program' => [{I, {[], #{}, T}}] }};
+  {produce, #{ 'Program' => [{I, {[], [], T}}] }};
 
 fire( terminate, #{ 'Program' := [{I, {_Q, _C, T}}] }, _ClientState ) ->
   {produce, #{ 'ClientReply' => [{I, T}] }};
 
-fire( step, #{ 'Program' := {I, {Q, C, T}} },
-            #client_state{ client_mod = ClientMod } ) ->
-  case  ClientMod:step( {Q, C, T} ) of
+fire( step, #{ 'Program' := [{I, {Q, C, T}}] },
+            #client_state{ client_mod = ClientMod, usr_info = UsrInfo } ) ->
+  case  ClientMod:step( {Q, C, T}, UsrInfo ) of
     {ok, {Q1, C1, T1}} -> {produce, #{ 'Program' => [{I, {Q1, C1, T1}}] }};
     norule             -> abort
   end;

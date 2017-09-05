@@ -41,7 +41,7 @@
 -export( [place_lst/0, trsn_lst/0, init_marking/2, preset/1, is_enabled/3,
           fire/3] ).
 
--export( [start_link/3, worker_request/2] ).
+-export( [start_link/3, start_link/4, worker_request/2, stop/1] ).
 
 %%====================================================================
 %% Includes
@@ -82,8 +82,14 @@
 start_link( CreName, WrkMod, WrkArg ) ->
   gen_pnet:start_link( ?MODULE, {CreName, WrkMod, WrkArg}, [] ).
 
+start_link( WrkName, CreName, WrkMod, WrkArg ) ->
+  gen_pnet:start_link( WrkName, ?MODULE, {CreName, WrkMod, WrkArg}, [] ).
+
 worker_request( WrkName, A ) ->
   gen_pnet:cast( WrkName, {worker_request, A} ).
+
+stop( WrkName ) ->
+  gen_pnet:stop( WrkName ).
 
 
 %%====================================================================
@@ -95,6 +101,7 @@ code_change( _OldVsn, NetState, _Extra ) -> {ok, NetState}.
 handle_call( _Request, _From, _NetState ) -> {reply, {error, bad_msg}}.
 
 handle_cast( {worker_request, A}, _NetState ) ->
+  io:format( "cre_worker:handle_cast received worker request~n  Worker:      ~p~n  Application: ~p~n", [self(), A] ),
   {noreply, #{}, #{ 'WorkerRequest' => [A] }};
 
 handle_cast( _Request, _NetState ) -> noreply.
@@ -117,7 +124,8 @@ terminate( _Reason, _NetState ) -> ok.
 
 trigger( 'WorkerResult', {A, Ra}, NetState ) ->
   #wrk_state{ cre_name = CreName } = gen_pnet:get_usr_info( NetState ),
-  cre_master:worker_ok( CreName, self(), A, Ra ),
+  io:format( "cre_worker:trigger sending worker result~n  CRE:         ~p~n  Worker:      ~p~n  Application: ~p~n  Result:      ~p~n", [CreName, self(), A, Ra] ),
+  cre_master:worker_result( CreName, self(), A, Ra ),
   drop;
 
 trigger( _Place, _Token, _NetState ) -> pass.
@@ -196,7 +204,7 @@ is_enabled( return_ok, #{ 'PostSync' := [{A, Ra, F1, []}] },
 is_enabled( _, _, _ ) -> false.
 
 
-fire( prep_stagein, #{ 'Start' := [A] },
+fire( prep_stagein, #{ 'WorkerRequest' := [A] },
                     #wrk_state{ wrk_mod  = WrkMod, usr_info = UsrInfo } ) ->
   Fa = ordsets:from_list( WrkMod:stagein_lst( A, UsrInfo ) ),
   {produce, #{ 'Stagein' => [{A, F} || F <- Fa], 'PreSync' => [{A, [], []}] }};

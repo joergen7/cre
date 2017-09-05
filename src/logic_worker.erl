@@ -28,7 +28,7 @@
 %% @end
 %% -------------------------------------------------------------------
 
--module( default_worker ).
+-module( logic_worker ).
 -behaviour( cre_worker ).
 
 
@@ -36,10 +36,9 @@
 %% Exports
 %%====================================================================
 
--export( [start_link/0, start_link/1, start_link/2, stop/1] ).
-
 -export( [do_stagein/3, do_stageout/3, init/1, run/2, stagein_lst/2,
           stageout_lst/3, error_to_expr/3] ).
+-export( [start_link/0, start_link/1, start_link/2, stop/1] ).
 
 
 %%====================================================================
@@ -59,19 +58,18 @@ start_link( WrkName, CreName ) ->
 stop( WrkName ) ->
   cre_worker:stop( WrkName ).
 
-
 %%====================================================================
 %% CRE worker callback functions
 %%====================================================================
 
 -spec do_stagein( A :: _, F :: _, UsrInfo :: _ ) -> ok | {error, enoent}.
 
-do_stagein( _A, _F, _UsrInfo ) -> ok.
+do_stagein( _A, _F, _UsrInfo ) -> error( unused ).
 
 
 -spec do_stageout( A :: _, F :: _, UsrInfo :: _ ) -> ok | {error, enoent}.
 
-do_stageout( _A, _F, _UsrInfo ) -> ok.
+do_stageout( _A, _F, _UsrInfo ) -> error( unused ).
 
 
 -spec init( WrkArg :: _ ) -> UsrInfo :: _.
@@ -81,7 +79,9 @@ init( _WrkArg ) -> [].
 
 -spec run( A :: _, UsrInfo :: _ ) -> {ok, R :: _} | {error, Reason :: _}.
 
-run( A, _UsrInfo ) -> {ok, A}.
+run( {'not', X}, _ )      -> {ok, not X};
+run( {'and', X1, X2}, _ ) -> {ok, X1 andalso X2};
+run( {'or', X1, X2}, _ )  -> {ok, X1 orelse X2}.
 
 
 -spec stagein_lst( A :: _, UsrInfo :: _ ) -> [F :: _].
@@ -99,4 +99,4 @@ when A       :: _,
      Reason  :: {stagein | stageout, [_]} | {run, _},
      UsrInfo :: _.
 
-error_to_expr( _A, _Reason, _UsrInfo ) -> err.
+error_to_expr( _A, _Reason, _UsrInfo ) -> error( unused ).

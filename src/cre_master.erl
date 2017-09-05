@@ -45,7 +45,7 @@
           fire/3] ).
 
 -export( [start_link/0, start_link/1, add_worker/2, worker_result/4,
-          add_client/2, cre_request/4] ).
+          add_client/2, cre_request/4, stop/1] ).
 
 %%====================================================================
 %% Macro definitions
@@ -120,6 +120,12 @@ cre_request( CreName, ClientName, I, A ) ->
   gen_pnet:cast( CreName, {cre_request, ClientName, I, A} ).
 
 
+%% @doc Stops the CRE instance.
+%%
+stop( CreName ) ->
+  gen_pnet:stop( CreName ).
+
+
 %%====================================================================
 %% Interface callback functions
 %%====================================================================
@@ -133,15 +139,19 @@ init( [] ) ->
   {ok, gen_pnet:new( ?MODULE, [] )}.
 
 handle_cast( {add_worker, P}, _ ) ->
+  io:format( "cre_master:handle_cast received add worker~n  CRE:    ~p~n  Worker: ~p~n", [self(), P] ),
   {noreply, #{}, #{ 'AddWorker' => [P] }};
 
 handle_cast( {worker_result, P, A, Delta}, _ ) ->
+  io:format( "cre_master:handle_cast received worker result~n  CRE: ~p~n  Worker: ~p~n  Application: ~p~n  Result: ~p~n", [self(), P, A, Delta] ),
   {noreply, #{}, #{ 'WorkerResult' => [{{P, A}, Delta}] }};
 
 handle_cast( {add_client, Q}, _ ) ->
+  io:format( "cre_master:handle_cast received add client~n  CRE:    ~p~n  Client: ~p~n", [self(), Q] ),
   {noreply, #{}, #{ 'AddClient' => [Q] }};
 
 handle_cast( {cre_request, Q, I, A}, _ ) ->
+  io:format( "cre_master:handle_cast received CRE request~n  CRE:         ~p~n  Client:      ~p~n  Program id:  ~p~n  Application: ~p~n", [self(), Q, I, A] ),
   {noreply, #{}, #{ 'CreRequest' => [{{Q, I}, A}] }};
 
 handle_cast( _Request, _NetState ) ->
@@ -149,6 +159,8 @@ handle_cast( _Request, _NetState ) ->
 
 
 handle_info( {'EXIT', FromPid, _}, NetState ) ->
+
+  io:format( "cre_master:handle_info received worker or client down~n  CRE: ~p~n  Pid: ~p~n", [self(), FromPid] ),
 
   AddClient  = gen_pnet:get_ls( 'AddClient', NetState ),
   ClientPool = gen_pnet:get_ls( 'ClientPool', NetState ),
@@ -176,14 +188,17 @@ handle_info( _Info, _NetState ) ->
 
 
 trigger( 'Demand', Q, _ ) ->
+  io:format( "cre_master:trigger sending demand~n  CRE:    ~p~n  Client: ~p~n", [self(), Q] ),
   cre_client:demand( Q ),
   drop;
 
 trigger( 'CreReply', {{Q, I}, A, Delta}, _ ) ->
+  io:format( "cre_master:trigger sending CRE reply~n  CRE:  ~p~n  Client: ~p~n  Program id: ~p~n  Application: ~p~n  Result: ~p~n", [self(), Q, I, A, Delta] ),
   cre_client:cre_reply( Q, I, A, Delta ),
   drop;
 
 trigger( 'WorkerRequest', {P, A}, _ ) ->
+  io:format( "cre_master:trigger sending worker request~n  CRE: ~p~n  Worker: ~p~n  Application: ~p~n", [self(), P, A] ),
   cre_worker:worker_request( P, A ),
   drop;
 
@@ -270,7 +285,7 @@ fire( remove_client, #{ 'ClientPool' := [Q],
 fire( send_demand, #{ 'DemandPool' := [unit],
                       'ClientPool' := [Q] }, _ ) ->
   {produce, #{ 'ClientPool' => [Q],
-               'Demand'     => [unit],
+               'Demand'     => [Q],
                'SentDemand' => [Q] }};
 
 fire( recover_demand, #{ 'SentDemand' := [Q],

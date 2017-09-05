@@ -37,6 +37,7 @@
 %%====================================================================
 
 -export( [init/1, is_value/2, step/2] ).
+-export( [start_link/0, start_link/1, start_link/2, eval/2, stop/1] ).
 
 %%====================================================================
 %% Language definition
@@ -49,6 +50,26 @@
            | {fut, e()}.
 
 %%====================================================================
+%% API functions
+%%====================================================================
+
+start_link() ->
+  {ok, CreName} = cre:pid(),
+  start_link( CreName ).
+
+start_link( CreName ) ->
+  cre_client:start_link( CreName, ?MODULE, [] ).
+
+start_link( ClientName, CreName ) ->
+  cre_client:start_link( ClientName, CreName, ?MODULE, [] ).
+
+eval( ClientName, T ) ->
+  cre_client:eval( ClientName, T ).
+
+stop( ClientName ) ->
+  cre_client:stop( ClientName ).
+
+%%====================================================================
 %% CRE worker callback functions
 %%====================================================================
 
@@ -59,9 +80,8 @@ init( _Arg ) -> [].
 
 -spec is_value( E :: e(), UsrInfo :: _ ) -> boolean().
 
-is_value( true,  _UsrInfo ) -> true;
-is_value( false, _UsrInfo ) -> true;
-is_value( _T,    _UsrInfo ) -> false.
+is_value( T, _UsrInfo ) when is_boolean( T ) -> true;
+is_value( _T, _UsrInfo )                     -> false.
 
 
 -spec step( {Q, C, T}, UsrInfo ) -> {ok, {Q1, C1, T1}} | norule
