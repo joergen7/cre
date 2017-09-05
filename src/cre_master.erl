@@ -126,9 +126,11 @@ cre_request( CreName, ClientName, I, A ) ->
 
 code_change( _OldVsn, NetState, _Extra )  -> {ok, NetState}.
 handle_call( _Request, _From, _NetState ) -> {reply, {error, bad_msg}}.
-init( [] )                                -> {ok, gen_pnet:new( ?MODULE, [] )}.
 terminate( _Reason, _NetState )           -> ok.
 
+init( [] ) ->
+  process_flag( trap_exit, true ),
+  {ok, gen_pnet:new( ?MODULE, [] )}.
 
 handle_cast( {add_worker, P}, _ ) ->
   {noreply, #{}, #{ 'AddWorker' => [P] }};
@@ -148,22 +150,22 @@ handle_cast( _Request, _NetState ) ->
 
 handle_info( {'EXIT', FromPid, _}, NetState ) ->
 
-  #{ 'AddClient'  := AddClient,
-     'ClientPool' := ClientPool,
-     'AddWorker'  := AddWorker,
-     'WorkerPool' := WorkerPool,
-     'BusyWorker' := BusyWorker } = NetState,
+  AddClient  = gen_pnet:get_ls( 'AddClient', NetState ),
+  ClientPool = gen_pnet:get_ls( 'ClientPool', NetState ),
+  AddWorker  = gen_pnet:get_ls( 'AddWorker', NetState ),
+  WorkerPool = gen_pnet:get_ls( 'WorkerPool', NetState ),
+  BusyWorker = gen_pnet:get_ls( 'BusyWorker',NetState ),
 
   QLst = AddClient++ClientPool,
   PLst = AddWorker++WorkerPool++BusyWorker,
 
   ExitClient = case lists:member( FromPid, QLst ) of
-    true  -> io:format( "client down~n" ), [FromPid];
+    true  -> [FromPid];
     false -> []
   end,
 
   ExitWorker = case lists:member( FromPid, PLst ) of
-    true  -> io:format( "worker down~n" ), [FromPid];
+    true  -> [FromPid];
     false -> []
   end,
 

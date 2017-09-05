@@ -41,7 +41,7 @@
 -export( [place_lst/0, trsn_lst/0, init_marking/2, preset/1, is_enabled/3,
           fire/3] ).
 
--export( [start_link/3] ).
+-export( [start_link/3, eval/2, demand/1, cre_reply/4] ).
 
 %%====================================================================
 %% Includes
@@ -56,7 +56,7 @@
 -callback is_value( T :: _, UsrInfo :: _ ) -> boolean().
 
 -callback step( {Q :: [_], C :: #{}, T :: _}, UsrInfo :: _ ) ->
-            {Q1 :: [_], C :: #{}, T1 :: _}.
+            {ok, {Q1 :: [_], C :: #{}, T1 :: _}} | norule.
 
 
 %%====================================================================
@@ -72,6 +72,15 @@
 
 start_link( CreName, ClientMod, ClientArg ) ->
   gen_pnet:start_link( ?MODULE, {CreName, ClientMod, ClientArg}, [] ).
+
+eval( ClientName, T ) ->
+  gen_pnet:call( ClientName, {eval, T} ).
+
+demand( ClientName ) ->
+  gen_pnet:cast( ClientName, demand ).
+
+cre_reply( ClientName, I, A, Delta ) ->
+  gen_pnet:cast( ClientName, {cre_reply, I, A, Delta} ).
 
 
 %%====================================================================
@@ -92,7 +101,7 @@ code_change( _OldVsn, NetState, _Extra ) -> {ok, NetState}.
             | {noreply, #{ atom() => [_] }, #{ atom() => [_] }}
             | {stop, _, _}.
 
-handle_call( {load, T}, From, _NetState ) ->
+handle_call( {eval, T}, From, _NetState ) ->
   {noreply, #{}, #{ 'ClientRequest' => [{From, T}] }}.
 
 
@@ -139,8 +148,16 @@ terminate( _Reason, _NetState ) -> ok.
 
 -spec trigger( Place :: atom(), Token :: _, NetState :: _ ) -> pass | drop.
 
-trigger( 'ClientReply', {I, T}, _NetState ) -> gen_server:reply( I, T );
-trigger( _Place, _Token, _NetState )        -> pass.
+trigger( 'ClientReply', {I, T}, _NetState ) ->
+  gen_server:reply( I, T );
+
+trigger( 'CreRequest', {I, A}, NetState ) ->
+  ClientState = gen_pnet:get_usr_info( NetState ),
+  #client_state{ cre_name = CreName } = ClientState,
+  cre_master:cre_request( CreName, self(), I, A ),
+  drop;
+
+trigger( _Place, _Token, _NetState ) -> pass.
 
 
 %%====================================================================
@@ -216,8 +233,10 @@ fire( terminate, #{ 'Program' := [{I, {_Q, _C, T}}] }, _ClientState ) ->
 
 fire( step, #{ 'Program' := {I, {Q, C, T}} },
             #client_state{ client_mod = ClientMod } ) ->
-  {Q1, C, T1} = ClientMod:step( {Q, C, T} ),
-  {produce, #{ 'Program' => [{I, {Q1, C, T1}}] }};
+  case  ClientMod:step( {Q, C, T} ) of
+    {ok, {Q1, C, T1}} -> {produce, #{ 'Program' => [{I, {Q1, C, T1}}] }};
+    norule            -> abort
+  end;
 
 fire( send, #{ 'Program' := [{I, {Q, C, T}}],
 	           'Demand'  := [unit],

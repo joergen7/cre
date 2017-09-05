@@ -41,7 +41,7 @@
 -export( [place_lst/0, trsn_lst/0, init_marking/2, preset/1, is_enabled/3,
           fire/3] ).
 
--export( [start_link/3] ).
+-export( [start_link/3, worker_request/2] ).
 
 %%====================================================================
 %% Includes
@@ -78,6 +78,9 @@
 start_link( CreName, WrkMod, WrkArg ) ->
   gen_pnet:start_link( ?MODULE, {CreName, WrkMod, WrkArg}, [] ).
 
+worker_request( WrkName, A ) ->
+  gen_pnet:cast( WrkName, {worker_request, A} ).
+
 
 %%====================================================================
 %% Interface callback functions
@@ -108,6 +111,9 @@ init( {CreName, WrkMod, WrkArg} ) ->
 
 terminate( _Reason, _NetState ) -> ok.
 
+% TODO: WorkerOk and WorkerError have been replaced in the model with
+%       WorkerResult. This change must be reflected also in the net
+%       implementation.
 trigger( 'WorkerOk', {A, Ra}, NetState ) ->
   #wrk_state{ cre_name = CreName } = gen_pnet:get_usr_info( NetState ),
   cre_master:worker_ok( CreName, self(), A, Ra ),
