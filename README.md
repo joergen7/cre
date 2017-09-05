@@ -114,9 +114,13 @@ Before we introduce the reduction relation for the distributed zero-order logic 
 
 ![Syntax: evaluation context](priv/logic_syntax_evaluation_context.png)
 
+Note that defining the evaluation context this way does not result in a deterministic reduction relation as would be the desirable in a standard reduction relation. This non-determinism allows us to find redexes in many places in the control string and schedule them. This is important, since we want to send as many redexes as possible at once to the distributed execution environment.
+
 #### Reduction Relation
 
-And, furthermore, defining that the reduction relation is created by applying the client notion of reduction in any evaluation context *E*.
+Now that we have defined the evaluation context, we can express what the notion of reduction n means in the context of a program *p*:
+
+![E-red](priv/logic_e-reduction.png)
 
 ## Related Projects
 
