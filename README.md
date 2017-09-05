@@ -50,11 +50,11 @@ To integrate the CRE into a rebar3 managed project change the `deps` entry in yo
 
 ### Creating a CRE Client Application
 
+TODO
+
 ![cre Petri net model](priv/cre_client_pnet.png)
 
 *Figure 2: Petri net model of the common runtime environment's client application. It provides a user interface (top and bottom) and an interface to the master application.*
-
-TODO
 
 #### Callback Functions
 
@@ -66,13 +66,15 @@ TODO
 
 ### Creating a CRE Worker Application
 
+TODO
+
 ![cre Petri net model](priv/cre_worker_pnet.png)
 
 *Figure 3: Petri net model of the common runtime environment's worker application. It interfaces only to the master application.*
 
-TODO
-
 #### Callback Functions
+
+## Example: A Distributed Zero-Order Logic
 
 ## Related Projects
 
