@@ -10,7 +10,7 @@ The common runtime environment (CRE) is a scalable execution environment for dat
 
 *Figure 1: Petri net model of the common runtime environment's master application. It provides interfaces to client applications (top and left) and worker processes (right).*
 
-## CRE Master Application
+## Features
 
 TODO
 
@@ -18,7 +18,7 @@ TODO
 
 TODO
 
-### Failure Recovery
+### Fault Tolerance
 
 TODO
 
@@ -30,42 +30,53 @@ TODO
 
 TODO
 
-### Actor Environment
+## Usage
 
-#### Client Interface
+### Adding the CRE to a Project
 
-#### Worker Interface
+#### rebar3
+
+To integrate the CRE into a rebar3 managed project change the `deps` entry in your application's `rebar.config` file to include the tuple `{cre, "0.1.0"}`.
+
+```erlang
+{deps, [{cre, "0.1.0"}]}.
+```
+
+#### mix
+
+```elixir
+{:cre, "~> 0.1.0"}
+```
+
+### Creating a CRE Client Application
 
 ![cre Petri net model](priv/cre_client_pnet.png)
 
 *Figure 2: Petri net model of the common runtime environment's client application. It provides a user interface (top and bottom) and an interface to the master application.*
 
-## CRE Client Applications
+TODO
+
+#### Callback Functions
 
 TODO
 
-### Actor Environment
-
 #### User Interface
 
-#### CRE Master Interface
+TODO
 
+### Creating a CRE Worker Application
 
 ![cre Petri net model](priv/cre_worker_pnet.png)
 
 *Figure 3: Petri net model of the common runtime environment's worker application. It interfaces only to the master application.*
 
-## CRE Worker Applications
-
 TODO
 
-### Actor Environment
-
-#### CRE Master Interface
+#### Callback Functions
 
 ## Related Projects
 
-- [Hadoop YARN](https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/YARN.html) is a large-scale data analysis platform that performs resource- and application management. YARN's resource manager is comparable with the CRE since it manages data analysis workloads by performing scheduling and failure recovery for a number of containers. YARN's application master is comparable with a [CRE client](https://github.com/joergen7/cre_client) implementation. Used with the [Hi-WAY](https://github.com/marcbux/Hi-WAY) application master Hadoop YARN can run workflows specified in [Cuneiform](https://cuneiform-lang.org), [Galaxy](https://galaxyproject.org), and [Pegasus DAX](https://pegasus.isi.edu).
+- [Hadoop YARN](https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/YARN.html) is a large-scale data analysis platform that performs resource- and application management. YARN's resource manager is comparable with the CRE since it manages data analysis workloads by performing scheduling and failure recovery for a number of containers.
 - [HTCondor](https://research.cs.wisc.edu/htcondor/) is a high-throughput data analysis platform. It is the underlying execution environment for [Pegasus](https://pegasus.isi.edu) whose workflow specification language is Pegasus DAX.
 - [Toil](https://github.com/BD2KGenomics/toil) is a scalable pipeline management system. It is an execution environment running workflows specified in [Common Workflow Language (CWL)](https://github.com/common-workflow-language/common-workflow-language).
 - [GenStage](https://github.com/elixir-lang/gen_stage) manages communication between producer-consumer networks. Thus, similar to the CRE, it is an application-independent scaffold which can be specialized to data analysis workloads.
