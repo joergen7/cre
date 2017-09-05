@@ -126,6 +126,8 @@ Next we need to define how results which have been added to the cache are substi
 
 ![E-recv](priv/logic_e-recv.png)
 
+
+
 ## Related Projects
 
 - [Hadoop YARN](https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/YARN.html) is a large-scale data analysis platform that performs resource- and application management. YARN's resource manager is comparable with the CRE since it manages data analysis workloads by performing scheduling and failure recovery for a number of containers.
