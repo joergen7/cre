@@ -91,7 +91,16 @@ Next, we extend the syntax by defining the concept of a value, i.e., an expressi
 #### Notion of Reduction
 
 ![E-neg-true](priv/logic_e-neg-true.png)
+
 ![E-neg-false](priv/logic_e-neg-false.png)
+
+![E-and-true](priv/logic_e-and-true.png)
+
+![E-and-false](priv/logic_e-and-false.png)
+
+![E-or-true](priv/logic_e-or-true.png)
+
+![E-or-false](priv/logic_e-or-false.png)
 
 #### Reduction Relation
 
