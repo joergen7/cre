@@ -46,7 +46,6 @@
            | {'not', e()}
            | {'and', e(), e()}
            | {'or', e(), e()}
-           | {'->', e(), e()}
            | {fut, e()}.
 
 %%====================================================================
@@ -67,22 +66,21 @@ is_value( _T,    _UsrInfo ) -> false.
 
 -spec step( {Q, C, T}, UsrInfo ) -> {ok, {Q1, C, T1}} | norule
 when Q       :: [_],
-     C       :: #{},
+     C       :: [{_, _}],
      T       :: _,
      UsrInfo :: _,
      Q1      :: [_],
+     C1      :: [{_, _}]
      T1      :: _.
 
-step( {Q, C, T}, _UsrInfo ) ->
+step( {Q, [], T}, _UsrInfo ) ->
   case find_context( T ) of
-  	{E, TNext}         -> {ok, {[TNext|Q], C, in_hole( E, {fut, TNext} )}};
-  	{error, nocontext} ->
-  	  % TODO
+  	{ok, {E, TNext}}   -> {ok, {[TNext|Q], C, in_hole( E, {fut, TNext} )}};
+  	{error, nocontext} -> norule
   end;
 
-
-
-
+step( {Q, [{A, Delta}|C1], T}, _UsrInfo ) ->
+  {ok, {Q, C1, subst_fut( T, A, Delta )}}.
 
 
 %%====================================================================
@@ -92,8 +90,7 @@ step( {Q, C, T}, _UsrInfo ) ->
 in_hole( hole, T )            -> T;
 in_hole( {'not', E}, T )      -> {'not', in_hole( E, T )};
 in_hole( {'and', E1, E2}, T ) -> {'and', in_hole( E1, T ), in_hole( E2, T )};
-in_hole( {'or', E1, E2}, T )  -> {'or', in_hole( E1, T ), in_hole( E2, T )};
-in_hole( {'->', E1, E2}, T )  -> {'->', in_hole( E1, T ), in_hole( E2, T )}.
+in_hole( {'or', E1, E2}, T )  -> {'or', in_hole( E1, T ), in_hole( E2, T )}.
 
 
 find_context( T ) ->
@@ -102,11 +99,8 @@ find_context( T ) ->
   	[H|_] -> {ok, H}
   end.
 
-find_context( T, E ) when is_boolean( T ) ->
-  [];
-
-find_context( {fut, T}, E ) ->
-  [];
+find_context( T, E ) when is_boolean( T ) -> [];
+find_context( {fut, T}, E )               -> [];
 
 find_context( {'not', T}, E ) when is_boolean( T ) ->
   [{E, {'not', T}}];
@@ -121,3 +115,15 @@ find_context( {Op, T1, T2}, E ) ->
   find_context( T1, in_hole( E, {Op, hole, T2} ) )++
   find_context( T2, in_hole( E, {Op, T1, hole} ) );
 
+
+subst_fut( {'not', T}, A, V ) ->
+  {'not', subst_fut( T, A, V )};
+
+subst_fut( {'and', T1, T2}, A, V ) ->
+  {'and', subst_fut( T1, A, V ), subst_fut( T2, A, V )};
+
+subst_fut( {'or', T1, T2}, A, V ) ->
+  {'or', subst_fut( T1, A, V ), subst_fut( T2, A, V )};
+
+subst_fut( {fut, A}, A, V ) -> V;
+subst_fut( T, _A, _V )      -> T.

@@ -55,11 +55,11 @@ is_value( _T, _UsrInfo ) -> true.
 
 -spec step( {Q, C, T}, UsrInfo ) -> {ok, {Q1, C1, T1}} | norule
 when Q       :: [_],
-     C       :: #{ _ => _ },
+     C       :: [{_, _}],
      T       :: _,
      UsrInfo :: _,
      Q1      :: [_],
-     C1      :: #{ _ => _ },
+     C1      :: [{_, _}],
      T1      :: _.
 
 step( _, _UsrInfo ) -> norule.

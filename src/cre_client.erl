@@ -55,8 +55,8 @@
 
 -callback is_value( T :: _, UsrInfo :: _ ) -> boolean().
 
--callback step( {Q :: [_], C :: #{ _ => _ }, T :: _}, UsrInfo :: _ ) ->
-            {ok, {Q1 :: [_], C1 :: #{ _ => _ }, T1 :: _}} | norule.
+-callback step( {Q :: [_], C :: [{_, _}], T :: _}, UsrInfo :: _ ) ->
+            {ok, {Q1 :: [_], C1 :: [{_, _}], T1 :: _}} | norule.
 
 
 %%====================================================================
@@ -102,7 +102,10 @@ code_change( _OldVsn, NetState, _Extra ) -> {ok, NetState}.
             | {stop, _, _}.
 
 handle_call( {eval, T}, From, _NetState ) ->
-  {noreply, #{}, #{ 'ClientRequest' => [{From, T}] }}.
+  {noreply, #{}, #{ 'ClientRequest' => [{From, T}] }};
+
+handle_call( _Request, _From, _NetState ) ->
+  {reply, {error, bad_msg}}.
 
 
 -spec handle_cast( Request :: _, NetState :: _ ) ->
@@ -111,7 +114,13 @@ handle_call( {eval, T}, From, _NetState ) ->
             | {stop, _}.
 
 handle_cast( demand, _NetState ) ->
-  {noreply, #{}, #{ 'Demand' => [unit] }}.
+  {noreply, #{}, #{ 'Demand' => [unit] }};
+
+handle_cast( {cre_reply, I, A, Delta}, _NetState ) ->
+  {noreply, #{}, #{ 'CreReply' => [{I, A, Delta}] }};
+
+handle_cast( _Request, _NetState ) -> noreply.
+
 
 
 -spec handle_info( Info :: _, NetState :: _ ) ->
@@ -232,8 +241,8 @@ fire( terminate, #{ 'Program' := [{I, {_Q, _C, T}}] }, _ClientState ) ->
 fire( step, #{ 'Program' := {I, {Q, C, T}} },
             #client_state{ client_mod = ClientMod } ) ->
   case  ClientMod:step( {Q, C, T} ) of
-    {ok, {Q1, C, T1}} -> {produce, #{ 'Program' => [{I, {Q1, C, T1}}] }};
-    norule            -> abort
+    {ok, {Q1, C1, T1}} -> {produce, #{ 'Program' => [{I, {Q1, C1, T1}}] }};
+    norule             -> abort
   end;
 
 fire( send, #{ 'Program' := [{I, {[A|Q1], C, T}}],
@@ -243,6 +252,6 @@ fire( send, #{ 'Program' := [{I, {[A|Q1], C, T}}],
 
 fire( recv, #{ 'Program'  := [{I, {Q, C, T}}],
                'CreReply' := [{I, A, Delta}] }, _ClientState ) ->
-  C1 = C#{ A => Delta },
+  C1 = [{A, Delta}|C],
   {produce, #{ 'Program' => [{I, {Q, C1, T}}] }}.
 
