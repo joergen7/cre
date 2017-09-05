@@ -118,9 +118,13 @@ Note that defining the evaluation context this way does not result in a determin
 
 #### Reduction Relation
 
-Now that we have defined the evaluation context, we can express what the notion of reduction n means in the context of a program *p*:
+Now that we have defined the evaluation context, we can express what the notion of reduction n means in the context of a program *p*. First, we need to define how redexes are sent to the execution environment. This is achieved by enclosing a redex in a future and by enqueueing the redex.
 
-![E-red](priv/logic_e-reduction.png)
+![E-send](priv/logic_e-send.png)
+
+Next we need to define how results which have been added to the cache are substituted into the control string:
+
+![E-recv](priv/logic_e-recv.png)
 
 ## Related Projects
 
