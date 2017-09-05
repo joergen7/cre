@@ -16,19 +16,19 @@ Here, we give an overview of the features, the CRE covers. The CRE's primary fun
 
 ### Scheduling
 
-Scheduling is performed by associating a task appearing on `Allowed` with a given compute resource appearing on `WorkerPool`. Once the match has been made, the task is sent to the associated compute resource and the task-resource pair is ear-marked as busy. The implementation allows any task to be matched with any resource, effectively implementing a random scheduling algorithm.
-
-### Fault Tolerance
-
-TODO
+Scheduling is performed by associating a task with a given worker. Once the match has been made, the task is sent to the associated worker and the task-worker pair is ear-marked as busy. Since any task is allowed to be matched with any worker, the net structure effectively implements a random scheduler.
 
 ### Back-Pressure
 
-TODO
+Large workloads consisting of 1M tasks or more as well as a large number of clients can spam the master process to a degree where it stops working. The CRE protects itself from being overwhelmed by its clients by applying back-pressure to eager clients.
+
+### Fault Tolerance
+
+The CRE can serve an arbitrary number of clients and can feed an arbitrary number of workers. In large compute clusters this means that there is a realistic chance for one or more connected processes to fail. The CRE creates a link to each client and each worker and appropriately reacts to exit messages which are generated whenever a process stops running. I.e., demand sent to non-existing clients is recollected and tasks sent to non-existing workers are rescheduled. Also, the total amount of demand tokens in the net is kept proportional to the number of live workers.
 
 ### Caching
 
-TODO
+Often in large-scale data analysis applications, the storage needed to keep intermediate results is much cheaper than the compute resources needed to derive these intermediate results. Accordingly, the CRE memoizes all task-result combinations over the duration of the CRE master's run.
 
 ## Usage
 
