@@ -12,11 +12,11 @@ The common runtime environment (CRE) is a scalable execution environment for dat
 
 ## Features
 
-TODO
+Here, we give an overview of the features, the CRE covers. The CRE's primary function is to match a given task with a compute resource. This means that in a distributed setting compute resources as well as CRE clients may fail. Furthermore, the CRE protects itself from being overwhelmed with tasks in the presence of many clients by employing a back-pressure protocol. Lastly, task results are memoized once computed, speeding up the evaluation of workloads that partially (or totally) overlap with previous workloads.
 
 ### Scheduling
 
-TODO
+Scheduling is performed by associating a task appearing on `Allowed` with a given compute resource appearing on `WorkerPool`. Once the match has been made, the task is sent to the associated compute resource and the task-resource pair is ear-marked as busy. The implementation allows any task to be matched with any resource, effectively implementing a random scheduling algorithm.
 
 ### Fault Tolerance
 

@@ -63,7 +63,7 @@ stop( ClientName ) ->
 
 
 %%====================================================================
-%% CRE worker callback functions
+%% CRE client callback functions
 %%====================================================================
 
 -spec init( Arg :: _ ) -> UsrInfo :: _.
