@@ -80,19 +80,25 @@ TODO
 
 #### Syntax
 
-Here, we show how a simple zero-order logic can be distributed using the CRE. We describe the semantics of this logic as a reduction semantics. Thus, first we introduce its static syntax. It consists of truth values, negation, conjunction, and disjunction. In addition we need a way to mark redexes that have already been sent away to be computed by a worker. We achieve this, by introducing a future enclosing a redex. The resulting syntax for expressions looks as follows:
+Here, we show how a simple zero-order logic can be distributed using the CRE. We describe the semantics of this logic as a reduction semantics. Thus, first we introduce its static syntax. It consists of truth values, negation, conjunction, and disjunction. In addition we need a way to mark redexes that have already been sent away to be computed by a worker. We achieve this, by introducing a future enclosing a redex. The resulting syntax for expressions *e* looks as follows:
 
 ![Syntax: expression](priv/logic_syntax_expr.png)
 
-CRE programs always consist of a queue, a cache, and a control string. This convention is reflected in the way we construct the syntax for programs:
+CRE programs always consist of a queue, a cache, and a control string. This convention is reflected in the way we construct the syntax for programs *p*:
 
 ![Syntax: program](priv/logic_syntax_program.png)
 
-Next, we extend the syntax by defining the concept of a value, i.e., an expression that can be the result of an evaluation:
+Next, we extend the syntax by defining the concept of a value *v*, i.e., an expression that can be the result of an evaluation:
 
 ![Syntax: value](priv/logic_syntax_value.png)
 
-#### Notion of Reduction
+#### Client Notion of Reduction
+
+
+
+#### Worker Notion of Reduction
+
+A worker reduces a redex in the usual way:
 
 ![E-neg-true](priv/logic_e-neg-true.png)
 
@@ -107,6 +113,10 @@ Next, we extend the syntax by defining the concept of a value, i.e., an expressi
 ![E-or-false](priv/logic_e-or-false.png)
 
 #### Reduction Relation
+
+We create the compatible closure of the client notion of reduction by defining the evaluation context *E*:
+
+And, furthermore, defining that the reduction relation is created by applying the client notion of reduction in any evaluation context *E*.
 
 ## Related Projects
 
