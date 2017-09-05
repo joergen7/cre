@@ -28,14 +28,38 @@ cre_test_() ->
    end,
 
    [
-    {<<"false evaluates itself">>,         fun false_evaluates_itself/0},
-    {<<"true evaluates itself">>,          fun true_evaluates_itself/0},
-    {<<"not true evaluates false">>,       fun not_true_evaluates_false/0},
-    {<<"not false evaluates true">>,       fun not_false_evaluates_true/0},
-    {<<"true or true evaluates true">>,    fun true_or_true_evaluates_true/0},
-    {<<"true or false evaluates true">>,   fun true_or_false_evaluates_true/0},
-    {<<"false or true evaluates true">>,   fun false_or_true_evaluates_true/0},
-    {<<"false or false evaluates false">>, fun false_or_false_evaluates_false/0}
+    {<<"false evaluates itself">>,
+     fun false_evaluates_itself/0},
+
+    {<<"true evaluates itself">>,
+     fun true_evaluates_itself/0},
+
+    {<<"not true evaluates false">>,
+     fun not_true_evaluates_false/0},
+
+    {<<"not false evaluates true">>,
+     fun not_false_evaluates_true/0},
+
+    {<<"true or true evaluates true">>,
+     fun true_or_true_evaluates_true/0},
+
+    {<<"true or false evaluates true">>,
+     fun true_or_false_evaluates_true/0},
+
+    {<<"false or true evaluates true">>,
+     fun false_or_true_evaluates_true/0},
+
+    {<<"false or false evaluates false">>,
+     fun false_or_false_evaluates_false/0},
+
+    {<<"double negation neutral">>,
+     fun double_negation_neutral/0},
+
+    {<<"negation works below conjunction">>,
+     fun negation_works_below_conjunction/0},
+
+    {<<"negation works below disjunction">>,
+     fun negation_works_below_disjunction/0}
    ]
   }.
 
@@ -67,6 +91,22 @@ false_or_true_evaluates_true() ->
 
 false_or_false_evaluates_false() ->
   ?assertNot( eval( {'or', false, false} ) ).
+
+double_negation_neutral() ->
+  ?assert( eval( {'not', {'not', true}} ) ),
+  ?assertNot( eval( {'not', {'not', false}} ) ).
+
+negation_works_below_conjunction() ->
+  ?assert( eval( {'and', {'not', false}, true} ) ),
+  ?assert( eval( {'and', true, {'not', false}} ) ),
+  ?assert( eval( {'and', {'not', false}, {'not', false}} ) ).
+
+negation_works_below_disjunction() ->
+  ?assert( eval( {'or', {'not', false}, true} ) ),
+  ?assert( eval( {'or', true, {'not', false}} ) ),
+  ?assert( eval( {'or', {'not', false}, {'not', false}} ) ).
+
+
 %%====================================================================
 %% Helper functions
 %%====================================================================

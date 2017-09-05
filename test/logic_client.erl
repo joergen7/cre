@@ -110,7 +110,8 @@ step( {Q, [{A, Delta}|C1], T}, _UsrInfo ) ->
 in_hole( hole, T )            -> T;
 in_hole( {'not', E}, T )      -> {'not', in_hole( E, T )};
 in_hole( {'and', E1, E2}, T ) -> {'and', in_hole( E1, T ), in_hole( E2, T )};
-in_hole( {'or', E1, E2}, T )  -> {'or', in_hole( E1, T ), in_hole( E2, T )}.
+in_hole( {'or', E1, E2}, T )  -> {'or', in_hole( E1, T ), in_hole( E2, T )};
+in_hole( T, _ )               -> T.
 
 
 find_context( T ) ->
