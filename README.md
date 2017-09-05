@@ -120,13 +120,13 @@ Note that defining the evaluation context this way does not result in a determin
 
 Now that we have defined the evaluation context, we can express what the notion of reduction n means in the context of a program *p*. First, we need to define how redexes are sent to the execution environment. This is achieved by enclosing a redex in a future and by enqueueing the redex.
 
-![E-send](priv/logic_e-send.png)
+![E-send](priv/logic_e-send.png) [E-send]
 
 Next we need to define how results which have been added to the cache are substituted into the control string:
 
-![E-recv](priv/logic_e-recv.png)
+![E-recv](priv/logic_e-recv.png) [E-recv]
 
-
+Note that the notion of reduction n we defined earlier does not directly appear in the reduction relation we have defined here (we use it in a side condition to identify redexes in E-send). This reflects the fact that the notion of reduction is applied by the worker and, thus, never explicitly appears in the way reduction is performed in the client.
 
 ## Related Projects
 
