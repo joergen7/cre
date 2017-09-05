@@ -129,22 +129,6 @@
          id="path31947" />
     </marker>
     <marker
-       inkscape:stockid="Arrow2Lend"
-       orient="auto"
-       refY="0"
-       refX="0"
-       id="marker31301"
-       style="overflow:visible"
-       inkscape:isstock="true"
-       inkscape:collect="always">
-      <path
-         id="path31303"
-         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.625;stroke-linejoin:round;stroke-opacity:1"
-         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
-         transform="matrix(-1.1,0,0,-1.1,-1.1,0)"
-         inkscape:connector-curvature="0" />
-    </marker>
-    <marker
        inkscape:isstock="true"
        style="overflow:visible"
        id="marker30602"
@@ -353,9 +337,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.9899495"
-     inkscape:cx="282.08725"
-     inkscape:cy="529.03477"
+     inkscape:zoom="1.979899"
+     inkscape:cx="280.82456"
+     inkscape:cy="407.81647"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -743,7 +727,7 @@
    style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:serif;-inkscape-font-specification:'serif Italic'"
    id="tspan4180">Q</tspan>',<tspan
    style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:serif;-inkscape-font-specification:'serif Italic'"
-   id="tspan4178">C</tspan>,<tspan
+   id="tspan4178">C'</tspan>,<tspan
    style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:serif;-inkscape-font-specification:'serif Italic'"
    id="tspan5065">t</tspan>'))</tspan></tspan></text>
     <text
@@ -791,30 +775,6 @@
    id="tspan5093">,</tspan>a<tspan
    style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:serif;-inkscape-font-specification:serif"
    id="tspan5091">)</tspan></tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="429.12283"
-       y="635.84766"
-       id="text22784"><tspan
-         sodipodi:role="line"
-         id="tspan22786"
-         x="429.12283"
-         y="635.84766"
-         style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.5px;line-height:1.25;font-family:serif;-inkscape-font-specification:'serif Italic'"><tspan
-   style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:serif;-inkscape-font-specification:serif"
-   id="tspan4244"><tspan
-   style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:serif;-inkscape-font-specification:'serif Italic'"
-   id="tspan5073">a</tspan>∈</tspan>Q</tspan><tspan
-         sodipodi:role="line"
-         x="429.12283"
-         y="645.22266"
-         style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.5px;line-height:1.25;font-family:serif;-inkscape-font-specification:'serif Italic'"
-         id="tspan4242"><tspan
-   style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:serif;-inkscape-font-specification:serif"
-   id="tspan4246"><tspan
-   style="-inkscape-font-specification:'serif Italic';font-family:serif;font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal"
-   id="tspan5075">a</tspan>∉</tspan>S</tspan></text>
     <path
        sodipodi:nodetypes="cc"
        inkscape:connector-curvature="0"
@@ -1088,12 +1048,12 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="335.37781"
+       x="328.94714"
        y="632.77252"
        id="text31045"><tspan
          sodipodi:role="line"
          id="tspan31047"
-         x="335.37781"
+         x="328.94714"
          y="632.77252"
          style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.5px;line-height:1.25;font-family:serif;-inkscape-font-specification:'serif Italic'"><tspan
    id="tspan31049"
@@ -1105,7 +1065,9 @@
    id="tspan31051"
    style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:serif;-inkscape-font-specification:serif">,(<tspan
    style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:serif;-inkscape-font-specification:'serif Italic'"
-   id="tspan4210">Q</tspan>,<tspan
+   id="tspan4210">Q<tspan
+   style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:serif;-inkscape-font-specification:serif"
+   id="tspan4778">-[</tspan>a</tspan>],<tspan
    style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:serif;-inkscape-font-specification:'serif Italic'"
    id="tspan4208">C</tspan>,<tspan
    style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:serif;-inkscape-font-specification:'serif Italic'"
@@ -1179,73 +1141,6 @@
        id="path4188"
        d="m 572.29872,502.3622 c -18.07468,0 -131.56442,0 -141.71259,0 -10.14816,0 -10.58613,0 -10.58613,9.27822 0,9.27823 0,112.6189 0,134.51601"
        style="display:inline;fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.40000001;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker4742)" />
-    <circle
-       style="display:inline;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.59743297;stroke-linecap:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       id="circle4190"
-       cx="420"
-       cy="752.36218"
-       r="7.7012835" />
-    <path
-       style="display:inline;fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.40000001;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker31301)"
-       d="m 422.634,745.12535 c 11.6257,-31.94134 11.02808,-55.22688 -0.37526,-86.55732"
-       id="path4192"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cc" />
-    <path
-       sodipodi:nodetypes="cc"
-       inkscape:connector-curvature="0"
-       id="path4194"
-       d="m 417.74126,658.56803 c -11.93044,32.77862 -11.77172,55.24581 -0.37526,86.55732"
-       style="display:inline;fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.40000001;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker5101)" />
-    <text
-       id="text4260"
-       y="754.71692"
-       x="417.07214"
-       style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       xml:space="preserve"><tspan
-         style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.5px;line-height:1.25;font-family:serif;-inkscape-font-specification:'serif Italic'"
-         y="754.71692"
-         x="417.07214"
-         id="tspan4258"
-         sodipodi:role="line"><tspan
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:serif;-inkscape-font-specification:serif"
-           id="tspan4250">[]</tspan></tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="436.35962"
-       y="705.09229"
-       id="text4274"><tspan
-         sodipodi:role="line"
-         id="tspan4272"
-         x="436.35962"
-         y="705.09229"
-         style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.5px;line-height:1.25;font-family:serif;-inkscape-font-specification:'serif Italic'"><tspan
-   style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:serif;-inkscape-font-specification:serif"
-   id="tspan7521">(</tspan>q<tspan
-   style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:serif;-inkscape-font-specification:serif"
-   id="tspan7523">,</tspan>S<tspan
-   style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:serif;-inkscape-font-specification:serif"
-   id="tspan7519">)</tspan></tspan></text>
-    <text
-       id="text4278"
-       y="704.71692"
-       x="370.07242"
-       style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       xml:space="preserve"><tspan
-         style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.5px;line-height:1.25;font-family:serif;-inkscape-font-specification:'serif Italic'"
-         y="704.71692"
-         x="370.07242"
-         id="tspan4276"
-         sodipodi:role="line"><tspan
-   style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:serif;-inkscape-font-specification:serif"
-   id="tspan7517">(</tspan>q<tspan
-   style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:serif;-inkscape-font-specification:serif"
-   id="tspan7515">,</tspan>S<tspan
-   style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:serif;-inkscape-font-specification:serif"
-   id="tspan4280">+[<tspan
-   style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:serif;-inkscape-font-specification:'serif Italic'"
-   id="tspan5077">a</tspan>])</tspan></tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:37.5px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.9375"
@@ -1431,16 +1326,5 @@
          x="288.95264"
          id="tspan4728"
          sodipodi:role="line">recv</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:37.5px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.9375"
-       x="404.90967"
-       y="774.19617"
-       id="text4310"><tspan
-         sodipodi:role="line"
-         id="tspan4308"
-         x="404.90967"
-         y="774.19617"
-         style="font-size:10px;stroke-width:0.9375">Guard</tspan></text>
   </g>
 </svg>
