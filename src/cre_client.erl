@@ -55,8 +55,8 @@
 
 -callback is_value( T :: _, UsrInfo :: _ ) -> boolean().
 
--callback step( {Q :: [_], C :: #{}, T :: _}, UsrInfo :: _ ) ->
-            {ok, {Q1 :: [_], C :: #{}, T1 :: _}} | norule.
+-callback step( {Q :: [_], C :: #{ _ => _ }, T :: _}, UsrInfo :: _ ) ->
+            {ok, {Q1 :: [_], C1 :: #{ _ => _ }, T1 :: _}} | norule.
 
 
 %%====================================================================
@@ -169,7 +169,7 @@ trigger( _Place, _Token, _NetState ) -> pass.
 place_lst() ->
   ['ClientRequest', 'ClientReply',
    'Demand', 'CreRequest', 'CreReply',
-   'Program', 'Guard'].
+   'Program'].
 
 
 -spec trsn_lst() -> [atom()].
@@ -179,7 +179,6 @@ trsn_lst() -> [start, terminate, step, send, recv].
 
 -spec init_marking( Place :: atom(), ClientState :: #client_state{} ) -> [_].
 
-init_marking( 'Guard', _ClientState ) -> [[]];
 init_marking( _Place, _ClientState)  -> [].
 
 
@@ -188,7 +187,7 @@ init_marking( _Place, _ClientState)  -> [].
 preset( start )     -> ['ClientRequest'];
 preset( terminate ) -> ['Program'];
 preset( step )      -> ['Program'];
-preset( send )      -> ['Program', 'Demand', 'Guard'];
+preset( send )      -> ['Program', 'Demand'];
 preset( recv )      -> ['Program', 'CreReply'].
 
 
@@ -206,11 +205,10 @@ is_enabled( terminate, #{ 'Program' := [{_I, {[], _C, T}}] },
 
 is_enabled( step, _Mode, _ClientState ) -> true;
 
-is_enabled( send, #{ 'Program' := [{_I, {Q, _C, _T}}],
-                     'Demand'  := [unit],
-                     'Guard'   := [SentLst]},
+is_enabled( send, #{ 'Program' := [{_I, {[_|_], _C, _T}}],
+                     'Demand'  := [unit] },
                   _ClientState ) ->
-  lists:any( fun( A ) -> not lists:member( A, SentLst ) end, Q );
+  true;
 
 is_enabled( recv, #{ 'Program'  := [{I, {_Q, _C, _T}}],
                      'CreReply' := [{I, _A, _Delta}]},
@@ -238,12 +236,9 @@ fire( step, #{ 'Program' := {I, {Q, C, T}} },
     norule            -> abort
   end;
 
-fire( send, #{ 'Program' := [{I, {Q, C, T}}],
-	           'Demand'  := [unit],
-               'Guard'   := [SentLst] }, _ClientState ) ->
-  [A|_] = [A || A <- Q, not lists:member( A, SentLst )],
-  {produce, #{ 'Program'    => [{I, {Q, C, T}}],
-               'Guard'      => [A|SentLst],
+fire( send, #{ 'Program' := [{I, {[A|Q1], C, T}}],
+	             'Demand'  := [unit] }, _ClientState ) ->
+  {produce, #{ 'Program'    => [{I, {Q1, C, T}}],
                'CreRequest' => [{I, A}] }};
 
 fire( recv, #{ 'Program'  := [{I, {Q, C, T}}],

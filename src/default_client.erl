@@ -53,12 +53,13 @@ init( _Arg ) -> [].
 is_value( _T, _UsrInfo ) -> true.
 
 
--spec step( {Q, C, T}, UsrInfo ) -> {ok, {Q1, C, T1}} | norule
+-spec step( {Q, C, T}, UsrInfo ) -> {ok, {Q1, C1, T1}} | norule
 when Q       :: [_],
-     C       :: #{},
+     C       :: #{ _ => _ },
      T       :: _,
      UsrInfo :: _,
      Q1      :: [_],
+     C1      :: #{ _ => _ },
      T1      :: _.
 
 step( _, _UsrInfo ) -> norule.

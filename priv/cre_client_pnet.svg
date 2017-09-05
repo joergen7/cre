@@ -17,8 +17,8 @@
    inkscape:version="0.92.1 r15371"
    sodipodi:docname="cre_client_pnet.svg"
    inkscape:export-filename="/home/jorgen/git/cre/priv/cre_client_pnet.png"
-   inkscape:export-xdpi="399.9895"
-   inkscape:export-ydpi="399.9895">
+   inkscape:export-xdpi="400"
+   inkscape:export-ydpi="400">
   <defs
      id="defs4">
     <marker
@@ -337,9 +337,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.979899"
+     inkscape:zoom="1.4"
      inkscape:cx="280.82456"
-     inkscape:cy="407.81647"
+     inkscape:cy="464.95932"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
