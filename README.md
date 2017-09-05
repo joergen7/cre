@@ -12,13 +12,13 @@ The common runtime environment (CRE) is a scalable execution environment for dat
 
 ## Features
 
-Here, we give an overview of the features, the CRE covers. The CRE's primary function is to match a given task with a compute resource. This means that in a distributed setting compute resources as well as CRE clients may fail. Furthermore, the CRE protects itself from being overwhelmed with tasks in the presence of many clients by employing a back-pressure protocol. Lastly, task results are memoized once computed, speeding up the evaluation of workloads that partially (or totally) overlap with previous workloads.
+Here, we give an overview of the features, the CRE covers. The primary features of the CRE are scheduling, client back-pressure, fault tolerance, and caching.
 
 ### Scheduling
 
 Scheduling is performed by associating a task with a given worker. Once the match has been made, the task is sent to the associated worker and the task-worker pair is ear-marked as busy. Since any task is allowed to be matched with any worker, the net structure effectively implements a random scheduler.
 
-### Back-Pressure
+### Client Back-Pressure
 
 Large workloads consisting of 1M tasks or more as well as a large number of clients can spam the master process to a degree where it stops working. The CRE protects itself from being overwhelmed by its clients by applying back-pressure to eager clients.
 
