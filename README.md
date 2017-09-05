@@ -76,6 +76,10 @@ TODO
 
 ## Example: A Distributed Zero-Order Logic
 
+### Reduction Semantics
+
+#### Syntax
+
 Here, we show how a simple zero-order logic can be distributed using the CRE. We describe the semantics of this logic as a reduction semantics. Thus, first we introduce its static syntax. It consists of the truth values `true` and `false` and the operators `not`, `and`, and `or`. In addition we need a way to mark redexes that have already been sent away to be computed. We achieve this, by introducing a future enclosing a redex. The resulting syntax looks as follows:
 
 ![Logic syntax expression](priv/logic_syntax_expr.png)
@@ -83,6 +87,10 @@ Here, we show how a simple zero-order logic can be distributed using the CRE. We
 Next, we extend the syntax by defining the concept of a value, i.e., an expression that can be the result of an evaluation:
 
 ![Logic syntax value](priv/logic_syntax_value.png)
+
+#### Notion of Reduction
+
+#### Reduction Relation
 
 ## Related Projects
 
