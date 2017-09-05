@@ -92,11 +92,7 @@ Next, we extend the syntax by defining the concept of a value *v*, i.e., an expr
 
 ![Syntax: value](priv/logic_syntax_value.png)
 
-#### Client Notion of Reduction
-
-
-
-#### Worker Notion of Reduction
+#### Notion of Reduction
 
 A worker reduces a redex in the usual way:
 
@@ -112,9 +108,13 @@ A worker reduces a redex in the usual way:
 
 ![E-or-false](priv/logic_e-or-false.png)
 
-#### Reduction Relation
+#### Evaluation Context
 
-We create the compatible closure of the client notion of reduction by defining the evaluation context *E*:
+Before we introduce the reduction relation for the distributed zero-order logic we need to define the syntax of evaluation contexts:
+
+![Syntax: evaluation context](priv/logic_syntax_evaluation_context.png)
+
+#### Reduction Relation
 
 And, furthermore, defining that the reduction relation is created by applying the client notion of reduction in any evaluation context *E*.
 
