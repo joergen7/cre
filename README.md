@@ -137,7 +137,7 @@ Accordingly, CRE programs are triples consisting of a queue, a cache, and a cont
 
 ![Syntax: program](priv/logic_syntax_program.png)
 
-Now that we have defined the evaluation context, we can express what the notion of reduction n means in the context of a program *p*. First, we need to define how redexes are sent to the execution environment. This is achieved by enclosing a redex in a future and by enqueueing the redex.
+Now that we have defined the evaluation context, we can express what the notion of reduction n means in the context of a program *p*. The updated reduction relation consists of two rules. The first rule defines how redexes are sent to the execution environment. This is achieved by enclosing a redex in a future and by enqueueing the redex.
 
 ![E-send](priv/logic_e-send.png)
 
