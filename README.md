@@ -84,13 +84,13 @@ Here, we show how a simple zero-order logic can be distributed using the CRE. We
 
 ![Syntax: expression](priv/logic_syntax_expr.png)
 
-Next, we extend the syntax by defining the concept of a value *v*, i.e., an expression that can be the result of an evaluation:
+#### Notion of Reduction
+
+Before we introduce the notion of reduction for the above logic, we need to extend the syntax by defining the concept of a value *v*, i.e., an expression that can be the result of an evaluation and that can play the role of an operand in a redex:
 
 ![Syntax: value](priv/logic_syntax_value.png)
 
-#### Notion of Reduction
-
-A worker reduces a redex in the usual way:
+Now we are ready to define the notion of reduction in form of the binary relation n. There should be no surprises here.
 
 ![E-neg-true](priv/logic_e-neg-true.png)
 
