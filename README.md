@@ -191,6 +191,8 @@ run( {'or', X1, X2}, _UsrInfo )  -> {ok, X1 orelse X2}.
 
 #### Reduction Relation
 
+The `step/2` function has two cases which correspond to the two reduction rules `E-send` and `E-recv`.
+
 ```erlang
 step( {Q, [], T}, _UsrInfo ) ->
   case find_context( T ) of
@@ -203,6 +205,12 @@ step( {Q, [], T}, _UsrInfo ) ->
 step( {Q, [{Redex, Value}|C1], T}, _UsrInfo ) ->
   {ok, {Q, C1, subst_fut( T, Redex, Value )}}.
 ```
+
+The `step/2` function is defined in terms of three other functions: `find_context/1` which takes an arbitrary expression and tries to decompose it into an evaluation context and a redex, `in_hole/2` which replaces the hole in an evaluation context with some expression (or another evaluation context), and `subst_fut/3` which replaces a future with its corresponding value.
+
+Note that we had to define a reduction function even if the reduction rules given in the previous section were given in the form of a relation. We achieve the function property by constraining the `E-send` rule to situations where the cache is empty and by making the `find_context/1` function return the leftmost outermost redex, instead of just any redex.
+
+Even though the reduction rules are now encoded in a function, evaluation is not deterministic in the order of reduction. The reason is that reduction results from the CRE can be received in any order regardless of the fact that the client has sent the redexes away in a deterministic order.
 
 ## Related Projects
 
