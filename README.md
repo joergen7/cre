@@ -114,11 +114,15 @@ Note that defining the evaluation context this way does not result in a determin
 
 #### Reduction Relation: A First Try
 
-To get a reduction relation from the previously defined notion of reduction n, we create the compatible closure of n by applying it in any evaluation context:
+To get a reduction relation from the previously defined notion of reduction n, we create the compatible closure of n by applying it in the evaluation context *E*:
 
+![E-red](priv/logic_e-red.png)
 
+`[E-red]`
 
 #### Reduction Relation: The CRE Way
+
+The reduction relation defined in `[E-red]` sufficiently describes how evaluation in our zero-order logic is accomplished. However, it applies the notion of reduction in-place, thereby reducing one redex at a time in a sequential manner. Now the sport is to send the redex away instead of just reducing it, and to do so with as many redexes as we can find in an expression.
 
 First, we extend the syntax of expressions *e* with the concept of a future. Futures provide a way to mark redexes that have already been sent away to be computed.
 
