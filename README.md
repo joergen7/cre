@@ -76,6 +76,9 @@ TODO
 
 ## Example: A Distributed Zero-Order Logic
 
+There are several reasons why distributing a zero-order logic this way is utter waste. However, the example is instructive because there is a habitual familiarity of programmers with logic and also because it is a healthy exercise to reflect on when *not* to distribute. Finding out how many yaks were shaved and the curliness of their hides is left to the reader.
+
+
 ### Reduction Semantics
 
 #### Syntax
@@ -147,6 +150,8 @@ Next we need to define how results which have been received via the cache are su
 `[E-recv]`
 
 The notion of reduction n does not appear directly in the reduction relation anymore (we use it only in a side condition to identify redexes in `E-send`). This reflects the fact that the notion of reduction is applied by the worker and, thus, never explicitly appears in the way reduction is performed in the client.
+
+In real applications, we let the client perform some reductions and defer the "number crunching" to the workers. In this example, however, we have the CRE workers do *all* reductions.
 
 ### A CRE Application from the Reduction Semantics
 
