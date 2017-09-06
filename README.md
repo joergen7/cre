@@ -182,8 +182,8 @@ run( {'or', X1, X2}, _ )  -> {ok, X1 orelse X2}.
 ```erlang
 step( {Q, [], T}, _UsrInfo ) ->
   case find_context( T ) of
-  	{ok, {E, TNext}}   -> {ok, {[TNext|Q], [], in_hole( E, {fut, TNext} )}};
-  	{error, nocontext} -> norule
+    {ok, {E, TNext}}   -> {ok, {[TNext|Q], [], in_hole( E, {fut, TNext} )}};
+    {error, nocontext} -> norule
   end;
 ```
 
