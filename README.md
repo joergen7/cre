@@ -84,10 +84,6 @@ Here, we show how a simple zero-order logic can be distributed using the CRE. We
 
 ![Syntax: expression](priv/logic_syntax_expr.png)
 
-CRE programs always consist of a queue, a cache, and a control string. This convention is reflected in the way we construct the syntax for programs *p*:
-
-![Syntax: program](priv/logic_syntax_program.png)
-
 Next, we extend the syntax by defining the concept of a value *v*, i.e., an expression that can be the result of an evaluation:
 
 ![Syntax: value](priv/logic_syntax_value.png)
@@ -114,9 +110,15 @@ Before we introduce the reduction relation for the distributed zero-order logic 
 
 ![Syntax: evaluation context](priv/logic_syntax_evaluation_context.png)
 
-Note that defining the evaluation context this way does not result in a deterministic reduction relation as would be the desirable in a standard reduction relation. This non-determinism allows us to find redexes in many places in the control string and schedule them. This is important, since we want to send as many redexes as possible at once to the distributed execution environment.
+Note that defining the evaluation context this way does not result in a deterministic reduction relation as would be the desirable when defining a standard reduction relation. This non-determinism allows us to find redexes in many places in the control string and schedule them. This is important, since we want to send as many redexes as possible at once to the distributed execution environment.
 
-#### Reduction Relation
+#### Reduction Relation: A First Try
+
+#### Reduction Relation: The CRE Way
+
+CRE programs always consist of a queue, a cache, and a control string. This convention is reflected in the way we construct the syntax for programs *p*:
+
+![Syntax: program](priv/logic_syntax_program.png)
 
 Now that we have defined the evaluation context, we can express what the notion of reduction n means in the context of a program *p*. First, we need to define how redexes are sent to the execution environment. This is achieved by enclosing a redex in a future and by enqueueing the redex.
 
