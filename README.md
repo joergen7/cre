@@ -110,9 +110,13 @@ Before we introduce the reduction relation for the distributed zero-order logic 
 
 ![Syntax: evaluation context](priv/logic_syntax_evaluation_context.png)
 
-Note that defining the evaluation context this way does not result in a deterministic reduction relation as would be the desirable when defining a standard reduction relation. This non-determinism allows us to find redexes in many places in the control string and schedule them. This is important, since we want to send as many redexes as possible at once to the distributed execution environment.
+Note that defining the evaluation context this way does not result in a deterministic reduction relation as would be the desirable when defining a standard reduction relation. This non-determinism allows us to find redexes in many places in the control string. This is important when we define the reduction relation for the CRE, since we want to send as many redexes as possible to the distributed execution environment regardless of how fast the CRE can generate replies.
 
 #### Reduction Relation: A First Try
+
+To get a reduction relation from the previously defined notion of reduction n, we create the compatible closure of n by applying it in any evaluation context:
+
+
 
 #### Reduction Relation: The CRE Way
 
