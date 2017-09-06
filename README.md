@@ -146,7 +146,7 @@ Next we need to define how results which have been received via the cache are su
 
 The notion of reduction n does not appear directly in the reduction relation anymore (we use it only in a side condition to identify redexes in `E-send`). This reflects the fact that the notion of reduction is applied by the worker and, thus, never explicitly appears in the way reduction is performed in the client.
 
-### A CRE client from the Reduction Semantics
+### A CRE Application from the Reduction Semantics
 
 #### Syntax
 
