@@ -80,9 +80,9 @@ TODO
 
 #### Syntax
 
-Here, we show how a simple zero-order logic can be distributed using the CRE. We describe the semantics of this logic as a reduction semantics. Thus, first we introduce its static syntax. It consists of truth values, negation, conjunction, and disjunction. In addition we need a way to mark redexes that have already been sent away to be computed by a worker. We achieve this, by introducing a future enclosing a redex. The resulting syntax for expressions *e* looks as follows:
+Here, we show how a simple zero-order logic can be distributed using the CRE. We describe the semantics of this logic as a reduction semantics. Thus, first we introduce its static syntax. It consists of truth values, negation, conjunction, and disjunction. The resulting syntax for expressions *e* looks as follows:
 
-![Syntax: expression](priv/logic_syntax_expr.png)
+![Syntax: expression first version](priv/logic_syntax_expr1.png)
 
 #### Notion of Reduction
 
@@ -115,6 +115,10 @@ Note that defining the evaluation context this way does not result in a determin
 #### Reduction Relation: A First Try
 
 #### Reduction Relation: The CRE Way
+
+First, we extend the syntax of expressions *e* with the concept of a future. Futures provide a way to mark redexes that have already been sent away to be computed.
+
+![Syntax: expression second version](priv/logic_syntax_expr2.png)
 
 CRE programs always consist of a queue, a cache, and a control string. This convention is reflected in the way we construct the syntax for programs *p*:
 
