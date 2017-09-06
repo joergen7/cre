@@ -190,8 +190,8 @@ step( {Q, [], T}, _UsrInfo ) ->
 ```
 
 ```erlang
-step( {Q, [{A, Delta}|C1], T}, _UsrInfo ) ->
-  {ok, {Q, C1, subst_fut( T, A, Delta )}}.
+step( {Q, [{Redex, Value}|C1], T}, _UsrInfo ) ->
+  {ok, {Q, C1, subst_fut( T, Redex, Value )}}.
 ```
 
 ## Related Projects
