@@ -124,11 +124,11 @@ To get a reduction relation from the previously defined notion of reduction n, w
 
 The reduction relation defined in `[E-red]` sufficiently describes how evaluation in our zero-order logic is accomplished. However, it applies the notion of reduction in-place, thereby reducing one redex at a time in a sequential manner. Now the sport is to send the redex away instead of just reducing it, and to do so with as many redexes as we can find in an expression.
 
-First, we extend the syntax of expressions *e* with the concept of a future. Futures provide a way to mark redexes that have already been sent away to be computed.
+Accordingly, the first thing to do is to extend the syntax of expressions *e* with the concept of a future. Futures provide a way to mark redexes that have already been sent away to be computed.
 
 ![Syntax: expression second version](priv/logic_syntax_expr2.png)
 
-CRE programs always consist of a queue, a cache, and a control string. This convention is reflected in the way we construct the syntax for programs *p*:
+CRE programs are triples consisting of a queue, a cache, and a control string. This convention is reflected in the way we construct the syntax for programs *p*:
 
 ![Syntax: program](priv/logic_syntax_program.png)
 
@@ -138,7 +138,7 @@ Now that we have defined the evaluation context, we can express what the notion 
 
 `[E-send]`
 
-Next we need to define how results which have been added to the cache are substituted into the control string:
+Next we need to define how results which have been received via the cache are substituted into the control string:
 
 ![E-recv](priv/logic_e-recv.png)
 
