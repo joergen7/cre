@@ -133,7 +133,7 @@ Accordingly, the first thing to do is to extend the syntax of expressions *e* wi
 
 Next, it is not enough to housekeep bare expressions. We need a way to represent redexes awaiting reduction and also redex-value pairs that we get back in return from the remote reduction service.
 
-CRE programs are triples consisting of a queue, a cache, and a control string. This convention is reflected in the way we construct the syntax for programs *p*. In this example, the queue is a list of redexes awaiting reduction, the cache is a list of redex-value pairs holding the redex and the value associated with it according to the notion of reduction, and the control string is an expression under evaluation.
+Accordingly, CRE programs are triples consisting of a queue, a cache, and a control string. This convention is reflected in the way we construct the syntax for programs *p*. In this example, the queue is a list of redexes awaiting reduction, the cache is a list of redex-value pairs holding the redex and the value associated with it according to the notion of reduction, and the control string is an expression under evaluation.
 
 ![Syntax: program](priv/logic_syntax_program.png)
 
@@ -151,7 +151,7 @@ Next we need to define how results which have been received via the cache are su
 
 The notion of reduction n does not appear directly in the reduction relation anymore (we use it only in a side condition to identify redexes in `E-send`). This reflects the fact that the notion of reduction is applied by the worker and, thus, never explicitly appears in the way reduction is performed in the client.
 
-In real applications, we let the client perform some reductions and defer the "number crunching" to the workers. In this example, however, we have the CRE workers do *all* reductions.
+In real applications, we let the client perform some reductions and defer the "number crunching" to the CRE. In this example, however, we have the CRE do *all* reductions.
 
 ### A CRE Application from the Reduction Semantics
 
