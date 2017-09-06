@@ -130,7 +130,7 @@ Accordingly, the first thing to do is to extend the syntax of expressions *e* wi
 
 Next, it is not enough to housekeep bare expressions. We need a way to represent redexes awaiting reduction and also redex-value pairs that we get back in return from the remote reduction service.
 
-CRE programs are triples consisting of a queue, a cache, and a control string. This convention is reflected in the way we construct the syntax for programs *p*. In this example, the queue is a list of redexes awaiting reduction, the cache is a list of redex-value pairs holding the redex and the value associated with it according to the notion of reduction, and the control string is the expression under evaluation.
+CRE programs are triples consisting of a queue, a cache, and a control string. This convention is reflected in the way we construct the syntax for programs *p*. In this example, the queue is a list of redexes awaiting reduction, the cache is a list of redex-value pairs holding the redex and the value associated with it according to the notion of reduction, and the control string is an expression under evaluation.
 
 ![Syntax: program](priv/logic_syntax_program.png)
 
@@ -184,7 +184,7 @@ run( {'or', X1, X2}, _ )  -> {ok, X1 orelse X2}.
 ```erlang
 step( {Q, [], T}, _UsrInfo ) ->
   case find_context( T ) of
-    {ok, {E, TNext}}   -> {ok, {[TNext|Q], [], in_hole( E, {fut, TNext} )}};
+    {ok, {E, Redex}}   -> {ok, {[Redex|Q], [], in_hole( E, {fut, Redex} )}};
     {error, nocontext} -> norule
   end;
 ```
