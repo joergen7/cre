@@ -144,7 +144,7 @@ Next we need to define how results which have been received via the cache are su
 
 `[E-recv]`
 
-Note that the notion of reduction n we defined earlier does not directly appear in the reduction relation we have defined here (we use it in a side condition to identify redexes in `E-send`). This reflects the fact that the notion of reduction is applied by the worker and, thus, never explicitly appears in the way reduction is performed in the client.
+The notion of reduction n does not directly appear in the reduction relation we have defined here (we use it in a side condition to identify redexes in `E-send`). This reflects the fact that the notion of reduction is applied by the worker and, thus, never explicitly appears in the way reduction is performed in the client.
 
 ## Related Projects
 
