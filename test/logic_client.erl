@@ -87,8 +87,7 @@ init( _Arg ) -> [].
 
 -spec is_value( E :: e(), UsrInfo :: _ ) -> boolean().
 
-is_value( T, _UsrInfo ) when is_boolean( T ) -> true;
-is_value( _T, _UsrInfo )                     -> false.
+is_value( T, _UsrInfo ) -> is_boolean( T ).
 
 
 -spec step( {Q, C, T}, UsrInfo ) -> {ok, {Q1, C1, T1}} | norule

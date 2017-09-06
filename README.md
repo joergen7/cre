@@ -168,6 +168,11 @@ In real applications, we let the client perform some reductions and defer only t
 #### Notion of Reduction
 
 ```erlang
+is_value( T, _UsrInfo ) -> is_boolean( T ).
+```
+
+
+```erlang
 run( {'not', X}, _UsrInfo )      -> {ok, not X};
 run( {'and', X1, X2}, _UsrInfo ) -> {ok, X1 andalso X2};
 run( {'or', X1, X2}, _UsrInfo )  -> {ok, X1 orelse X2}.
