@@ -144,7 +144,53 @@ Next we need to define how results which have been received via the cache are su
 
 `[E-recv]`
 
-The notion of reduction n does not directly appear in the reduction relation we have defined here (we use it in a side condition to identify redexes in `E-send`). This reflects the fact that the notion of reduction is applied by the worker and, thus, never explicitly appears in the way reduction is performed in the client.
+The notion of reduction n does not appear directly in the reduction relation anymore (we use it only in a side condition to identify redexes in `E-send`). This reflects the fact that the notion of reduction is applied by the worker and, thus, never explicitly appears in the way reduction is performed in the client.
+
+### A CRE client from the Reduction Semantics
+
+#### Syntax
+
+```erlang
+-type e() :: boolean()
+           | {'not', e()}
+           | {'and', e(), e()}
+           | {'or', e(), e()}
+           | {fut, e()}.
+```
+
+#### Notion of Reduction
+
+```erlang
+run( {'not', X}, _ )      -> {ok, not X};
+run( {'and', X1, X2}, _ ) -> {ok, X1 andalso X2};
+run( {'or', X1, X2}, _ )  -> {ok, X1 orelse X2}.
+```
+
+#### Evaluation Context
+
+```erlang
+-type ctx() :: hole
+             | {'not', ctx()}
+             | {'and', ctx(), e()}
+             | {'and', e(), ctx()}
+             | {'or', ctx(), e()}
+             | {'or', e(), ctx()}.
+```
+
+#### Reduction Relation
+
+```erlang
+step( {Q, [], T}, _UsrInfo ) ->
+  case find_context( T ) of
+  	{ok, {E, TNext}}   -> {ok, {[TNext|Q], [], in_hole( E, {fut, TNext} )}};
+  	{error, nocontext} -> norule
+  end;
+```
+
+```erlang
+step( {Q, [{A, Delta}|C1], T}, _UsrInfo ) ->
+  {ok, {Q, C1, subst_fut( T, A, Delta )}}.
+```
 
 ## Related Projects
 
