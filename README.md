@@ -168,9 +168,9 @@ In real applications, we let the client perform some reductions and defer the "n
 #### Notion of Reduction
 
 ```erlang
-run( {'not', X}, _ )      -> {ok, not X};
-run( {'and', X1, X2}, _ ) -> {ok, X1 andalso X2};
-run( {'or', X1, X2}, _ )  -> {ok, X1 orelse X2}.
+run( {'not', X}, _UsrInfo )      -> {ok, not X};
+run( {'and', X1, X2}, _UsrInfo ) -> {ok, X1 andalso X2};
+run( {'or', X1, X2}, _UsrInfo )  -> {ok, X1 orelse X2}.
 ```
 
 #### Evaluation Context
