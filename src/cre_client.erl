@@ -53,7 +53,7 @@
 
 -callback init( InitArg :: _ ) -> UsrInfo :: _.
 
--callback is_value( T :: _, UsrInfo :: _ ) -> boolean().
+-callback is_value( P :: _, UsrInfo :: _ ) -> boolean().
 
 -callback step( {Q :: [_], C :: [{_, _}], T :: _}, UsrInfo :: _ ) ->
             {ok, {Q1 :: [_], C1 :: [{_, _}], T1 :: _}} | norule.
