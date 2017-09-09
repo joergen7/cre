@@ -50,7 +50,7 @@ To integrate the CRE into a rebar3 managed project change the `deps` entry in yo
 
 ### Creating a CRE Client Application
 
-TODO
+The CRE client is a service that takes a program from a user (or from another service) and computes its result. For that purpose, the client extracts from the program small, independent computational units, which we call applications, and sends them to the CRE master for reduction. Also the client awaits the return of application results. The CRE client continues to generate applications until all application results in a program are known and no new applications can be generated. Then the result of the program is returned to the user. Additionally, the client only sends an application to the CRE master if the CRE master has expressed demand for new applications. This protects the CRE master from being overwhelmed by its clients.
 
 ![cre Petri net model](priv/cre_client_pnet.png)
 
@@ -76,7 +76,7 @@ TODO
 
 ## Example: A Distributed Zero-Order Logic
 
-There are several reasons why distributing a zero-order logic this way is utter waste. However, the example is instructive because there is a habitual familiarity of programmers with logic and also because it is a healthy exercise to reflect on when *not* to distribute. Finding out how many yaks were shaved and the curliness of their hides is left to the reader.
+There are several reasons why distributing a zero-order logic this way is utter waste. However, the example is instructive because there is a habitual familiarity of programmers with logic and also because it is a healthy exercise to reflect on when *not* to distribute.
 
 
 ### Reduction Semantics
