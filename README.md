@@ -70,7 +70,7 @@ In principle, we can now start querying the client by using the `cre_client:eval
     T = {'and', {'not', true}, {'not', false}}.
     cre_client( Cre, T ).
 
-The term we use here is in the syntax of the zero-order logic we use as an example later. If the CRE is live, it produces the result `false`. Note that we didn't add any workers to the CRE master yet, so the client request will just block and wait forever, unless we also add workers to the CRE master. How workers are implemented and added to the CRE master is described later.
+The term we use here is in the syntax of the zero-order logic we use in the [example section](#example-a-distributed-zero-order-logic). If the CRE is live, it produces the result `false`. Note that we didn't add any workers to the CRE master yet, so the client request will just block and wait forever, unless we also add workers to the CRE master. How workers are implemented and added to the CRE master is described in the [worker module section](#creating-a-cre-worker-module).
 
 #### Callback Functions
 
