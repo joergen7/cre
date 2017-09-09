@@ -51,7 +51,7 @@
 %% Callback definitions
 %%====================================================================
 
--callback init( Arg :: _ ) -> UsrInfo :: _.
+-callback init( InitArg :: _ ) -> UsrInfo :: _.
 
 -callback is_value( T :: _, UsrInfo :: _ ) -> boolean().
 

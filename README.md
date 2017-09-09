@@ -50,7 +50,7 @@ To integrate the CRE into a rebar3 managed project change the `deps` entry in yo
 
 ### Creating a CRE Client Application
 
-The CRE client is a service that takes a program from a user (or from another service) and computes its result. For that purpose, the client extracts from the program small, independent computational units, which we call applications, and sends them to the CRE master for reduction. Also the client awaits the return of application results. The CRE client continues to generate applications until all application results in a program are known and no new applications can be generated. Then the result of the program is returned to the user. Additionally, the client only sends an application to the CRE master if the CRE master has expressed demand for new applications. This protects the CRE master from being overwhelmed by its clients.
+The CRE client is a service that takes a program from a user (or from another service) and computes its result. For that purpose, the client extracts from the program small, independent computational units, which we call applications, and sends them to the CRE master for reduction. Also, the client awaits the return of application results. The client continues to generate applications until all application results in a program are known and no new applications can be generated. Then the result of the program is returned to the user. Additionally, the client sends an application to the CRE master only if the CRE master has expressed demand for new applications. This protects the CRE master from being overwhelmed by its clients.
 
 ![cre Petri net model](priv/cre_client_pnet.png)
 
@@ -58,7 +58,18 @@ The CRE client is a service that takes a program from a user (or from another se
 
 #### Callback Functions
 
-TODO
+The CRE client is implemented by providing three callback functions: `init/1`, `is_value/2`, and `step/2`. In the following, we discuss the behavior expected from these callbacks.
+
+##### init/1
+
+```erlang
+-callback init( InitArg :: _ ) -> UsrInfo :: _.
+```
+The `init` function takes an initial argument, and generates from it the user info field, that is subsequently handed to the `is_value/2` and `step/2` functions. Herein, the initial argument is the same as the last argument handed to the `cre_client:start_link/3` or `cre_client:start_link/4` functions which are used to start up a client process.
+
+##### is_value/2
+
+##### step/2
 
 #### User Interface
 

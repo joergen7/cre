@@ -66,9 +66,9 @@ stop( ClientName ) ->
 %% CRE client callback functions
 %%====================================================================
 
--spec init( Arg :: _ ) -> UsrInfo :: _.
+-spec init( InitArg :: _ ) -> UsrInfo :: _.
 
-init( _Arg ) -> [].
+init( _InitArg ) -> [].
 
 
 -spec is_value( T :: _, UsrInfo :: _ ) -> boolean().
