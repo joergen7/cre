@@ -32,7 +32,11 @@ Often in large-scale data analysis applications, the storage needed to keep inte
 
 ## Usage
 
+Creating a CRE application involves adding the CRE library to your project and implementing the callback functions for both a CRE client and a CRE worker. In this section we show, how this can be accomplished.
+
 ### Adding the CRE to a Project
+
+Although the CRE library can be imported also directly from GitHub, we recommend adding a dependency via [hex.pm](https://hex.pm). Here, we show how this can be done using the build tools [rebar3](https://www.rebar3.org) or mix.
 
 #### rebar3
 
