@@ -74,9 +74,9 @@ do_stagein( _A, _F, _UsrInfo ) -> ok.
 do_stageout( _A, _F, _UsrInfo ) -> ok.
 
 
--spec init( WrkArg :: _ ) -> UsrInfo :: _.
+-spec init( InitArg :: _ ) -> UsrInfo :: _.
 
-init( _WrkArg ) -> [].
+init( _InitArg ) -> [].
 
 
 -spec run( A :: _, UsrInfo :: _ ) -> {ok, R :: _} | {error, Reason :: _}.

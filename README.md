@@ -78,14 +78,18 @@ The term we use here is in the syntax of the zero-order logic we use in the [exa
 
 #### Callback Functions
 
-The CRE client is implemented by providing three callback functions: `init/1`, `is_value/2`, and `step/2`. In the following, we discuss the behavior expected from these callbacks.
+The CRE client is implemented by providing three callback functions:
+
+- `init/1` is called when the client process starts.
+- `is_value/2` determines whether or not an expression is a value.
+- `step/2` attempts to make progress on a given program, returning a new program.
 
 ##### init/1
 
 ```erlang
 -callback init( InitArg :: _ ) -> UsrInfo :: _.
 ```
-The `init/1` function takes an initial argument, and generates from it the user info field, that is subsequently handed to the `is_value/2` and `step/2` functions. Herein, the initial argument is the same as the last argument handed to the `cre_client:start_link/3` or `cre_client:start_link/4` functions which are used to start up a client process.
+The `init/1` function is called when a client process starts. It takes an initial argument `InitArg`, and generates from it the user info field `UsrInfo` which is subsequently handed to the `is_value/2` and `step/2` functions. Herein, the initial argument is the same as the last argument handed to the `cre_client:start_link/n` function which is used to start up a client process.
 
 ##### is_value/2
 
@@ -112,41 +116,57 @@ The CRE worker is a service that consumes applications that have been scheduled 
 
 #### Callback Functions
 
+The CRE worker is implemented by providing seven callback functions:
+
+- `init/1` is called on starting a worker instance.
+- `stagein_lst/2` returns a list of preconditions for a given application.
+- `do_stagein/3` fulfills a precondition.
+- `run/2` reduces an application assuming all preconditions are fulfilled.
+- `stageout_lst/3` returns a list of postconditions for a given application and its reduction result.
+- `do_stageout/3` fulfills a postcondition.
+- `error_to_expr/3` returns an error expression for a given intransient error.
+
 ##### init/1
 
 ```erlang
--callback init( WrkArg :: _ ) -> UsrInfo :: _.
+-callback init( InitArg :: _ ) -> UsrInfo :: _.
 ```
+The `init/1` function is called when the worker process starts. It takes an initial argument `InitArg` and generates from it the user info field `UsrInfo` which is subsequently handed to all other callback functions. Herein, the initial argument is the same as the last argument to the `cre_worker:start_link/n` function which is used to start a worker process.
 
 ##### stagein_lst/2
 
 ```erlang
 -callback stagein_lst( A :: _, UsrInfo :: _ ) -> [F :: _].
 ```
+The stagein_lst/2 produces a list of preconditions `F` for a given application `A`. In addition, the user info field `UsrInfo` which has been generated with `init/1` is provided. Later, the `do_stagein/3` function will be called in an arbitrary order for each of the preconditions this function returns.
 
 ##### do_stagein/3
 
 ```erlang
 -callback do_stagein( A :: _, F :: _, UsrInfo :: _ ) -> ok | {error, enoent}.
 ```
+The `do_stagein/3` function fulfills a single precondition previously announced by the `stagein_lst/2` function. The function is expected to return the atom `ok` on success. In case of a *deterministic* error the tuple `{error, enoent}` should be returned, e.g., if an input file does not exist. In the case of a network outage or some other *transient* error, an exception should be raised.
 
 ##### run/2
 
 ```erlang
 -callback run( A :: _, UsrInfo :: _ ) -> {ok, R :: _} | {error, Reason :: _}.
 ```
+The `run/2` function consumes an application `A` and attempts to reduce it. On success it is expected to return a pair `{ok, R}` containing the application's result `R` while in the case of a *deterministic* error it is expected to return a pair `{error, Reason}` containing the reason for the error. In case of a *transient* error an exception should be raised.
 
 ##### stageout_lst/3
 
 ```erlang
 -callback stageout_lst( A :: _, R :: _, UsrInfo :: _ ) -> [F :: _].
 ```
+The `stageout_lst/3` function takes an application `A` and its associated reduction result `R` and produces a list of postconditions `F`. Later, the `do_stageout/3` function will be called in an arbitrary order for each of the postconditions this function returns.
 
 ##### do_stageout/3
 
 ```erlang
 -callback do_stageout( A :: _, F :: _, UsrInfo :: _ ) -> ok | {error, enoent}.
 ```
+The `do_stageout/3` function fulfills a single postcondition previously announced by the `stageout_lst/3` function. The function is expected to return the atom `ok` on success. In case of a *deterministic* error the tuple `{error, enoent}` should be returned, e.g., if an output file has not been produced. In the case of a *transient* error, an exception should be raised.
 
 ##### error_to_expr/3
 
@@ -155,6 +175,7 @@ The CRE worker is a service that consumes applications that have been scheduled 
                          Reason  :: {stagein | stageout, [_]} | {run, _},
                          UsrInfo :: _ ) -> _.
 ```
+The functions `do_stagein/3`, `run/2`, and `do_stageout/3` all carry the possibility to return an error. This possibility is usually reflected in the target language by providing a syntactic category for errors and reduction rules that handle errors in one or the other way. The `error_to_expr/3` function takes an application `A` and an error info field `Reason` and produces from these an error expression in the syntax of the target language.
 
 
 ## Example: A Distributed Zero-Order Logic

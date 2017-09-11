@@ -56,7 +56,7 @@
 
 -callback do_stageout( A :: _, F :: _, UsrInfo :: _ ) -> ok | {error, enoent}.
 
--callback init( WrkArg :: _ ) -> UsrInfo :: _.
+-callback init( InitArg :: _ ) -> UsrInfo :: _.
 
 -callback run( A :: _, UsrInfo :: _ ) -> {ok, R :: _} | {error, Reason :: _}.
 
