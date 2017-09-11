@@ -180,10 +180,16 @@ The functions `do_stagein/3`, `run/2`, and `do_stageout/3` all carry the possibi
 
 ## Example: A Distributed Zero-Order Logic
 
+In this section we demonstrate the implementation of a CRE application by distributing a zero-order logic, i.e., a logic with truth values and propositional operators like negation, conjunction or disjunction but no quantifiers or variables. We show how a client module and a worker module are implemented from the callback definitions we gave in the previous section.
+
 There are several reasons why distributing a zero-order logic this way is utter waste. However, the example is instructive because there is a habitual familiarity of programmers with logic and also because it is a healthy exercise to reflect on when *not* to distribute.
 
 
 ### Reduction Semantics
+
+Before dwelling on the code, let us clarify what we are about to build. Here, we define a zero-order logic as a reduction semantics, i.e., we give a notion of reduction which we apply in an evaluation context to get a small-step operational semantics.
+
+So, first, we define the syntax of the language. Then, we give the notion of reduction and a definition of the evaluation context. The interesting part is the small step reduction relation that we create from these building blocks. This reduction relation as well as the syntax of programs needs to conform some basic rules in order to be compatible with the CRE. We discuss these rules in the reduction semantics before we move on to implement it.
 
 #### Syntax
 
@@ -269,12 +275,7 @@ In real applications, we let the client perform some reductions and defer only t
            | {fut, e()}.
 ```
 
-#### Notion of Reduction
-
-```erlang
-is_value( T, _UsrInfo ) -> is_boolean( T ).
-```
-
+#### Implementation of the Logic Worker
 
 ```erlang
 run( {'not', X}, _UsrInfo )      -> {ok, not X};
@@ -293,7 +294,11 @@ run( {'or', X1, X2}, _UsrInfo )  -> {ok, X1 orelse X2}.
              | {'or', e(), ctx()}.
 ```
 
-#### Reduction Relation
+#### Implementation of the Logic Client
+
+```erlang
+is_value( T, _UsrInfo ) -> is_boolean( T ).
+```
 
 The `step/2` function has two cases which correspond to the two reduction rules `E-send` and `E-recv`.
 
