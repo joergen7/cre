@@ -104,13 +104,58 @@ The `step/2` function takes a program of the form `{Q, C, T}` and the user info 
 
 ### Creating a CRE Worker Module
 
-TODO
+The CRE worker is a service that consumes applications that have been scheduled to it by a CRE master and reduces it. For that purpose the worker also makes sure that any preconditions are met prior to reduction and that any postconditions are met prior to sending the application's result back to the CRE master. Such pre- and postconditions could be, for example, the stage-in of input files which need to be fetched from a distributed file system or the stage-out of output files.
 
 ![cre Petri net model](priv/cre_worker_pnet.png)
 
 *Figure 3: Petri net model of the common runtime environment's worker application. It interfaces only to the master application.*
 
 #### Callback Functions
+
+##### init/1
+
+```erlang
+-callback init( WrkArg :: _ ) -> UsrInfo :: _.
+```
+
+##### stagein_lst/2
+
+```erlang
+-callback stagein_lst( A :: _, UsrInfo :: _ ) -> [F :: _].
+```
+
+##### do_stagein/3
+
+```erlang
+-callback do_stagein( A :: _, F :: _, UsrInfo :: _ ) -> ok | {error, enoent}.
+```
+
+##### run/2
+
+```erlang
+-callback run( A :: _, UsrInfo :: _ ) -> {ok, R :: _} | {error, Reason :: _}.
+```
+
+##### stageout_lst/3
+
+```erlang
+-callback stageout_lst( A :: _, R :: _, UsrInfo :: _ ) -> [F :: _].
+```
+
+##### do_stageout/3
+
+```erlang
+-callback do_stageout( A :: _, F :: _, UsrInfo :: _ ) -> ok | {error, enoent}.
+```
+
+##### error_to_expr/3
+
+```erlang
+-callback error_to_expr( A       :: _,
+                         Reason  :: {stagein | stageout, [_]} | {run, _},
+                         UsrInfo :: _ ) -> _.
+```
+
 
 ## Example: A Distributed Zero-Order Logic
 
