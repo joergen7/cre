@@ -118,7 +118,7 @@ init( {CreName, WrkMod, WrkArg} ) ->
 
   ok = cre_master:add_worker( CreName, self() ),
 
-  {ok, gen_pnet:new( ?MODULE, WrkState )}.
+  WrkState.
 
 terminate( _Reason, _NetState ) -> ok.
 

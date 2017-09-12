@@ -80,7 +80,7 @@ start_link( ClientName, CreName, ClientMod, ClientArg ) ->
                        [] ).
 
 eval( ClientName, T ) ->
-  gen_pnet:call( ClientName, {eval, T} ).
+  gen_pnet:call( ClientName, {eval, T}, infinity ).
 
 demand( ClientName ) ->
   gen_pnet:cast( ClientName, demand ).
@@ -156,7 +156,7 @@ when is_atom( ClientMod ) ->
 
   cre_master:add_client( CreName, self() ),
 
-  {ok, gen_pnet:new( ?MODULE, ClientState )}.
+  ClientState.
 
 
 -spec terminate( Reason :: _, NetState :: _ ) -> ok.

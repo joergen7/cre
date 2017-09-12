@@ -134,9 +134,9 @@ code_change( _OldVsn, NetState, _Extra )  -> {ok, NetState}.
 handle_call( _Request, _From, _NetState ) -> {reply, {error, bad_msg}}.
 terminate( _Reason, _NetState )           -> ok.
 
-init( [] ) ->
+init( _MasterArg ) ->
   process_flag( trap_exit, true ),
-  {ok, gen_pnet:new( ?MODULE, [] )}.
+  [].
 
 handle_cast( {add_worker, P}, _ ) ->
   io:format( "cre_master:handle_cast received add worker~n  CRE:    ~p~n  Worker: ~p~n", [self(), P] ),
