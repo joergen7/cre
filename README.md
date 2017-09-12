@@ -296,7 +296,7 @@ run( {'or', X1, X2}, _UsrInfo )  -> {ok, X1 orelse X2}.
 
 #### Implementation of the Client
 
-The implementation of the CRE client for our zero-order logic involves the implementation of the three callback functions `init/1`, `is_value/2`, and `step/2`. The [source code](blob/master/test/logic_client.erl) of the client is available as part of the CRE test suite.
+The implementation of the CRE client for our zero-order logic involves the implementation of the three callback functions `init/1`, `is_value/2`, and `step/2`. The [source code](test/logic_client.erl) of the client is available as part of the CRE test suite.
 
 ##### init/1
 
