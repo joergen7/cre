@@ -325,16 +325,16 @@ is_value( T, _UsrInfo ) -> is_boolean( T ).
 The `step/2` function implements a small-step semantics for the language to be interpreted. In the case of our zero-order logic, the function implements the reduction relation defined by the two reduction rules `[E-send]` and `[E-recv]`.
 
 ```erlang
-step( {Q, [], T}, _UsrInfo ) ->
-  case find_context( T ) of
-    {ok, {E, Redex}}   -> {ok, {[Redex|Q], [], in_hole( E, {fut, Redex} )}};
+step( {Q, [], E}, _UsrInfo ) ->
+  case find_context( E ) of
+    {ok, {Ctx, Redex}}   -> {ok, {[Redex|Q], [], in_hole( Ctx, {fut, Redex} )}};
     {error, nocontext} -> norule
   end;
 ```
 
 ```erlang
-step( {Q, [{Redex, Value}|C1], T}, _UsrInfo ) ->
-  {ok, {Q, C1, subst_fut( T, Redex, Value )}}.
+step( {Q, [{Redex, Value}|C1], E}, _UsrInfo ) ->
+  {ok, {Q, C1, subst_fut( E, Redex, Value )}}.
 ```
 
 The `step/2` function is defined in terms of three other functions: `find_context/1` which takes an arbitrary expression and tries to decompose it into an evaluation context and a redex, `in_hole/2` which replaces the hole in an evaluation context with some expression (or another evaluation context), and `subst_fut/3` which replaces a future with its corresponding value.
