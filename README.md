@@ -317,7 +317,7 @@ init( _InitArg ) -> [].
 The `is_value/2` function tests whether an expression is a value or not telling the CRE client whether evaluation has terminated. In the case of our zero-order logic, an expression is a value when it is a plain truth value, i.e., `true` or `false`.
 
 ```erlang
-is_value( T, _UsrInfo ) -> is_boolean( T ).
+is_value( E, _UsrInfo ) -> is_boolean( E ).
 ```
 
 ##### step/2

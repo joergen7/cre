@@ -87,26 +87,26 @@ init( _InitArg ) -> [].
 
 -spec is_value( E :: e(), UsrInfo :: _ ) -> boolean().
 
-is_value( T, _UsrInfo ) -> is_boolean( T ).
+is_value( E, _UsrInfo ) -> is_boolean( E ).
 
 
--spec step( {Q, C, T}, UsrInfo ) -> {ok, {Q1, C1, T1}} | norule
+-spec step( {Q, C, E}, UsrInfo ) -> {ok, {Q1, C1, E1}} | norule
 when Q       :: [_],
      C       :: [{_, _}],
-     T       :: _,
+     E       :: _,
      UsrInfo :: _,
      Q1      :: [_],
      C1      :: [{_, _}],
-     T1      :: _.
+     E1      :: _.
 
-step( {Q, [], T}, _UsrInfo ) ->
-  case find_context( T ) of
-  	{ok, {E, TNext}}   -> {ok, {[TNext|Q], [], in_hole( E, {fut, TNext} )}};
+step( {Q, [], E}, _UsrInfo ) ->
+  case find_context( E ) of
+  	{ok, {Ctx, TNext}}   -> {ok, {[TNext|Q], [], in_hole( Ctx, {fut, TNext} )}};
   	{error, nocontext} -> norule
   end;
 
-step( {Q, [{A, Delta}|C1], T}, _UsrInfo ) ->
-  {ok, {Q, C1, subst_fut( T, A, Delta )}}.
+step( {Q, [{A, Delta}|C1], E}, _UsrInfo ) ->
+  {ok, {Q, C1, subst_fut( E, A, Delta )}}.
 
 
 %%====================================================================

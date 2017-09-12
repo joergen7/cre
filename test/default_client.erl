@@ -71,18 +71,18 @@ stop( ClientName ) ->
 init( _InitArg ) -> [].
 
 
--spec is_value( P :: _, UsrInfo :: _ ) -> boolean().
+-spec is_value( E :: _, UsrInfo :: _ ) -> boolean().
 
-is_value( _P, _UsrInfo ) -> true.
+is_value( _E, _UsrInfo ) -> true.
 
 
--spec step( {Q, C, T}, UsrInfo ) -> {ok, {Q1, C1, T1}} | norule
+-spec step( {Q, C, E}, UsrInfo ) -> {ok, {Q1, C1, E1}} | norule
 when Q       :: [_],
      C       :: [{_, _}],
-     T       :: _,
+     E       :: _,
      UsrInfo :: _,
      Q1      :: [_],
      C1      :: [{_, _}],
-     T1      :: _.
+     E1      :: _.
 
 step( _, _UsrInfo ) -> norule.
