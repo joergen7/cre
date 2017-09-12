@@ -265,10 +265,11 @@ In real applications, we let the client perform some reductions and defer only t
 
 ### A CRE Application from the Reduction Semantics
 
-#### Type declarations
+#### Syntax
 
-##### Syntax
+The type specifications we make here are rather for documentation than for anything else. We give them anyway because they give us a feeling for what the abstract syntax we defined for the reduction semantics has to do with Erlang terms.
 
+The syntax of expressions is made up of Booleans and tuples forming the Erlang representation of abstract syntax trees for our zero-order logic.
 ```erlang
 -type e() :: boolean()
            | {'not', e()}
@@ -276,9 +277,7 @@ In real applications, we let the client perform some reductions and defer only t
            | {'or', e(), e()}
            | {fut, e()}.
 ```
-
-##### Evaluation Context
-
+Similar to syntax trees we can give a definition of the form of evaluation contexts.
 ```erlang
 -type ctx() :: hole
              | {'not', ctx()}
@@ -290,7 +289,7 @@ In real applications, we let the client perform some reductions and defer only t
 
 #### Implementation of the Worker
 
-
+The CRE worker for our zero-order logic involves implementing the notion of reduction inside the `run/2` function. This function takes a redex and returns the result of that redex. The user info field is ignored. The [source code](test/logic_worker.erl) of the client is available as part of the CRE test suite.
 
 ```erlang
 run( {'not', X}, _UsrInfo )      -> {ok, not X};
@@ -298,6 +297,7 @@ run( {'and', X1, X2}, _UsrInfo ) -> {ok, X1 andalso X2};
 run( {'or', X1, X2}, _UsrInfo )  -> {ok, X1 orelse X2}.
 ```
 
+The worker also requires implementing six other callback functions. These are, however, simplistic since neither file staging nor error handling have to be performed.
 
 
 #### Implementation of the Client
