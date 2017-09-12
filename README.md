@@ -275,7 +275,7 @@ In real applications, we let the client perform some reductions and defer only t
            | {fut, e()}.
 ```
 
-#### Implementation of the Logic Worker
+#### Implementation of the Worker
 
 ```erlang
 run( {'not', X}, _UsrInfo )      -> {ok, not X};
@@ -294,7 +294,19 @@ run( {'or', X1, X2}, _UsrInfo )  -> {ok, X1 orelse X2}.
              | {'or', e(), ctx()}.
 ```
 
-#### Implementation of the Logic Client
+#### Implementation of the Client
+
+The implementation of the CRE client for our zero-order logic involves the implementation of the three callback functions `init/1`, `is_value/2`, and `step/2`. The [source code](blob/master/test/logic_client.erl) of the client is available as part of the CRE test suite.
+
+##### init/1
+
+The `init/1` function needs to generate the user info field which is later handed to all other callbacks. Since we do not make use of the user info field here we just ignore the initial argument and return a dummy term `[]`.
+
+```erlang
+init( _InitArg ) -> [].
+```
+
+##### step/2
 
 ```erlang
 is_value( T, _UsrInfo ) -> is_boolean( T ).

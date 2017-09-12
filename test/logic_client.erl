@@ -82,7 +82,7 @@ stop( ClientName ) ->
 
 -spec init( Arg :: _ ) -> UsrInfo :: _.
 
-init( _Arg ) -> [].
+init( _InitArg ) -> [].
 
 
 -spec is_value( E :: e(), UsrInfo :: _ ) -> boolean().
