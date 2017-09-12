@@ -265,7 +265,9 @@ In real applications, we let the client perform some reductions and defer only t
 
 ### A CRE Application from the Reduction Semantics
 
-#### Syntax
+#### Type declarations
+
+##### Syntax
 
 ```erlang
 -type e() :: boolean()
@@ -275,15 +277,7 @@ In real applications, we let the client perform some reductions and defer only t
            | {fut, e()}.
 ```
 
-#### Implementation of the Worker
-
-```erlang
-run( {'not', X}, _UsrInfo )      -> {ok, not X};
-run( {'and', X1, X2}, _UsrInfo ) -> {ok, X1 andalso X2};
-run( {'or', X1, X2}, _UsrInfo )  -> {ok, X1 orelse X2}.
-```
-
-#### Evaluation Context
+##### Evaluation Context
 
 ```erlang
 -type ctx() :: hole
@@ -294,9 +288,21 @@ run( {'or', X1, X2}, _UsrInfo )  -> {ok, X1 orelse X2}.
              | {'or', e(), ctx()}.
 ```
 
+#### Implementation of the Worker
+
+
+
+```erlang
+run( {'not', X}, _UsrInfo )      -> {ok, not X};
+run( {'and', X1, X2}, _UsrInfo ) -> {ok, X1 andalso X2};
+run( {'or', X1, X2}, _UsrInfo )  -> {ok, X1 orelse X2}.
+```
+
+
+
 #### Implementation of the Client
 
-The implementation of the CRE client for our zero-order logic involves the implementation of the three callback functions `init/1`, `is_value/2`, and `step/2`. The [source code](test/logic_client.erl) of the client is available as part of the CRE test suite.
+The CRE client for our zero-order logic involves implementing the two reduction rules `[E-send]` and `[E-recv]` from the reduction semantics. Additionally, we have to implement a test whether evaluation has terminated. Concretely, we need to implement the three callback functions `init/1`, `is_value/2`, and `step/2`. The [source code](test/logic_client.erl) of the client is available as part of the CRE test suite.
 
 ##### init/1
 
@@ -306,13 +312,17 @@ The `init/1` function needs to generate the user info field which is later hande
 init( _InitArg ) -> [].
 ```
 
-##### step/2
+##### is_value/2
+
+The `is_value/2` function tests whether an expression is a value or not telling the CRE client whether evaluation has terminated. In the case of our zero-order logic, an expression is a value when it is a plain truth value, i.e., `true` or `false`.
 
 ```erlang
 is_value( T, _UsrInfo ) -> is_boolean( T ).
 ```
 
-The `step/2` function has two cases which correspond to the two reduction rules `E-send` and `E-recv`.
+##### step/2
+
+The `step/2` function implements a small-step semantics for the language to be interpreted. In the case of our zero-order logic, the function implements the reduction relation defined by the two reduction rules `[E-send]` and `[E-recv]`.
 
 ```erlang
 step( {Q, [], T}, _UsrInfo ) ->
