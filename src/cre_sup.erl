@@ -61,7 +61,7 @@ init( _Args ) ->
 
     ChildSpec = #{
                    id       => cre_master,
-                   start    => {cre_master, start_link, [{global, cre_master}]},
+                   start    => {cre_master, start_link, [{local, cre_master}]},
                    restart  => temporary,
                    shutdown => 5000,
                    type     => worker,
