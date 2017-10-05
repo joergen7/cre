@@ -48,7 +48,7 @@ start() ->
   application:start( cre ).
 
 
--spec pid() -> {ok, pid()} | {error, undefined}.
+-spec pid( CreNode :: atom() ) -> {ok, pid()} | {error, undefined}.
 
 pid( CreNode ) when is_atom( CreNode ) ->
 
