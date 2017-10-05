@@ -36,7 +36,7 @@
 %% Exports
 %%====================================================================
 
--export( [start/0, pid/0] ).
+-export( [start/0, pid/1] ).
 -export( [start/2, stop/1] ).
 -export( [main/1] ).
 
@@ -50,13 +50,10 @@ start() ->
 
 -spec pid() -> {ok, pid()} | {error, undefined}.
 
-pid() ->
-
-  % update global process table
-  global:sync(),
+pid( CreNode ) when is_atom( CreNode ) ->
 
   % query cre process pid
-  case global:whereis_name( cre ) of
+  case rpc:call( CreNode, erlang, whereis, [cre_master] ) of
     undefined -> {error, undefined};
     CrePid    -> {ok, CrePid}
   end.
