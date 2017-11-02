@@ -10,33 +10,41 @@ The common runtime environment (CRE) is a scalable execution environment for dat
 
 *Figure 1: Petri net model of the common runtime environment's master application. It provides interfaces to client applications (top and left) and worker processes (right).*
 
+
 ## Features
 
 Here, we give an overview of the features, the CRE covers. The primary features of the CRE are scheduling, client back-pressure, fault tolerance, and caching.
+
 
 ### Scheduling
 
 Scheduling is performed by associating a task with a given worker. Once the match has been made, the task is sent to the associated worker and the task-worker pair is ear-marked as busy. Since any task is allowed to be matched with any worker, the net structure effectively implements a random scheduler.
 
+
 ### Client Back-Pressure
 
 Large workloads consisting of 1M tasks or more as well as a large number of clients can spam the master process to a degree where it stops working. The CRE protects itself from being overwhelmed by its clients by applying back-pressure to eager clients.
+
 
 ### Fault Tolerance
 
 The CRE can serve an arbitrary number of clients and can feed an arbitrary number of workers. In large compute clusters this means that there is a realistic chance for one or more connected processes to fail. The CRE creates a link to each client and each worker and appropriately reacts to exit messages which are generated whenever a process stops running. I.e., demand sent to non-existing clients is recollected and tasks sent to non-existing workers are rescheduled. Also, the total amount of demand tokens in the net is kept proportional to the number of live workers.
 
+
 ### Caching
 
 Often in large-scale data analysis applications, the storage needed to keep intermediate results is much cheaper than the compute resources needed to derive these intermediate results. Accordingly, the CRE memoizes all task-result combinations over the duration of the CRE master's run.
+
 
 ## Usage
 
 Creating a CRE application involves adding the CRE library to your project and implementing the callback functions for both a CRE client and a CRE worker. In this section we show, how this can be accomplished.
 
+
 ### Adding the CRE to a Project
 
 Although the CRE library can be imported also directly from GitHub, we recommend adding a dependency via [hex.pm](https://hex.pm). Here, we show how this can be done using the build tools [rebar3](https://www.rebar3.org) or mix.
+
 
 #### rebar3
 
@@ -46,11 +54,13 @@ To integrate the CRE into a rebar3 managed project change the `deps` entry in yo
 {deps, [{cre, "0.1.1"}]}.
 ```
 
+
 #### mix
 
 ```elixir
 {:cre, "~> 0.1.1"}
 ```
+
 
 ### Creating a CRE Client Module
 
@@ -60,21 +70,23 @@ The CRE client is a service that takes a program from a user (or from another se
 
 *Figure 2: Petri net model of the common runtime environment's client application. It provides a user interface (top and bottom) and an interface to the master application.*
 
+
 #### User Interface
 
 Let's say we have created a CRE client implementation in the module `my_cre_client`. We can start a client process from the module and link it to a CRE master by using the `cre_client:start_link/3` function. 
 
     cre:start().
-    {ok, Cre} = cre:pid().
+    {ok, Cre} = cre:pid( node() ).
     InitArg = [].
     {ok, Client} = cre_client:start_link( Cre, my_cre_client, InitArg ).
 
 In principle, we can now start querying the client by using the `cre_client:eval/2` function. This function takes a CRE client pid and a term `T` and returns the resulting value.
 
-    T = {'and', {'not', true}, {'not', false}}.
-    cre_client( Cre, T ).
+    E = {'and', {'not', true}, {'not', false}}.
+    cre_client( Cre, E ).
 
 The term we use here is in the syntax of the zero-order logic we use in the [example section](#example-a-distributed-zero-order-logic). If the CRE is live, it produces the result `false`. Note that we didn't add any workers to the CRE master yet, so the client request will just block and wait forever, unless we also add workers to the CRE master. How workers are implemented and added to the CRE master is described in the [worker module section](#creating-a-cre-worker-module).
+
 
 #### Callback Functions
 
@@ -82,7 +94,9 @@ The CRE client is implemented by providing three callback functions:
 
 - `init/1` is called when the client process starts.
 - `is_value/2` determines whether or not an expression is a value.
-- `step/2` attempts to make progress on a given program, returning a new program.
+- `step/2` attempts to make progress on a given expression, returning a new expression and, if necessary, a task to be scheduled.
+- `recv/4` reacts to the reception of a completed task.
+
 
 ##### init/1
 
@@ -91,6 +105,7 @@ The CRE client is implemented by providing three callback functions:
 ```
 The `init/1` function is called when a client process starts. It takes an initial argument `InitArg`, and generates from it the user info field `UsrInfo` which is subsequently handed to the `is_value/2` and `step/2` functions. Herein, the initial argument is the same as the last argument handed to the `cre_client:start_link/n` function which is used to start up a client process.
 
+
 ##### is_value/2
 
 ```erlang
@@ -98,13 +113,23 @@ The `init/1` function is called when a client process starts. It takes an initia
 ```
 The `is_value/2` function takes an expression `E` and the user info field generated by the `init/1` function and determines whether the expression is a value. If so, that means that the program has terminated and the result is returned to the user.
 
+
 ##### step/2
 
 ```erlang
--callback step( {Q :: [_], C :: [{_, _}], T :: _}, UsrInfo :: _ ) ->
-            {ok, {Q1 :: [_], C1 :: [{_, _}], T1 :: _}} | norule.
+step( E :: _, UsrInfo :: _ ) -> {ok, _} | {ok_send, _, _} | norule.
 ```
-The `step/2` function takes a program of the form `{Q, C, T}` and the user info field generated by the `init/1` function and either generates a new program returning a tuple of the form `{ok, {Q1, C1, T1}}` or detects that no further progress can be made at this point in which case it returns `norule`. Herein, the `step/2` function is supposed to only add to the queue `Q` or leave it unchanged and to only remove from the cache `C` or leave it unchanged.
+The `step/2` function takes an expression `E` and the user info field `UsrInfo` generated by the `init/1` function and either generates a new expression by returning `{ok, E1}`, additionally generates a task `A` by returning `{ok_send, E1, A}`, or detects that no further progress can be made by returning `norule`.
+
+
+##### recv/4
+
+```erlang
+-callback recv( E :: _, A :: _, Delta :: _, UsrInfo :: _ ) -> _.
+```
+
+The `recv/4` function reacts to the reception of a task result. The function takes the current expression `E`, the task that has been sent earlier `A`, the corresponding task result `Delta`, and the user info field `UsrInfo` as generated by the `init/1` function. It returns an updated expression `E1`.
+
 
 ### Creating a CRE Worker Module
 

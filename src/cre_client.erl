@@ -55,9 +55,6 @@
 
 -callback is_value( E :: _, UsrInfo :: _ ) -> boolean().
 
-%-callback step( {Q :: [_], C :: [{_, _}], E :: _}, UsrInfo :: _ ) ->
-%            {ok, {Q1 :: [_], C1 :: [{_, _}], E1 :: _}} | norule.
-
 -callback step( E :: _, UsrInfo :: _ ) ->
             {ok, _} | {ok_send, _, _} | norule.
 
