@@ -96,7 +96,7 @@ when E       :: _,
 
 step( E, _UsrInfo ) ->
   case find_context( E ) of
-  	{ok, {Ctx, TNext}}   -> {ok_send, in_hole( Ctx, {fut, TNext} ), TNext};
+  	{ok, {Ctx, TNext}} -> {ok_send, in_hole( Ctx, {fut, TNext} ), TNext};
   	{error, nocontext} -> norule
   end.
 
