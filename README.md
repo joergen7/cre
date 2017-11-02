@@ -347,22 +347,27 @@ is_value( E, _UsrInfo ) -> is_boolean( E ).
 
 ##### step/2
 
-The `step/2` function implements a small-step semantics for the language to be interpreted. In the case of our zero-order logic, the function implements the reduction relation defined by the two reduction rules `[E-send]` and `[E-recv]`.
+The `step/2` function implements a small-step semantics for the language to be interpreted. In the case of our zero-order logic the function implements the `[E-send]` rule of the reduction relation.
 
 ```erlang
-step( {Q, [], E}, _UsrInfo ) ->
+step( E, _UsrInfo ) ->
   case find_context( E ) of
-    {ok, {Ctx, Redex}}   -> {ok, {[Redex|Q], [], in_hole( Ctx, {fut, Redex} )}};
+    {ok, {Ctx, TNext}}   -> {ok_send, in_hole( Ctx, {fut, TNext} ), TNext};
     {error, nocontext} -> norule
-  end;
+  end.
 ```
+
+
+##### recv/4
+
+The `recv/4` reacts to the reception of a task result. In the case of our zero-order logic the function implements the `[E-recv]` rule of the reduction relation.
 
 ```erlang
-step( {Q, [{Redex, Value}|C1], E}, _UsrInfo ) ->
-  {ok, {Q, C1, subst_fut( E, Redex, Value )}}.
+recv( E, A, Delta, _UsrInfo ) ->
+  subst_fut( E, A, Delta ).
 ```
 
-The `step/2` function is defined in terms of three other functions: `find_context/1` which takes an arbitrary expression and tries to decompose it into an evaluation context and a redex, `in_hole/2` which replaces the hole in an evaluation context with some expression (or another evaluation context), and `subst_fut/3` which replaces a future with its corresponding value.
+The functions `step/2` and `recv/4` are defined in terms of three other functions: `find_context/1` which takes an arbitrary expression and tries to decompose it into an evaluation context and a redex, `in_hole/2` which replaces the hole in an evaluation context with some expression (or another evaluation context), and `subst_fut/3` which replaces a future with its corresponding value.
 
 Note that we had to define a reduction function even if the reduction rules given in the previous section were given in the form of a relation. We achieve the function property by constraining the `E-send` rule to situations where the cache is empty and by making the `find_context/1` function return the leftmost outermost redex, instead of just any redex.
 
