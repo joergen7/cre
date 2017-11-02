@@ -66,7 +66,7 @@ stop( ClientName ) ->
 %% CRE client callback functions
 %%====================================================================
 
--spec init( InitArg :: _ ) -> UsrInfo :: _.
+-spec init( InitArg :: _ ) -> _.
 
 init( _InitArg ) -> [].
 
@@ -76,13 +76,16 @@ init( _InitArg ) -> [].
 is_value( _E, _UsrInfo ) -> true.
 
 
--spec step( {Q, C, E}, UsrInfo ) -> {ok, {Q1, C1, E1}} | norule
-when Q       :: [_],
-     C       :: [{_, _}],
-     E       :: _,
-     UsrInfo :: _,
-     Q1      :: [_],
-     C1      :: [{_, _}],
-     E1      :: _.
+-spec step( E, UsrInfo ) -> {ok, _} | {ok_send, _, _} | norule
+when E       :: _,
+     UsrInfo :: _.
 
 step( _, _UsrInfo ) -> norule.
+
+-spec recv( E, A, Delta, UsrInfo ) -> _
+when E       :: _,
+     A       :: _,
+     Delta   :: _,
+     UsrInfo :: _.
+
+recv( E, _A, _Delta, _UsrInfo ) -> error( nyi ).

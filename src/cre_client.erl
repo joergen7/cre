@@ -53,11 +53,15 @@
 
 -callback init( InitArg :: _ ) -> UsrInfo :: _.
 
--callback is_value( P :: _, UsrInfo :: _ ) -> boolean().
+-callback is_value( E :: _, UsrInfo :: _ ) -> boolean().
 
--callback step( {Q :: [_], C :: [{_, _}], E :: _}, UsrInfo :: _ ) ->
-            {ok, {Q1 :: [_], C1 :: [{_, _}], E1 :: _}} | norule.
+%-callback step( {Q :: [_], C :: [{_, _}], E :: _}, UsrInfo :: _ ) ->
+%            {ok, {Q1 :: [_], C1 :: [{_, _}], E1 :: _}} | norule.
 
+-callback step( E :: _, UsrInfo :: _ ) ->
+            {ok, _} | {ok_send, _, _} | norule.
+
+-callback recv( E :: _, A :: _, Delta :: _, UsrInfo :: _ ) -> _.
 
 %%====================================================================
 %% Record definitions
@@ -217,19 +221,22 @@ when Trsn        :: atom(),
 
 is_enabled( start, _Mode, _ClientState ) -> true;
 
-is_enabled( terminate, #{ 'Program' := [{_I, {[], _C, T}}] },
+is_enabled( terminate, #{ 'Program' := [{_I, {[], [], E}}] },
                        #client_state{ client_mod = ClientMod,
                                       usr_info   = UsrInfo } ) ->
-  ClientMod:is_value( T, UsrInfo );
+  ClientMod:is_value( E, UsrInfo );
 
-is_enabled( step, _Mode, _ClientState ) -> true;
+is_enabled( step, #{ 'Program' := [{_I, {_Q, _C, E}}] }, 
+                  #client_state{ client_mod = ClientMod,
+                                 usr_info   = UsrInfo } ) ->
+  not ClientMod:is_value( E, UsrInfo );
 
-is_enabled( send, #{ 'Program' := [{_I, {[_|_], _C, _T}}],
+is_enabled( send, #{ 'Program' := [{_I, {[_|_], _C, _E}}],
                      'Demand'  := [unit] },
                   _ClientState ) ->
   true;
 
-is_enabled( recv, #{ 'Program'  := [{I, {_Q, _C, _T}}],
+is_enabled( recv, #{ 'Program'  := [{I, {_Q, _C, _E}}],
                      'CreReply' := [{I, _A, _Delta}]},
                   _ClientState ) ->
   true;
@@ -242,26 +249,32 @@ when Trsn        :: atom(),
      Mode        :: #{ atom() => [_] },
      ClientState :: #client_state{}.
 
-fire( start, #{ 'ClientRequest' := [{I, T}] }, _ClientState ) ->
-  {produce, #{ 'Program' => [{I, {[], [], T}}] }};
+fire( start, #{ 'ClientRequest' := [{I, E}] }, _ClientState ) ->
+  {produce, #{ 'Program' => [{I, {[], [], E}}] }};
 
-fire( terminate, #{ 'Program' := [{I, {_Q, _C, T}}] }, _ClientState ) ->
-  {produce, #{ 'ClientReply' => [{I, T}] }};
+fire( terminate, #{ 'Program' := [{I, {[], [], E}}] }, _ClientState ) ->
+  {produce, #{ 'ClientReply' => [{I, E}] }};
 
-fire( step, #{ 'Program' := [{I, {Q, C, T}}] },
+fire( step, #{ 'Program' := [{I, {Q, [{A, Delta}|T], E}}] },
             #client_state{ client_mod = ClientMod, usr_info = UsrInfo } ) ->
-  case  ClientMod:step( {Q, C, T}, UsrInfo ) of
-    {ok, {Q1, C1, T1}} -> {produce, #{ 'Program' => [{I, {Q1, C1, T1}}] }};
-    norule             -> abort
+  E1 = ClientMod:recv( E, A, Delta, UsrInfo ),
+  {produce, #{ 'Program' => [{I, {Q, T, E1}}] }};
+
+fire( step, #{ 'Program' := [{I, {Q, [], E}}] },
+            #client_state{ client_mod = ClientMod, usr_info = UsrInfo } ) ->
+  case  ClientMod:step( E, UsrInfo ) of
+    {ok, E1}         -> {produce, #{ 'Program' => [{I, {Q, [], E1}}] }};
+    {ok_send, E1, A} -> {produce, #{ 'Program' => [{I, {[A|Q], [], E1}}] }};
+    norule           -> abort
   end;
 
-fire( send, #{ 'Program' := [{I, {[A|Q1], C, T}}],
+fire( send, #{ 'Program' := [{I, {[A|Q1], C, E}}],
 	             'Demand'  := [unit] }, _ClientState ) ->
-  {produce, #{ 'Program'    => [{I, {Q1, C, T}}],
+  {produce, #{ 'Program'    => [{I, {Q1, C, E}}],
                'CreRequest' => [{I, A}] }};
 
-fire( recv, #{ 'Program'  := [{I, {Q, C, T}}],
+fire( recv, #{ 'Program'  := [{I, {Q, C, E}}],
                'CreReply' := [{I, A, Delta}] }, _ClientState ) ->
   C1 = [{A, Delta}|C],
-  {produce, #{ 'Program' => [{I, {Q, C1, T}}] }}.
+  {produce, #{ 'Program' => [{I, {Q, C1, E}}] }}.
 

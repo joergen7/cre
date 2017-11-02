@@ -36,7 +36,7 @@
 %% Exports
 %%====================================================================
 
--export( [init/1, is_value/2, step/2] ).
+-export( [init/1, is_value/2, step/2, recv/4] ).
 -export( [start_link/0, start_link/1, start_link/2, eval/2, stop/1] ).
 
 %%====================================================================
@@ -90,23 +90,25 @@ init( _InitArg ) -> [].
 is_value( E, _UsrInfo ) -> is_boolean( E ).
 
 
--spec step( {Q, C, E}, UsrInfo ) -> {ok, {Q1, C1, E1}} | norule
-when Q       :: [_],
-     C       :: [{_, _}],
-     E       :: _,
-     UsrInfo :: _,
-     Q1      :: [_],
-     C1      :: [{_, _}],
-     E1      :: _.
+-spec step( E, UsrInfo ) -> {ok, _} | {ok_send, _, _} | norule
+when E       :: _,
+     UsrInfo :: _.
 
-step( {Q, [], E}, _UsrInfo ) ->
+step( E, _UsrInfo ) ->
   case find_context( E ) of
-  	{ok, {Ctx, TNext}}   -> {ok, {[TNext|Q], [], in_hole( Ctx, {fut, TNext} )}};
+  	{ok, {Ctx, TNext}}   -> {ok_send, in_hole( Ctx, {fut, TNext} ), TNext};
   	{error, nocontext} -> norule
-  end;
+  end.
 
-step( {Q, [{A, Delta}|C1], E}, _UsrInfo ) ->
-  {ok, {Q, C1, subst_fut( E, A, Delta )}}.
+
+-spec recv( E, A, Delta, UsrInfo ) -> _
+when E       :: _,
+     A       :: _,
+     Delta   :: _,
+     UsrInfo :: _.
+
+recv( E, A, Delta, _UsrInfo ) ->
+  subst_fut( E, A, Delta ).
 
 
 %%====================================================================
