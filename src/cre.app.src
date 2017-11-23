@@ -5,8 +5,7 @@
   {registered, [cre]},
   {applications, [
                   kernel,
-                  stdlib,
-                  gen_pnet
+                  stdlib
                  ]},
   {env, []},
   {modules, [cre, cre_client, cre_master, cre_sup, cre_worker]},
