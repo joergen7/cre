@@ -2,13 +2,14 @@
  [{description, "A common runtime environment (CRE) for distributed workflow languages."},
   {vsn, "0.1.1"},
   {mod, {cre, []}},
-  {registered, []},
+  {registered, [cre]},
   {applications, [
                   kernel,
-                  stdlib
+                  stdlib,
+                  gen_pnet
                  ]},
   {env, []},
-  {modules, [cre]},
+  {modules, [cre, cre_client, cre_master, cre_sup, cre_worker]},
 
   {maintainers, ["Jorgen Brandt"]},
   {licenses, ["Apache 2.0"]},

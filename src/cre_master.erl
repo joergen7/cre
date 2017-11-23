@@ -30,28 +30,30 @@
 %% @end
 %% -------------------------------------------------------------------
 
-
 -module( cre_master ).
--behaviour( gen_pnet ).
+-behavior( gen_server ).
 
 %%====================================================================
 %% Exports
 %%====================================================================
 
--export( [code_change/3, handle_call/3, handle_cast/2, handle_info/2, init/1,
-          terminate/2, trigger/3] ).
-
--export( [place_lst/0, trsn_lst/0, init_marking/2, preset/1, is_enabled/3,
-          fire/3] ).
-
+%% API functions
 -export( [start_link/0, start_link/1, add_worker/2, worker_result/4,
-          add_client/2, cre_request/4, stop/1] ).
+          cre_request/4, stop/1] ).
+
+%% gen_server callback functions
+-export( [code_change/3, handle_call/3, handle_cast/2, handle_info/2, init/1,
+          terminate/2] ).
 
 %%====================================================================
-%% Macro definitions
+%% Record definitions
 %%====================================================================
 
--define( DEMAND_FACTOR, 2 ).
+-record( cre_state, { subscr_map = #{},     % maps app to list of client pid, i pairs
+                      idle_lst   = [],      % list of idle worker pids
+                      busy_map   = #{},     % maps app to worker pid
+                      queue      = [],      % list of apps that cannot be scheduled
+                      cache      = #{} } ). % maps app to delta
 
 %%====================================================================
 %% API functions
@@ -65,7 +67,7 @@
 %% @see start_link/1
 %%
 start_link() ->
-  gen_pnet:start_link( ?MODULE, [], [] ).
+  gen_server:start_link( ?MODULE, [], [] ).
 
 
 %% @doc Starts a named CRE instance.
@@ -76,7 +78,7 @@ start_link() ->
 %% @see start_link/0
 %%
 start_link( CreName ) ->
-  gen_pnet:start_link( CreName, ?MODULE, [], [] ).
+  gen_server:start_link( CreName, ?MODULE, [], [] ).
 
 
 %% @doc Registers a worker process with a given CRE instance.
@@ -88,7 +90,7 @@ start_link( CreName ) ->
 %%      never make progress.
 %%
 add_worker( CreName, WorkerName ) ->
-  gen_pnet:cast( CreName, {add_worker, WorkerName} ).
+  gen_server:cast( CreName, {add_worker, WorkerName} ).
 
 
 %% @doc Sends the result of a previously computed application to the CRE.
@@ -98,16 +100,8 @@ add_worker( CreName, WorkerName ) ->
 %%      the CRE using this function.
 %%
 worker_result( CreName, WorkerName, A, Delta ) ->
-  gen_pnet:cast( CreName, {worker_result, WorkerName, A, Delta} ).
+  gen_server:cast( CreName, {worker_result, WorkerName, A, Delta} ).
 
-
-%% @doc Registers a client process with a given CRE instance.
-%%
-%%      Takes the name of a CRE instance `CreName' and the name of a client
-%%      instance `ClientName' and adds the client to the client pool of the CRE.
-%%
-add_client( CreName, ClientName ) ->
-  gen_pnet:cast( CreName, {add_client, ClientName} ).
 
 %% @doc Requests the computation of an application from a given CRE intance.
 %%
@@ -117,247 +111,169 @@ add_client( CreName, ClientName ) ->
 %%      instance with the name `CreName'.
 %%
 cre_request( CreName, ClientName, I, A ) ->
-  gen_pnet:cast( CreName, {cre_request, ClientName, I, A} ).
+  gen_server:cast( CreName, {cre_request, ClientName, I, A} ).
 
 
 %% @doc Stops the CRE instance.
 %%
 stop( CreName ) ->
-  gen_pnet:stop( CreName ).
-
+  gen_server:stop( CreName ).
 
 %%====================================================================
-%% Interface callback functions
+%% gen_server callback functions
 %%====================================================================
 
-code_change( _OldVsn, NetState, _Extra )  -> {ok, NetState}.
-handle_call( _Request, _From, _NetState ) -> {reply, {error, bad_msg}}.
-terminate( _Reason, _NetState )           -> ok.
+code_change( _OldVsn, CreState, _Extra )  -> {ok, CreState}.
+handle_call( _Request, _From, CreState ) -> {reply, {error, bad_msg}, CreState}.
+terminate( _Reason, _CreState )           -> ok.
 
-init( _MasterArg ) ->
+init( _Arg ) ->
   process_flag( trap_exit, true ),
-  [].
-
-handle_cast( {add_worker, P}, _ ) ->
-  io:format( "cre_master:handle_cast received add worker~n  CRE:    ~p~n  Worker: ~p~n", [self(), P] ),
-  {noreply, #{}, #{ 'AddWorker' => [P] }};
-
-handle_cast( {worker_result, P, A, Delta}, _ ) ->
-  io:format( "cre_master:handle_cast received worker result~n  CRE: ~p~n  Worker: ~p~n  Application: ~p~n  Result: ~p~n", [self(), P, A, Delta] ),
-  {noreply, #{}, #{ 'WorkerResult' => [{{P, A}, Delta}] }};
-
-handle_cast( {add_client, Q}, _ ) ->
-  io:format( "cre_master:handle_cast received add client~n  CRE:    ~p~n  Client: ~p~n", [self(), Q] ),
-  {noreply, #{}, #{ 'AddClient' => [Q] }};
-
-handle_cast( {cre_request, Q, I, A}, _ ) ->
-  io:format( "cre_master:handle_cast received CRE request~n  CRE:         ~p~n  Client:      ~p~n  Program id:  ~p~n  Application: ~p~n", [self(), Q, I, A] ),
-  {noreply, #{}, #{ 'CreRequest' => [{{Q, I}, A}] }};
-
-handle_cast( _Request, _NetState ) ->
-  noreply.
+  {ok, #cre_state{}}.
 
 
-handle_info( {'EXIT', FromPid, _}, NetState ) ->
+handle_cast( {add_worker, P}, CreState ) ->
 
-  io:format( "cre_master:handle_info received worker or client down~n  CRE: ~p~n  Pid: ~p~n", [self(), FromPid] ),
+  io:format( "cre_master:handle_cast received add worker~n" ),
+  io:format( "  CRE:         ~p~n", [self()] ),
+  io:format( "  Worker:      ~p~n", [P] ),
 
-  AddClient  = gen_pnet:get_ls( 'AddClient', NetState ),
-  ClientPool = gen_pnet:get_ls( 'ClientPool', NetState ),
-  AddWorker  = gen_pnet:get_ls( 'AddWorker', NetState ),
-  WorkerPool = gen_pnet:get_ls( 'WorkerPool', NetState ),
-  BusyWorker = gen_pnet:get_ls( 'BusyWorker',NetState ),
+  true = link( P ),
 
-  QLst = AddClient++ClientPool,
-  PLst = AddWorker++WorkerPool++BusyWorker,
+  #cre_state{ idle_lst = IdleLst } = CreState,
 
-  ExitClient = case lists:member( FromPid, QLst ) of
-    true  -> [FromPid];
-    false -> []
-  end,
+  CreState1 = CreState#cre_state{ idle_lst = [P|IdleLst] },
 
-  ExitWorker = case lists:member( FromPid, PLst ) of
-    true  -> [FromPid];
-    false -> []
-  end,
+  CreState2 = attempt_progress( CreState1 ),
 
-  {noreply, #{}, #{ 'ExitClient' => ExitClient, 'ExitWorker' => ExitWorker }};
+  {noreply, CreState2};
 
-handle_info( _Info, _NetState ) ->
-  noreply.
+handle_cast( {worker_result, P, A, Delta}, CreState ) ->
+
+  io:format( "cre_master:handle_cast received worker result~n" ),
+  io:format( "  CRE:         ~p~n", [self()] ),
+  io:format( "  Worker:      ~p~n", [P] ),
+  io:format( "  Application: ~p~n", [A] ),
+  io:format( "  Result:      ~p~n", [Delta] ),
+
+  #cre_state{ subscr_map = SubscrMap,
+              idle_lst   = IdleLst,
+              busy_map   = BusyMap,
+              cache      = Cache } = CreState,
+
+  F =
+    fun( {Q, I} ) ->
+      cre_client:cre_reply( Q, I, A, Delta )
+    end,
+
+  lists:foreach( F, maps:get( A, SubscrMap ) ),
+
+  CreState1 = CreState#cre_state{ subscr_map = maps:remove( A, SubscrMap ),
+                                  idle_lst   = [P|IdleLst],
+                                  busy_map   = maps:remove( A, BusyMap ),
+                                  cache      = Cache#{ A => Delta } },
+
+  CreState2 = attempt_progress( CreState1 ),
+
+  {noreply, CreState2};
+
+handle_cast( {cre_request, Q, I, A}, CreState ) ->
+
+  io:format( "cre_master:handle_cast received CRE request~n" ),
+  io:format( "  CRE:         ~p~n", [self()] ),
+  io:format( "  Client:      ~p~n", [Q] ),
+  io:format( "  Program id:  ~p~n", [I] ),
+  io:format( "  Application: ~p~n", [A] ),
+
+  #cre_state{ subscr_map = SubscrMap,
+              busy_map   = BusyMap,
+              queue      = Queue,
+              cache      = Cache } = CreState,
+
+  case maps:is_key( A, Cache ) of
+
+    true ->
+      cre_client:cre_reply( Q, I, A, maps:get( A, Cache ) ),
+      {noreply, CreState};
+
+    false ->
+      SubscrMap1 = SubscrMap#{ A => [{Q, I}|maps:get( A, SubscrMap, [] )] },
+      case lists:member( A, Queue ) orelse maps:is_key( A, BusyMap ) of
+
+        true ->
+          {noreply, CreState#cre_state{ subscr_map = SubscrMap1 }};
+
+        false ->
+          Queue1 = [A|Queue],
+          CreState1 = CreState#cre_state{ subscr_map = SubscrMap1,
+                                          queue      = Queue1 },
+          CreState2 = attempt_progress( CreState1 ),
+          {noreply, CreState2}
+
+      end
+
+  end;
+
+handle_cast( _Request, CreState ) -> {noreply, CreState}.
 
 
-trigger( 'Demand', Q, _ ) ->
-  io:format( "cre_master:trigger sending demand~n  CRE:    ~p~n  Client: ~p~n", [self(), Q] ),
-  cre_client:demand( Q ),
-  drop;
+handle_info( {'EXIT', P, _Reason}, CreState ) ->
+  io:format( "cre_master:handle_info received worker down~n" ),
+  io:format( "  CRE:         ~p~n", [self()] ),
+  io:format( "  Worker:      ~p~n", [P] ),
 
-trigger( 'CreReply', {{Q, I}, A, Delta}, _ ) ->
-  io:format( "cre_master:trigger sending CRE reply~n  CRE:  ~p~n  Client: ~p~n  Program id: ~p~n  Application: ~p~n  Result: ~p~n", [self(), Q, I, A, Delta] ),
-  cre_client:cre_reply( Q, I, A, Delta ),
-  drop;
+  #cre_state{ idle_lst = IdleLst,
+              busy_map = BusyMap,
+              queue    = Queue } = CreState,
 
-trigger( 'WorkerRequest', {P, A}, _ ) ->
-  io:format( "cre_master:trigger sending worker request~n  CRE: ~p~n  Worker: ~p~n  Application: ~p~n", [self(), P, A] ),
-  cre_worker:worker_request( P, A ),
-  drop;
+  
 
-trigger( _Place, _Token, _NetState ) ->
-  pass.
+  case lists:member( P, IdleLst ) of
+
+    true ->
+      CreState1 = CreState#cre_state{ idle_lst = IdleLst--[P] },
+      {noreply, CreState1};
+
+    false ->
+      {A, P} = lists:keyfind( P, 2, maps:to_list( BusyMap ) ),
+      CreState1 = CreState#cre_state{ queue    = [A|Queue],
+                                      busy_map = maps:remove( A, BusyMap ) },
+      CreState2 = attempt_progress( CreState1 ),
+      {noreply, CreState2}
+
+  end;
+
+handle_info( _Info, CreState ) -> {noreply, CreState}.
 
 %%====================================================================
-%% Petri net callback functions
+%% Internal functions
 %%====================================================================
 
-place_lst() ->
- [
-  % client interface
-  'AddClient', 'ExitClient', 'Demand', 'CreRequest', 'CreReply',
+attempt_progress( CreState ) ->
 
-  % worker interface
-  'AddWorker', 'ExitWorker', 'WorkerRequest', 'WorkerResult',
-
-  % demand cycle
-  'ClientPool', 'BadClient', 'DemandPool', 'SentDemand', 'BusyDemand',
-
-  % cache cylce
-  'Introduced', 'Released', 'Guard', 'Cache',
-
-  % invocation cycle
-  'Allowed', 'WorkerPool', 'BusyWorker', 'Surplus'
- ].
-
-trsn_lst() ->
-  [
-   % demand cycle
-   link_client, remove_client, send_demand, recover_demand, introduce, address,
-
-   % cache cycle
-   allow, lookup,
-
-   % invocation cycle
-   link_worker, remove_worker, reallow, schedule, release, remove_demand
-  ].
-
-init_marking( 'Guard', _ )       -> [[]];
-init_marking( 'Cache', _ )       -> [#{}];
-init_marking( 'ClientPool', _ )  -> [[]];
-init_marking( 'BadClient', _ )   -> [[]]; 
-init_marking( _Place, _UsrInfo ) -> [].
-
-preset( link_client )    -> ['AddClient', 'ClientPool'];
-preset( remove_client )  -> ['ClientPool', 'ExitClient', 'BadClient'];
-preset( send_demand )    -> ['DemandPool', 'ClientPool'];
-preset( recover_demand ) -> ['SentDemand', 'BadClient'];
-preset( introduce )      -> ['SentDemand', 'CreRequest'];
-preset( address )        -> ['Released', 'BusyDemand'];
-preset( allow )          -> ['Introduced', 'Guard'];
-preset( lookup )         -> ['Introduced', 'Cache'];
-preset( link_worker )    -> ['AddWorker'];
-preset( remove_worker )  -> ['ExitWorker', 'WorkerPool'];
-preset( reallow )        -> ['ExitWorker', 'BusyWorker'];
-preset( schedule )       -> ['Allowed', 'WorkerPool'];
-preset( release )        -> ['WorkerResult', 'BusyWorker', 'Cache'];
-preset( remove_demand )  -> ['Surplus', 'DemandPool'].
-
-is_enabled( link_client,    _,                                                              _ ) -> true;
-is_enabled( remove_client,  _,                                                              _ ) -> true;
-is_enabled( send_demand,    #{ 'DemandPool' := [unit], 'ClientPool' := [[_|_]] },           _ ) -> true;
-is_enabled( recover_demand, #{ 'SentDemand' := [Q], 'BadClient' := [QLst] },                _ ) -> lists:member( Q, QLst );
-is_enabled( introduce,      #{ 'SentDemand' := [Q], 'CreRequest' := [{{Q, _}, _}] },        _ ) -> true;
-is_enabled( address,        #{ 'Released' := [{A, _}], 'BusyDemand' := [{_, A}] },          _ ) -> true;
-is_enabled( allow,          #{ 'Introduced' := [A], 'Guard' := [Alst] },                    _ ) -> not lists:member( A, Alst );
-is_enabled( lookup,         #{ 'Introduced' := [A], 'Cache' := [C] },                       _ ) -> maps:is_key( A, C );
-is_enabled( link_worker,    _,                                                              _ ) -> true;
-is_enabled( remove_worker,  #{ 'ExitWorker' := [P], 'WorkerPool' := [P] },                  _ ) -> true;
-is_enabled( reallow,        #{ 'ExitWorker' := [P], 'BusyWorker' := [{P, _}] },             _ ) -> true;
-is_enabled( schedule,       _,                                                              _ ) -> true;
-is_enabled( release,        #{ 'WorkerResult' := [{{P, A}, _}], 'BusyWorker' := [{P, A}] }, _ ) -> true;
-is_enabled( remove_demand,  _,                                                              _ ) -> true;
-is_enabled( _Trsn,          _,                                                              _ ) -> false.
+  #cre_state{ idle_lst   = IdleLst,
+              busy_map   = BusyMap,
+              queue      = Queue } = CreState,
 
 
-fire( link_client, #{ 'AddClient' := [Q], 'ClientPool' := [QNLst] }, _ ) ->
-  true = link( Q ),
-  {produce, #{ 'ClientPool' => [[{Q, 0}|QNLst]] }};
+  case Queue of
 
-fire( remove_client, #{ 'ClientPool' := [QNLst],
-                        'ExitClient' := [Q],
-                        'BadClient'  := [QLst] }, _ ) ->
-  {produce, #{ 'BadClient'  => [[Q|QLst]],
-               'ClientPool' => lists:keydelete( Q, 1, QNLst ) }};
+    [] ->
+      CreState;
 
-fire( send_demand, #{ 'DemandPool' := [unit],
-                      'ClientPool' := [[{Q0, N0}|QLst]] }, _ ) ->
+    [A|Queue1] ->
+      case IdleLst of
 
-  F = fun( {Q, N}, {QMin, NMin} ) ->
-        case N < NMin of
-          true  -> {Q, N};
-          false -> {QMin, NMin}
-        end
-      end,
+        [] ->
+          CreState;
 
-  % find the (Q, N) pair that minimizes N
-  {QSend, NSend} = lists:foldl( F, {Q0, N0}, QLst ),
+        [P|IdleLst1] ->
+          cre_worker:worker_request( P, A ),
+          BusyMap1 = BusyMap#{ A => P },
+          CreState#cre_state{ idle_lst = IdleLst1,
+                              busy_map = BusyMap1,
+                              queue    = Queue1 }
 
-  % increment N for the minimal (Q, N) pair
-  QLst1 = lists:keyreplace( QSend, 1, [{Q0, N0}|QLst], {QSend, NSend+1} ),
+      end
 
-  {produce, #{ 'ClientPool' => [QLst1],
-               'Demand'     => [QSend],
-               'SentDemand' => [QSend] }};
-
-fire( recover_demand, #{ 'SentDemand' := [_],
-                         'BadClient'  := [QLst]}, _ ) ->
-  {produce, #{ 'BadClient'  => [QLst],
-               'DemandPool' => [unit] }};
-
-fire( introduce, #{ 'SentDemand' := [Q],
-                    'CreRequest' := [{{Q, I}, A}] }, _ ) ->
-  {produce, #{ 'Introduced' => [A],
-               'BusyDemand' => [{{Q, I}, A}] }};
-
-fire( address, #{ 'Released'   := [{A, Delta}],
-                  'BusyDemand' := [{{Q, I}, A}] }, _ ) ->
-  {produce, #{ 'CreReply'   => [{{Q, I}, A, Delta}],
-               'DemandPool' => [unit] }};
-
-fire( allow, #{ 'Introduced' := [A],
-                'Guard'      := [Alst] }, _ ) ->
-  {produce, #{ 'Allowed' => [A],
-               'Guard'   => [[A|Alst]] }};
-
-fire( lookup, #{ 'Introduced' := [A],
-                 'Cache'      := [C] }, _ ) ->
-  {produce, #{ 'Released' => [{A, maps:get( A, C )}],
-               'Cache'    => [C] }};
-
-fire( link_worker, #{ 'AddWorker' := [P] }, _ ) ->
-  {produce, #{ 'WorkerPool' => [P],
-               'DemandPool' => lists:duplicate( ?DEMAND_FACTOR, unit ) }};
-
-fire( remove_worker, #{ 'ExitWorker' := [P],
-                        'WorkerPool' := [P] }, _ ) ->
-  {produce, #{ 'Surplus' => lists:duplicate( ?DEMAND_FACTOR, unit ) }};
-
-fire( reallow, #{ 'ExitWorker' := [P],
-                  'BusyWorker' := [{P, A}] }, _ ) ->
-  {produce, #{ 'Surplus' => lists:duplicate( ?DEMAND_FACTOR, unit ),
-               'Allowed' => [A] }};
-
-fire( schedule, #{ 'Allowed'    := [A],
-                   'WorkerPool' := [P] }, _ ) ->
-  {produce, #{ 'WorkerRequest' => [{P, A}],
-               'BusyWorker'    => [{P, A}] }};
-
-fire( release, #{ 'WorkerResult' := [{{P, A}, Delta}],
-                  'BusyWorker'   := [{P, A}],
-                  'Cache'        := [C] }, _ ) ->
-  {produce, #{ 'WorkerPool' => [P],
-               'Cache'      => [C#{ A => Delta }],
-               'Released'   => [{A, Delta}] }};
-
-fire( remove_demand, _, _ ) ->
-  {produce, #{}}.
-
-
+  end.

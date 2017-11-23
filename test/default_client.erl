@@ -38,7 +38,7 @@
 
 -export( [start_link/0, start_link/1, start_link/2, eval/2, stop/1] ).
 
--export( [init/1, is_value/2, step/2] ).
+-export( [init/1, is_value/2, step/2, recv/4] ).
 
 
 %%====================================================================
@@ -88,4 +88,4 @@ when E       :: _,
      Delta   :: _,
      UsrInfo :: _.
 
-recv( E, _A, _Delta, _UsrInfo ) -> error( nyi ).
+recv( _E, _A, _Delta, _UsrInfo ) -> error( nyi ).
