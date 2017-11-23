@@ -262,7 +262,6 @@ preset( remove_demand )  -> ['Surplus', 'DemandPool'].
 
 is_enabled( link_client,    _,                                                              _ ) -> true;
 is_enabled( remove_client,  _,                                                              _ ) -> true;
-is_enabled( send_demand,    #{ 'DemandPool' := [unit], 'ClientPool' := [[]] },              _ ) -> false;
 is_enabled( send_demand,    #{ 'DemandPool' := [unit], 'ClientPool' := [[_|_]] },           _ ) -> true;
 is_enabled( recover_demand, #{ 'SentDemand' := [Q], 'BadClient' := [QLst] },                _ ) -> lists:member( Q, QLst );
 is_enabled( introduce,      #{ 'SentDemand' := [Q], 'CreRequest' := [{{Q, _}, _}] },        _ ) -> true;
