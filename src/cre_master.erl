@@ -239,11 +239,14 @@ trsn_lst() ->
    link_worker, remove_worker, reallow, schedule, release, remove_demand
   ].
 
-init_marking( 'Guard', _ ) -> [[]];
+init_marking( 'Guard', _ )       -> [[]];
+init_marking( 'Cache', _ )       -> [#{}];
+init_marking( 'ClientPool', _ )  -> [[]];
+init_marking( 'BadClient', _ )   -> [[]]; 
 init_marking( _Place, _UsrInfo ) -> [].
 
-preset( link_client )    -> ['AddClient'];
-preset( remove_client )  -> ['ClientPool', 'ExitClient'];
+preset( link_client )    -> ['AddClient', 'ClientPool'];
+preset( remove_client )  -> ['ClientPool', 'ExitClient', 'BadClient'];
 preset( send_demand )    -> ['DemandPool', 'ClientPool'];
 preset( recover_demand ) -> ['SentDemand', 'BadClient'];
 preset( introduce )      -> ['SentDemand', 'CreRequest'];
@@ -254,17 +257,18 @@ preset( link_worker )    -> ['AddWorker'];
 preset( remove_worker )  -> ['ExitWorker', 'WorkerPool'];
 preset( reallow )        -> ['ExitWorker', 'BusyWorker'];
 preset( schedule )       -> ['Allowed', 'WorkerPool'];
-preset( release )        -> ['WorkerResult', 'BusyWorker'];
+preset( release )        -> ['WorkerResult', 'BusyWorker', 'Cache'];
 preset( remove_demand )  -> ['Surplus', 'DemandPool'].
 
 is_enabled( link_client,    _,                                                              _ ) -> true;
-is_enabled( remove_client,  #{ 'ClientPool' := [Q], 'ExitClient' := [Q] },                  _ ) -> true;
-is_enabled( send_demand,    _,                                                              _ ) -> true;
-is_enabled( recover_demand, #{ 'SentDemand' := [Q], 'BadClient' := [Q] },                   _ ) -> true;
+is_enabled( remove_client,  _,                                                              _ ) -> true;
+is_enabled( send_demand,    #{ 'DemandPool' := [unit], 'ClientPool' := [[]] },              _ ) -> false;
+is_enabled( send_demand,    #{ 'DemandPool' := [unit], 'ClientPool' := [[_|_]] },           _ ) -> true;
+is_enabled( recover_demand, #{ 'SentDemand' := [Q], 'BadClient' := [QLst] },                _ ) -> lists:member( Q, QLst );
 is_enabled( introduce,      #{ 'SentDemand' := [Q], 'CreRequest' := [{{Q, _}, _}] },        _ ) -> true;
 is_enabled( address,        #{ 'Released' := [{A, _}], 'BusyDemand' := [{_, A}] },          _ ) -> true;
 is_enabled( allow,          #{ 'Introduced' := [A], 'Guard' := [Alst] },                    _ ) -> not lists:member( A, Alst );
-is_enabled( lookup,         #{ 'Introduced' := [A], 'Cache' := [{A, _}] },                  _ ) -> true;
+is_enabled( lookup,         #{ 'Introduced' := [A], 'Cache' := [C] },                       _ ) -> maps:is_key( A, C );
 is_enabled( link_worker,    _,                                                              _ ) -> true;
 is_enabled( remove_worker,  #{ 'ExitWorker' := [P], 'WorkerPool' := [P] },                  _ ) -> true;
 is_enabled( reallow,        #{ 'ExitWorker' := [P], 'BusyWorker' := [{P, _}] },             _ ) -> true;
@@ -274,23 +278,39 @@ is_enabled( remove_demand,  _,                                                  
 is_enabled( _Trsn,          _,                                                              _ ) -> false.
 
 
-fire( link_client, #{ 'AddClient' := [Q] }, _ ) ->
+fire( link_client, #{ 'AddClient' := [Q], 'ClientPool' := [QNLst] }, _ ) ->
   true = link( Q ),
-  {produce, #{ 'ClientPool' => [Q] }};
+  {produce, #{ 'ClientPool' => [[{Q, 0}|QNLst]] }};
 
-fire( remove_client, #{ 'ClientPool' := [Q],
-                        'ExitClient' := [Q] }, _ ) ->
-  {produce, #{ 'BadClient' => [Q] }};
+fire( remove_client, #{ 'ClientPool' := [QNLst],
+                        'ExitClient' := [Q],
+                        'BadClient'  := [QLst] }, _ ) ->
+  {produce, #{ 'BadClient'  => [[Q|QLst]],
+               'ClientPool' => lists:keydelete( Q, 1, QNLst ) }};
 
 fire( send_demand, #{ 'DemandPool' := [unit],
-                      'ClientPool' := [Q] }, _ ) ->
-  {produce, #{ 'ClientPool' => [Q],
-               'Demand'     => [Q],
-               'SentDemand' => [Q] }};
+                      'ClientPool' := [[{Q0, N0}|QLst]] }, _ ) ->
 
-fire( recover_demand, #{ 'SentDemand' := [Q],
-                         'BadClient'  := [Q]}, _ ) ->
-  {produce, #{ 'BadClient'  => [Q],
+  F = fun( {Q, N}, {QMin, NMin} ) ->
+        case N < NMin of
+          true  -> {Q, N};
+          false -> {QMin, NMin}
+        end
+      end,
+
+  % find the (Q, N) pair that minimizes N
+  {QSend, NSend} = lists:foldl( F, {Q0, N0}, QLst ),
+
+  % increment N for the minimal (Q, N) pair
+  QLst1 = lists:keyreplace( QSend, 1, [{Q0, N0}|QLst], {QSend, NSend+1} ),
+
+  {produce, #{ 'ClientPool' => [QLst1],
+               'Demand'     => [QSend],
+               'SentDemand' => [QSend] }};
+
+fire( recover_demand, #{ 'SentDemand' := [_],
+                         'BadClient'  := [QLst]}, _ ) ->
+  {produce, #{ 'BadClient'  => [QLst],
                'DemandPool' => [unit] }};
 
 fire( introduce, #{ 'SentDemand' := [Q],
@@ -309,9 +329,9 @@ fire( allow, #{ 'Introduced' := [A],
                'Guard'   => [[A|Alst]] }};
 
 fire( lookup, #{ 'Introduced' := [A],
-                 'Cache'      := [{A, Delta}] }, _ ) ->
-  {produce, #{ 'Released' => [{A, Delta}],
-               'Cache'    => [{A, Delta}] }};
+                 'Cache'      := [C] }, _ ) ->
+  {produce, #{ 'Released' => [{A, maps:get( A, C )}],
+               'Cache'    => [C] }};
 
 fire( link_worker, #{ 'AddWorker' := [P] }, _ ) ->
   {produce, #{ 'WorkerPool' => [P],
@@ -332,9 +352,10 @@ fire( schedule, #{ 'Allowed'    := [A],
                'BusyWorker'    => [{P, A}] }};
 
 fire( release, #{ 'WorkerResult' := [{{P, A}, Delta}],
-                  'BusyWorker'   := [{P, A}] }, _ ) ->
+                  'BusyWorker'   := [{P, A}],
+                  'Cache'        := [C] }, _ ) ->
   {produce, #{ 'WorkerPool' => [P],
-               'Cache'      => [{A, Delta}],
+               'Cache'      => [C#{ A => Delta }],
                'Released'   => [{A, Delta}] }};
 
 fire( remove_demand, _, _ ) ->
