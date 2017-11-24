@@ -166,16 +166,21 @@ handle_cast( {worker_result, P, A, Delta}, CreState ) ->
       cre_client:cre_reply( Q, I, A, Delta )
     end,
 
-  lists:foreach( F, maps:get( A, SubscrMap ) ),
+  case maps:get( A, BusyMap, undefined ) of
 
-  CreState1 = CreState#cre_state{ subscr_map = maps:remove( A, SubscrMap ),
-                                  idle_lst   = [P|IdleLst],
-                                  busy_map   = maps:remove( A, BusyMap ),
-                                  cache      = Cache#{ A => Delta } },
+    P ->
+      lists:foreach( F, maps:get( A, SubscrMap ) ),
+      CreState1 = CreState#cre_state{ subscr_map = maps:remove( A, SubscrMap ),
+                                      idle_lst   = [P|IdleLst],
+                                      busy_map   = maps:remove( A, BusyMap ),
+                                      cache      = Cache#{ A => Delta } },
+      CreState2 = attempt_progress( CreState1 ),
+      {noreply, CreState2};
 
-  CreState2 = attempt_progress( CreState1 ),
+    _ ->
+      {noreply, CreState}
 
-  {noreply, CreState2};
+  end;
 
 handle_cast( {cre_request, Q, I, A}, CreState ) ->
 
