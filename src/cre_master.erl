@@ -272,9 +272,14 @@ attempt_progress( CreState ) ->
         [] ->
           CreState;
 
-        [P|IdleLst1] ->
-          cre_worker:worker_request( P, A ),
+        [_|_] ->
+
+          P = lib_combin:pick_from( IdleLst ),
+          IdleLst1 = IdleLst--[P],
           BusyMap1 = BusyMap#{ A => P },
+
+          cre_worker:worker_request( P, A ),
+
           CreState#cre_state{ idle_lst = IdleLst1,
                               busy_map = BusyMap1,
                               queue    = Queue1 }
