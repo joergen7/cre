@@ -54,8 +54,9 @@ pid( CreNode ) when is_atom( CreNode ) ->
 
   % query cre process pid
   case rpc:call( CreNode, erlang, whereis, [cre_master] ) of
-    undefined -> {error, cre_not_found};
-    CrePid    -> {ok, CrePid}
+    undefined          -> {error, cre_process_not_registered};
+    {badrpc, nodedown} -> {error, cre_node_down};
+    CrePid             -> {ok, CrePid}
   end.
 
 
