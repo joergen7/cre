@@ -48,17 +48,17 @@ Although the CRE library can be imported also directly from GitHub, we recommend
 
 #### rebar3
 
-To integrate the CRE into a rebar3 managed project change the `deps` entry in your application's `rebar.config` file to include the tuple `{cre, "0.1.1"}`.
+To integrate the CRE into a rebar3 managed project change the `deps` entry in your application's `rebar.config` file to include the tuple `{cre, "0.1.2"}`.
 
 ```erlang
-{deps, [{cre, "0.1.1"}]}.
+{deps, [{cre, "0.1.2"}]}.
 ```
 
 
 #### mix
 
 ```elixir
-{:cre, "~> 0.1.1"}
+{:cre, "~> 0.1.2"}
 ```
 
 
