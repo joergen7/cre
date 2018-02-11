@@ -65,6 +65,11 @@ pid( CreNode ) when is_atom( CreNode ) ->
 %%====================================================================
 
 start( _Type, _Args ) ->
+
+  error_logger:info_report( [{info,        "ready to start supervision tree"},
+                             {application, cre},
+                             {node,        node()}] ),
+
   cre_sup:start_link().
   
 stop( _State ) ->
@@ -77,11 +82,8 @@ stop( _State ) ->
 
 main( _ ) ->
 
-  io:format( "application: cre~nnode name:   ~p~n", [node()] ),
-
   % start the application
   ok = start(),
-  io:format( "state:       ok~n" ),
 
   % wait indefinitely
   receive
