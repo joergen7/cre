@@ -80,7 +80,7 @@ stop( _State ) ->
 %% Escript main function
 %%====================================================================
 
-main( _ ) ->
+main( _Args ) ->
 
   % start the application
   ok = start(),
