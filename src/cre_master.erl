@@ -135,7 +135,7 @@ init( _Arg ) ->
 handle_cast( {add_worker, P}, CreState ) ->
 
   error_logger:info_report(
-    [{info, "registering new worker"},
+    [{info, "new worker"},
      {application, cre},
      {cre_master_pid, self()},
      {worker_pid, P}] ),
