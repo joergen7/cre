@@ -140,7 +140,13 @@ handle_cast( {add_worker, P}, CreState ) ->
      {cre_master_pid, self()},
      {worker_pid, P}] ),
 
-  true = link( P ),
+  Pid =
+    if
+      is_pid( P ) -> P;
+      true        -> whereis( P )
+    end,
+
+  true = link( Pid ),
 
   #cre_state{ idle_lst = IdleLst } = CreState,
 

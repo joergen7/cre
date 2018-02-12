@@ -151,6 +151,14 @@ when is_atom( ClientMod ) ->
                                client_mod = ClientMod,
                                usr_info   = UsrInfo },
 
+  Pid =
+    if
+      is_pid( CreName ) -> CreName;
+      true              -> whereis( CreName )
+    end,
+
+  true = link( Pid ),
+
   ClientState.
 
 
