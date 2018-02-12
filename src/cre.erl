@@ -88,5 +88,7 @@ main( _Args ) ->
 
   % wait indefinitely
   receive
-  	_ -> ok
+  	_ ->
+      ok = timer:sleep( 1000 ),
+      ok
   end.

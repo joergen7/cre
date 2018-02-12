@@ -220,12 +220,6 @@ handle_cast( _Request, CreState ) -> {noreply, CreState}.
 
 handle_info( {'EXIT', P, _Reason}, CreState ) ->
 
-  error_logger:info_report(
-    [{info, "worker down"},
-     {application, cre},
-     {cre_master_pid, self()},
-     {worker_pid, P}] ),
-
   #cre_state{ idle_lst = IdleLst,
               busy_map = BusyMap,
               queue    = Queue } = CreState,
@@ -234,16 +228,47 @@ handle_info( {'EXIT', P, _Reason}, CreState ) ->
 
   case lists:member( P, IdleLst ) of
 
+    % an idle worker died
     true ->
+
+      error_logger:info_report(
+        [{info, "idle worker down"},
+         {application, cre},
+         {cre_master_pid, self()},
+         {worker_pid, P}] ),
+
       CreState1 = CreState#cre_state{ idle_lst = IdleLst--[P] },
+
       {noreply, CreState1};
 
     false ->
-      {A, P} = lists:keyfind( P, 2, maps:to_list( BusyMap ) ),
-      CreState1 = CreState#cre_state{ queue    = [A|Queue],
-                                      busy_map = maps:remove( A, BusyMap ) },
-      CreState2 = attempt_progress( CreState1 ),
-      {noreply, CreState2}
+      case lists:keyfind( P, 2, maps:to_list( BusyMap ) ) of
+
+        % a busy worker died    
+        {A, P} ->
+
+          error_logger:info_report(
+            [{info, "busy worker down"},
+             {application, cre},
+             {cre_master_pid, self()},
+             {worker_pid, P}] ),
+
+          CreState1 = CreState#cre_state{ queue    = [A|Queue],
+                                          busy_map = maps:remove( A, BusyMap ) },
+          CreState2 = attempt_progress( CreState1 ),
+          {noreply, CreState2};
+
+        % some other linked process died
+        false ->
+
+          error_logger:info_report(
+            [{info, "exit signal received"},
+             {application, cre},
+             {cre_master_pid, self()},
+             {from_pid, P}] ),
+
+          {stop, exit, CreState}
+      end
 
   end;
 

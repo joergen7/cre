@@ -134,6 +134,9 @@ handle_cast( _Request, _NetState ) -> noreply.
             | {noreply, #{ atom() => [_] }, #{ atom() => [_] }}
             | {stop, _}.
 
+handle_info( {'DOWN', _MonitorRef, process, _Object, _Info}, _NetState ) ->
+  {stop, cre_down};
+
 handle_info( _Request, _NetState ) -> noreply.
 
 
@@ -151,13 +154,7 @@ when is_atom( ClientMod ) ->
                                client_mod = ClientMod,
                                usr_info   = UsrInfo },
 
-  Pid =
-    if
-      is_pid( CreName ) -> CreName;
-      true              -> whereis( CreName )
-    end,
-
-  true = link( Pid ),
+  _MonitorRef = monitor( process, CreName ),
 
   ClientState.
 
