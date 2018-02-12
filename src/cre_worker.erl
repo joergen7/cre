@@ -104,7 +104,7 @@ code_change( _OldVsn, NetState, _Extra ) -> {ok, NetState}.
 
 handle_call( _Request, _From, _NetState ) -> {reply, {error, bad_msg}}.
 
-handle_cast( {worker_request, A}, _NetState ) ->
+handle_cast( {worker_request, A}, NetState ) ->
 
   WrkState = gen_pnet:get_usr_info( NetState ),
   #wrk_state{ wrk_mod = WrkMod, usr_info = UsrInfo } = WrkState,

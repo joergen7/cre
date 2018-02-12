@@ -36,8 +36,9 @@
 %% Exports
 %%====================================================================
 
--export( [do_stagein/3, do_stageout/3, init/1, run/2, stagein_lst/2,
-          stageout_lst/3, error_to_expr/3] ).
+-export( [init/1, prepare_case/2, stagein_lst/2, do_stagein/3, run/2,
+          stageout_lst/3, do_stageout/3, error_to_expr/3, cleanup_case/2] ).
+
 -export( [start_link/0, start_link/1, start_link/2, stop/1] ).
 
 
@@ -62,36 +63,34 @@ stop( WrkName ) ->
 %% CRE worker callback functions
 %%====================================================================
 
--spec do_stagein( A :: _, F :: _, UsrInfo :: _ ) -> ok | {error, enoent}.
-
-do_stagein( _A, _F, _UsrInfo ) -> error( unused ).
-
-
--spec do_stageout( A :: _, F :: _, UsrInfo :: _ ) -> ok | {error, enoent}.
-
-do_stageout( _A, _F, _UsrInfo ) -> error( unused ).
-
-
 -spec init( WrkArg :: _ ) -> UsrInfo :: _.
+      init( _WrkArg )     -> [].
 
-init( _WrkArg ) -> [].
 
-
--spec run( A :: _, UsrInfo :: _ ) -> {ok, R :: _} | {error, Reason :: _}.
-
-run( {'not', X}, _ )      -> {ok, not X};
-run( {'and', X1, X2}, _ ) -> {ok, X1 andalso X2};
-run( {'or', X1, X2}, _ )  -> {ok, X1 orelse X2}.
+-spec prepare_case( A :: _, UsrInfo :: _ ) -> ok.
+      prepare_case( _A, _UsrInfo )         -> ok.
 
 
 -spec stagein_lst( A :: _, UsrInfo :: _ ) -> [F :: _].
+      stagein_lst( _A, _UsrInfo )         -> [].
 
-stagein_lst( _A, _UsrInfo ) -> [].
+
+-spec do_stagein( A :: _, F :: _, UsrInfo :: _ ) -> ok | {error, enoent}.
+      do_stagein( _A, _F, _UsrInfo )             -> error( unused ).
+
+
+-spec run( A :: _, UsrInfo :: _ ) -> {ok, R :: _} | {error, Reason :: _}.
+      run( {'not', X}, _ )        -> {ok, not X};
+      run( {'and', X1, X2}, _ )   -> {ok, X1 andalso X2};
+      run( {'or', X1, X2}, _ )    -> {ok, X1 orelse X2}.
 
 
 -spec stageout_lst( A :: _, R :: _, UsrInfo :: _ ) -> [F :: _].
+      stageout_lst( _A, _R, _UsrInfo )             -> [].
 
-stageout_lst( _A, _R, _UsrInfo ) -> [].
+
+-spec do_stageout( A :: _, F :: _, UsrInfo :: _ ) -> ok | {error, enoent}.
+      do_stageout( _A, _F, _UsrInfo )             -> error( unused ).
 
 
 -spec error_to_expr( A, Reason, UsrInfo ) -> _
@@ -100,3 +99,7 @@ when A       :: _,
      UsrInfo :: _.
 
 error_to_expr( _A, _Reason, _UsrInfo ) -> error( unused ).
+
+
+-spec cleanup_case( A :: _, UsrInfo :: _ ) -> ok.
+      cleanup_case( _A, _UsrInfo )         -> ok.
