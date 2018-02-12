@@ -84,7 +84,7 @@ main( _Args ) ->
 
   % start the application
   ok = start(),
-  true = link( cre_master_sup ),
+  true = link( whereis( cre_master_sup ) ),
 
   % wait indefinitely
   receive

@@ -52,21 +52,25 @@
 %% Callback definitions
 %%====================================================================
 
--callback do_stagein( A :: _, F :: _, UsrInfo :: _ ) -> ok | {error, enoent}.
-
--callback do_stageout( A :: _, F :: _, UsrInfo :: _ ) -> ok | {error, enoent}.
-
 -callback init( InitArg :: _ ) -> UsrInfo :: _.
 
--callback run( A :: _, UsrInfo :: _ ) -> {ok, R :: _} | {error, Reason :: _}.
+-callback prepare_case( A :: _, UsrInfo :: _ ) -> ok.
 
 -callback stagein_lst( A :: _, UsrInfo :: _ ) -> [F :: _].
 
+-callback do_stagein( A :: _, F :: _, UsrInfo :: _ ) -> ok | {error, enoent}.
+
+-callback run( A :: _, UsrInfo :: _ ) -> {ok, R :: _} | {error, Reason :: _}.
+
 -callback stageout_lst( A :: _, R :: _, UsrInfo :: _ ) -> [F :: _].
+
+-callback do_stageout( A :: _, F :: _, UsrInfo :: _ ) -> ok | {error, enoent}.
 
 -callback error_to_expr( A       :: _,
                          Reason  :: {stagein | stageout, [_]} | {run, _},
                          UsrInfo :: _ ) -> _.
+
+-callback cleanup_case( A :: _, UsrInfo :: _ ) -> ok.
 
 
 %%====================================================================
@@ -101,7 +105,12 @@ code_change( _OldVsn, NetState, _Extra ) -> {ok, NetState}.
 handle_call( _Request, _From, _NetState ) -> {reply, {error, bad_msg}}.
 
 handle_cast( {worker_request, A}, _NetState ) ->
-  io:format( "cre_worker:handle_cast received worker request~n  Worker:      ~p~n  Application: ~p~n", [self(), A] ),
+
+  WrkState = gen_pnet:get_usr_info( NetState ),
+  #wrk_state{ wrk_mod = WrkMod, usr_info = UsrInfo } = WrkState,
+
+  ok = WrkMod:prepare_case( A, UsrInfo ),
+
   {noreply, #{}, #{ 'WorkerRequest' => [A] }};
 
 handle_cast( _Request, _NetState ) -> noreply.
@@ -123,9 +132,15 @@ init( {CreName, WrkMod, WrkArg} ) ->
 terminate( _Reason, _NetState ) -> ok.
 
 trigger( 'WorkerResult', {A, Ra}, NetState ) ->
-  #wrk_state{ cre_name = CreName } = gen_pnet:get_usr_info( NetState ),
-  io:format( "cre_worker:trigger sending worker result~n  CRE:         ~p~n  Worker:      ~p~n  Application: ~p~n  Result:      ~p~n", [CreName, self(), A, Ra] ),
+
+  WrkState = gen_pnet:get_usr_info( NetState ),
+  #wrk_state{ cre_name = CreName,
+              wrk_mod  = WrkMod,
+              usr_info = UsrInfo } = WrkState,
+
+  WrkMod:cleanup_case( A, UsrInfo ),
   cre_master:worker_result( CreName, self(), A, Ra ),
+
   drop;
 
 trigger( _Place, _Token, _NetState ) -> pass.

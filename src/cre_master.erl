@@ -134,9 +134,11 @@ init( _Arg ) ->
 
 handle_cast( {add_worker, P}, CreState ) ->
 
-  io:format( "cre_master:handle_cast received add worker~n" ),
-  io:format( "  CRE:         ~p~n", [self()] ),
-  io:format( "  Worker:      ~p~n", [P] ),
+  error_logger:info_report(
+    [{info, "registering new worker"},
+     {application, cre},
+     {cre_master_pid, self()},
+     {worker_pid, P}] ),
 
   true = link( P ),
 
@@ -149,12 +151,6 @@ handle_cast( {add_worker, P}, CreState ) ->
   {noreply, CreState2};
 
 handle_cast( {worker_result, P, A, Delta}, CreState ) ->
-
-  io:format( "cre_master:handle_cast received worker result~n" ),
-  io:format( "  CRE:         ~p~n", [self()] ),
-  io:format( "  Worker:      ~p~n", [P] ),
-  io:format( "  Application: ~p~n", [A] ),
-  io:format( "  Result:      ~p~n", [Delta] ),
 
   #cre_state{ subscr_map = SubscrMap,
               idle_lst   = IdleLst,
@@ -183,12 +179,6 @@ handle_cast( {worker_result, P, A, Delta}, CreState ) ->
   end;
 
 handle_cast( {cre_request, Q, I, A}, CreState ) ->
-
-  io:format( "cre_master:handle_cast received CRE request~n" ),
-  io:format( "  CRE:         ~p~n", [self()] ),
-  io:format( "  Client:      ~p~n", [Q] ),
-  io:format( "  Program id:  ~p~n", [I] ),
-  io:format( "  Application: ~p~n", [A] ),
 
   #cre_state{ subscr_map = SubscrMap,
               busy_map   = BusyMap,
@@ -223,9 +213,12 @@ handle_cast( _Request, CreState ) -> {noreply, CreState}.
 
 
 handle_info( {'EXIT', P, _Reason}, CreState ) ->
-  io:format( "cre_master:handle_info received worker down~n" ),
-  io:format( "  CRE:         ~p~n", [self()] ),
-  io:format( "  Worker:      ~p~n", [P] ),
+
+  error_logger:info_report(
+    [{info, "worker down"},
+     {application, cre},
+     {cre_master_pid, self()},
+     {worker_pid, P}] ),
 
   #cre_state{ idle_lst = IdleLst,
               busy_map = BusyMap,
