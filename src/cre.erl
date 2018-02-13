@@ -84,7 +84,7 @@ main( _Args ) ->
 
   % start the application
   ok = start(),
-  _ = monitor( cre_sup ),
+  _ = monitor( process, cre_sup ),
 
   % wait indefinitely
   receive
