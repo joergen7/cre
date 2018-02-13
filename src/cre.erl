@@ -66,7 +66,7 @@ pid( CreNode ) when is_atom( CreNode ) ->
 
 start( _Type, _Args ) ->
 
-  error_logger:info_report( [{info,        "ready to start supervision tree"},
+  error_logger:info_report( [{info,        "starting common runtime environment"},
                              {application, cre},
                              {node,        node()}] ),
 
