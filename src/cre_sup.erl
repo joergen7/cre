@@ -45,7 +45,7 @@
 %%====================================================================
 
 start_link() ->
-  supervisor:start_link( {local, cre_master_sup}, ?MODULE, [] ).
+  supervisor:start_link( {local, cre_sup}, ?MODULE, [] ).
 
 %%====================================================================
 %% Application callback functions

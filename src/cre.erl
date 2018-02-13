@@ -84,11 +84,11 @@ main( _Args ) ->
 
   % start the application
   ok = start(),
-  true = link( whereis( cre_master_sup ) ),
+  _ = monitor( cre_sup ),
 
   % wait indefinitely
   receive
-  	_ ->
+  	{'DOWN', _Ref, process, _Object, _Info} ->
       ok = timer:sleep( 1000 ),
       ok
   end.
