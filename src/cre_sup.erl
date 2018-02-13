@@ -55,7 +55,7 @@ init( _Args ) ->
 
     SupFlags = #{
                   strategy  => one_for_one,
-                  intensity => 1,
+                  intensity => 0,
                   period    => 5
                 },
 
