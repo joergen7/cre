@@ -70,7 +70,7 @@
                          Reason  :: {stagein | stageout, [_]} | {run, _},
                          UsrInfo :: _ ) -> _.
 
--callback cleanup_case( A :: _, UsrInfo :: _ ) -> ok.
+-callback cleanup_case( A :: _, R :: _, UsrInfo :: _ ) -> R1 :: _.
 
 
 %%====================================================================
@@ -131,15 +131,15 @@ init( {CreName, WrkMod, WrkArg} ) ->
 
 terminate( _Reason, _NetState ) -> ok.
 
-trigger( 'WorkerResult', {A, Ra}, NetState ) ->
+trigger( 'WorkerResult', {A, R}, NetState ) ->
 
   WrkState = gen_pnet:get_usr_info( NetState ),
   #wrk_state{ cre_name = CreName,
               wrk_mod  = WrkMod,
               usr_info = UsrInfo } = WrkState,
 
-  WrkMod:cleanup_case( A, UsrInfo ),
-  cre_master:worker_result( CreName, self(), A, Ra ),
+  R1 = WrkMod:cleanup_case( A, R, UsrInfo ),
+  cre_master:worker_result( CreName, self(), A, R1 ),
 
   drop;
 

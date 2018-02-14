@@ -52,9 +52,9 @@ cre_test_() ->
    end,
 
    fun( _ ) ->
-     ok = cre_master:stop( ?CRE_NAME ),
+     ok = logic_client:stop( ?CLIENT_NAME ),
      ok = logic_worker:stop( ?WRK_NAME ),
-     ok = logic_client:stop( ?CLIENT_NAME )
+     ok = cre_master:stop( ?CRE_NAME )
    end,
 
    [

@@ -37,7 +37,7 @@
 %%====================================================================
 
 -export( [init/1, prepare_case/2, stagein_lst/2, do_stagein/3, run/2,
-          stageout_lst/3, do_stageout/3, error_to_expr/3, cleanup_case/2] ).
+          stageout_lst/3, do_stageout/3, error_to_expr/3, cleanup_case/3] ).
 
 -export( [start_link/0, start_link/1, start_link/2, stop/1] ).
 
@@ -101,5 +101,5 @@ when A       :: _,
 error_to_expr( _A, _Reason, _UsrInfo ) -> error( unused ).
 
 
--spec cleanup_case( A :: _, UsrInfo :: _ ) -> ok.
-      cleanup_case( _A, _UsrInfo )         -> ok.
+-spec cleanup_case( A :: _, R :: _, UsrInfo :: _ ) -> R1 :: _.
+      cleanup_case( _A, R, _UsrInfo )              -> R.
