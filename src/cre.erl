@@ -89,6 +89,5 @@ main( _Args ) ->
   % wait indefinitely
   receive
   	{'DOWN', _Ref, process, _Object, _Info} ->
-      ok = timer:sleep( 1000 ),
-      ok
+      ok = timer:sleep( 1000 )
   end.
