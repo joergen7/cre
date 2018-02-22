@@ -61,6 +61,71 @@ To integrate the CRE into a rebar3 managed project change the `deps` entry in yo
 {:cre, "~> 0.1.2"}
 ```
 
+### Starting the CRE
+
+The CRE (its master application) can be started in four distinct ways: Using the command line, starting as an Erlang application, starting under the default supervisor, and starting directly.
+
+#### Starting from the command line
+
+Having compiled the CRE using
+
+    rebar3 escriptize
+
+creates an Erlang script file `cre` which allows starting the CRE via the command line. Starting the script using
+
+    ./cre
+
+will create an Erlang node with the node name `cre@my_node` where `my_node` is the hostname of the current computer. This name is printed out on the terminal and is important for the client and worker services to connect.
+
+From a remote Erlang node you can always find out the process id of the CRE by calling
+
+```erlang
+cre:pid( 'cre@my_node' ).
+```
+
+Your Erlang node will connect to the CRE node and will find out its process id returning it as a tuple of the form `{ok, CrePid}`. The connection remains intact, so from the moment you received the CRE process id you can safely communicate with it.
+
+#### Starting as an Erlang Application
+
+You can start the CRE from an Erlang interactive shell by calling
+
+```erlang
+cre:start().
+```
+
+Which is exactly the same as calling
+
+```erlang
+application:start( cre ).
+```
+
+#### Starting under the Default Supervisor
+
+If you do not want the CRE to run under its own application master or if you want to embed the CRE supervisor in your own custom supervision structure, you can start the CRE default supervisor by calling
+
+```erlang
+cre_sup:start_link().
+```
+
+#### Starting Directly
+
+If also the supervision strategy needs to be replaced, you can start the CRE process directly. To start an unregistered instance of the CRE call
+
+```erlang
+cre_master:start_link().
+```
+
+Starting the CRE master process unregistered makes it impossible to locate the process using `cre:pid/1`.
+
+To start and register the CRE process provide it with an appropriate process name. In the following example, we register the CRE locally, just as the default supervisor does:
+
+```erlang
+CreName = {local, cre_master}.
+cre_master:start_link( CreName ).
+```
+
+Starting the CRE master under a different name or using a different registry makes it impossible to locate the process using `cre:pid/1`.
+
 
 ### Creating a CRE Client Module
 
@@ -75,15 +140,19 @@ The CRE client is a service that takes a program from a user (or from another se
 
 Let's say we have created a CRE client implementation in the module `my_cre_client`. We can start a client process from the module and link it to a CRE master by using the `cre_client:start_link/3` function. 
 
-    cre:start().
-    {ok, Cre} = cre:pid( node() ).
-    InitArg = [].
-    {ok, Client} = cre_client:start_link( Cre, my_cre_client, InitArg ).
+```erlang
+cre:start().
+{ok, Cre} = cre:pid( node() ).
+InitArg = [].
+{ok, Client} = cre_client:start_link( Cre, my_cre_client, InitArg ).
+```
 
 In principle, we can now start querying the client by using the `cre_client:eval/2` function. This function takes a CRE client pid and a term `T` and returns the resulting value.
 
-    E = {'and', {'not', true}, {'not', false}}.
-    cre_client( Cre, E ).
+```erlang
+E = {'and', {'not', true}, {'not', false}}.
+cre_client( Cre, E ).
+```
 
 The term we use here is in the syntax of the zero-order logic we use in the [example section](#example-a-distributed-zero-order-logic). If the CRE is live, it produces the result `false`. Note that we didn't add any workers to the CRE master yet, so the client request will just block and wait forever, unless we also add workers to the CRE master. How workers are implemented and added to the CRE master is described in the [worker module section](#creating-a-cre-worker-module).
 
@@ -144,12 +213,14 @@ The CRE worker is a service that consumes applications that have been scheduled 
 The CRE worker is implemented by providing seven callback functions:
 
 - `init/1` is called on starting a worker instance.
+- `prepare_case/2` called upon receiving an application before any other application-related callback is used.
 - `stagein_lst/2` returns a list of preconditions for a given application.
 - `do_stagein/3` fulfills a precondition.
 - `run/2` reduces an application assuming all preconditions are fulfilled.
 - `stageout_lst/3` returns a list of postconditions for a given application and its reduction result.
 - `do_stageout/3` fulfills a postcondition.
 - `error_to_expr/3` returns an error expression for a given intransient error.
+- `cleanup_case/3` called upon finishing up a case prior to sending the result back to the CRE.
 
 ##### init/1
 
@@ -157,6 +228,14 @@ The CRE worker is implemented by providing seven callback functions:
 -callback init( InitArg :: _ ) -> UsrInfo :: _.
 ```
 The `init/1` function is called when the worker process starts. It takes an initial argument `InitArg` and generates from it the user info field `UsrInfo` which is subsequently handed to all other callback functions. Herein, the initial argument is the same as the last argument to the `cre_worker:start_link/n` function which is used to start a worker process.
+
+##### prepare_case/1
+
+```erlang
+-callback prepare_case( A :: _, UsrInfo :: _ ) -> ok.
+```
+
+The `prepare_case/2` function is called every time an application is received and prior to any other processing steps. The function is intended for the worker to perform any preparation steps necessary to start processing the application `A`. The `UsrInfo` field that is also provided is the data structure created as the output of `init/1`. Upon success, the function returns the atom `ok`. Should anything in the preparation process go wrong, the function is supposed to throw an error.
 
 ##### stagein_lst/2
 
@@ -201,6 +280,14 @@ The `do_stageout/3` function fulfills a single postcondition previously announce
                          UsrInfo :: _ ) -> _.
 ```
 The functions `do_stagein/3`, `run/2`, and `do_stageout/3` all carry the possibility to return an error. This possibility is usually reflected in the target language by providing a syntactic category for errors and reduction rules that handle errors in one or the other way. The `error_to_expr/3` function takes an application `A` and an error info field `Reason` and produces from these an error expression in the syntax of the target language.
+
+##### cleanup_case/3
+
+```erlang
+-callback cleanup_case( A :: _, R :: _, UsrInfo :: _ ) -> R1 :: _.
+```
+
+The function `cleanup_case/3` is called whenever an application has been fully processed and the result is ready to be sent back to the CRE master. The arguments are the application `A`, its result `R`, as well as the `UsrInfo` field as generated by `init/1`. The function returns an updated result expression `R1`. Should cleaning up fail, the function is expected to throw an error.
 
 
 ## Example: A Distributed Zero-Order Logic
@@ -322,7 +409,7 @@ run( {'and', X1, X2}, _UsrInfo ) -> {ok, X1 andalso X2};
 run( {'or', X1, X2}, _UsrInfo )  -> {ok, X1 orelse X2}.
 ```
 
-The worker also requires implementing six other callback functions. These are, however, simplistic since neither file staging nor error handling have to be performed.
+The worker also requires implementing eight other callback functions. These are, however, simplistic since neither file staging nor error handling have to be performed and preparation and cleanup are trivial.
 
 
 #### Implementation of the Client
@@ -388,7 +475,9 @@ Even though the reduction rules are now encoded in a function, evaluation is not
 ## Resources
 
 - [joergen7/gen_pnet](https://github.com/joergen7/gen_pnet). A generic Petri net OTP behavior, the CRE is based on.
-- [joergen7/cuneiform](https://github.com/joergen7/cuneiform). A functional workflow language which can be executed with a Cuneiform-specific CRE.
+- [joergen7/cuneiform](https://github.com/joergen7/cuneiform). A functional language for large-scale data analysis whose distributed execution environment is implemented on top of the CRE.
+- [joergen7/cf_client](https://github.com/joergen7/cf_client) CRE client implementation for the Cuneiform distributed programming language.
+- [joergen7/cf_worker](https://github.com/joergen7/cf_worker) CRE worker implementation for the Cuneiform distributed programming language.
 
 ## Authors
 

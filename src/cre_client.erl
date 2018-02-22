@@ -74,13 +74,13 @@
 %%====================================================================
 
 start_link( CreName, ClientMod, ClientArg ) ->
-  gen_pnet:start_link( ?MODULE, {CreName, ClientMod, ClientArg}, [{spawn_opt, [{fullsweep_after, 0}]}] ).
+  gen_pnet:start_link( ?MODULE, {CreName, ClientMod, ClientArg}, [] ).
 
 start_link( ClientName, CreName, ClientMod, ClientArg ) ->
   gen_pnet:start_link( ClientName,
                        ?MODULE,
                        {CreName, ClientMod, ClientArg},
-                       [{spawn_opt, [{fullsweep_after, 0}]}] ).
+                       [] ).
 
 eval( ClientName, T ) ->
   gen_pnet:call( ClientName, {eval, T}, infinity ).
