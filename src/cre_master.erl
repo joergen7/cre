@@ -18,7 +18,7 @@
 %%
 %% -------------------------------------------------------------------
 %% @author Jörgen Brandt <joergen.brandt@onlinehome.de>
-%% @version 0.1.2
+%% @version 0.1.3
 %% @copyright 2015-2018 Jörgen Brandt
 %%
 %% @doc A module implementing the behavior of the common runtime environment
