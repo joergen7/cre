@@ -18,7 +18,7 @@
 %%
 %% -------------------------------------------------------------------
 %% @author Jörgen Brandt <joergen.brandt@onlinehome.de>
-%% @version 0.1.3
+%% @version 0.1.4
 %% @copyright 2015-2018 Jörgen Brandt
 %%
 %%
@@ -39,6 +39,9 @@
 -export( [start/0, pid/1] ).
 -export( [start/2, stop/1] ).
 -export( [main/1] ).
+
+
+-define( ?VSN, "0.1.4" ).
 
 %%====================================================================
 %% API functions
@@ -68,6 +71,7 @@ start( _Type, _Args ) ->
 
   error_logger:info_report( [{info,        "starting common runtime environment"},
                              {application, cre},
+                             {vsn,         ?VSN},
                              {node,        node()}] ),
 
   cre_sup:start_link().
