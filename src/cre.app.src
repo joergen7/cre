@@ -1,6 +1,6 @@
 {application, cre,
- [{description, "A common runtime environment (CRE) for distributed workflow languages."},
-  {vsn, "0.1.4"},
+ [{description, "Common runtime environment for distributed programming languages"},
+  {vsn, "0.1.5"},
   {mod, {cre, []}},
   {registered, [cre]},
   {applications, [

@@ -1,9 +1,9 @@
 # cre
-###### A common runtime environment (CRE) for distributed workflow languages.
+###### Common runtime environment for distributed programming languages
 
 [![hex.pm](https://img.shields.io/hexpm/v/cre.svg?style=flat-square)](https://hex.pm/packages/cre) [![Build Status](https://travis-ci.org/joergen7/cre.svg?branch=master)](https://travis-ci.org/joergen7/cre)
 
-The common runtime environment (CRE) is a scalable execution environment for data analysis workloads running on top of [distributed Erlang](https://www.erlang.org). It is responsible for managing communication with a client, e.g., a language interpreter, and a number of application-specific worker processes. Herein, the common runtime environment performs scheduling, client and worker failure recovery, client back-pressure, and caching. The common runtime environment itself is application-independent. To specialize it towards a particular application, e.g., a workflow language, the `cre_client` and `cre_worker` behaviors must be implemented. The common runtime environment is based on the [gen_pnet](https://github.com/joergen7/gen_pnet) OTP behavior for modeling concurrent systems as Petri nets and is the featured execution environment for the [Cuneiform](https://cuneiform-lang.org) workflow language.
+The common runtime environment (CRE) is a generic distributed execution environment for programming languages implemented in [distributed Erlang](https://www.erlang.org). It is responsible for managing communication with a client running a language interpreter and several distributed worker processes. Herein, the CRE performs scheduling, client and worker failure recovery, and caching. The CRE is language-independent. To specialize it towards a particular distributed programming language, e.g., [Cuneiform](https://cuneiform-lang.org/), the `cre_client` and `cre_worker` behaviors must be implemented. The CRE is based on the [gen_pnet](https://github.com/joergen7/gen_pnet) OTP behavior for modeling concurrent systems as Petri nets.
 
 
 ![cre Petri net model](priv/cre_master_pnet.png)
@@ -13,32 +13,27 @@ The common runtime environment (CRE) is a scalable execution environment for dat
 
 ## Features
 
-Here, we give an overview of the features, the CRE covers. The primary features of the CRE are scheduling, client back-pressure, fault tolerance, and caching.
+This section gives an overview of the features, the CRE covers. The primary features of the CRE are scheduling, fault tolerance, and caching.
 
 
 ### Scheduling
 
-Scheduling is performed by associating a application with a given worker. Once the match has been made, the application is sent to the associated worker and the application-worker pair is ear-marked as busy. Since any application is allowed to be matched with any worker, the net structure effectively implements a random scheduler.
-
-
-### Client Back-Pressure
-
-Large workloads consisting of 1M applications or more as well as a large number of clients can spam the master process to a degree where it stops working. The CRE protects itself from being overwhelmed by its clients by applying back-pressure to eager clients.
+Scheduling associates a function application to be executed with a worker process. Once the match has been made, the application is sent to the worker and the application-worker pair is ear-marked as busy. Currently, the scheduler randomly matches applications and workers, thus, maximizing the average balance of load.
 
 
 ### Fault Tolerance
 
-The CRE can serve an arbitrary number of clients and can feed an arbitrary number of workers. In large compute clusters this means that there is a realistic chance for one or more connected processes to fail. The CRE creates a link to each client and each worker and appropriately reacts to exit messages which are generated whenever a process stops running. I.e., demand sent to non-existing clients is recollected and applications sent to non-existing workers are rescheduled. Also, the total amount of demand tokens in the net is kept proportional to the number of live workers.
+In general, the CRE serves multiple clients and feeds multiple workers. In large setups there is a realistic chance for one or more connected processes to fail. The CRE detects such failures and appropriately reacts to them. I.e., an application sent to a failed worker is rescheduled and an application from a failed client is cached so that it is ready when the client reconnects.
 
 
 ### Caching
 
-Often in large-scale data analysis applications, the storage needed to keep intermediate results is much cheaper than the compute resources needed to derive these intermediate results. Accordingly, the CRE memoizes all application-result combinations over the duration of the CRE master's run.
+Often in data analysis applications, the storage needed to cache an intermediate results is cheaper than the compute resources needed to recompute it. Accordingly, the CRE memoizes all application-result combinations it received from workers. I.e., a computation is scheduled only if it is presented to the CRE for the first time. Later requests for the same application are served from the cache.
 
 
 ## Usage
 
-Creating a CRE application involves adding the CRE library to your project and implementing the callback functions for both a CRE client and a CRE worker. In this section we show, how this can be accomplished.
+Creating a distributed programming language using the CRE requires adding the CRE library to your project and implementing the callback functions for both a CRE client and a CRE worker. In this section we show, how this can be accomplished.
 
 
 ### Adding the CRE to a Project
@@ -48,46 +43,47 @@ Although the CRE library can be imported also directly from GitHub, we recommend
 
 #### rebar3
 
-To integrate the CRE into a rebar3 managed project change the `deps` entry in your application's `rebar.config` file to include the tuple `{cre, "0.1.4"}`.
+To integrate the CRE into a rebar3 managed project change the `deps` entry in your application's `rebar.config` file to include the tuple `{cre, "0.1.5"}`.
 
 ```erlang
-{deps, [{cre, "0.1.4"}]}.
+{deps, [{cre, "0.1.5"}]}.
 ```
-
 
 #### mix
 
+In an Elixir context, the CRE can be integrated into the project via mix.
+
 ```elixir
-{:cre, "~> 0.1.4"}
+{:cre, "~> 0.1.5"}
 ```
 
-### Starting the CRE
+### Starting the CRE Master
 
-The CRE (its master application) can be started in four distinct ways: Using the command line, starting as an Erlang application, starting under the default supervisor, and starting directly.
+The CRE (its master application) can be started in four distinct ways: From the command line, as an Erlang application, under the default supervisor, and directly by spawning a CRE master process.
 
 #### Starting from the command line
 
-Having compiled the CRE using
+Compiling the CRE using
 
     rebar3 escriptize
 
-creates an Erlang script file `cre` which allows starting the CRE via the command line. Starting the script using
+creates an Erlang script file `cre` which allows starting the CRE via the command line. Starting the script entering
 
-    ./cre
+    _build/default/bin/cre
 
-will create an Erlang node with the node name `cre@my_node` where `my_node` is the hostname of the current computer. This name is printed out on the terminal and is important for the client and worker services to connect.
+creates an Erlang node with the node name `cre@my_node` where `my_node` is the hostname of the current computer. This name is printed out on the terminal and is important for the client and worker services to connect.
 
-From a remote Erlang node you can always find out the process id of the CRE by calling
+Knowing the node name of the CRE, in this case `cre@mynode`, you can find out the process id of the CRE from a remote Erlang instance by calling
 
 ```erlang
 cre:pid( 'cre@my_node' ).
 ```
 
-Your Erlang node will connect to the CRE node and will find out its process id returning it as a tuple of the form `{ok, CrePid}`. The connection remains intact, so from the moment you received the CRE process id you can safely communicate with it.
+The Erlang instance where the above function is called connects to the CRE node and finds out the CRE master's process id returning it as a tuple of the form `{ok, CrePid}`. The connection remains intact, so from the moment you received the CRE process id you can safely communicate with it.
 
 #### Starting as an Erlang Application
 
-You can start the CRE from an Erlang interactive shell by calling
+You can start the CRE from an Erlang instance by calling
 
 ```erlang
 cre:start().
@@ -98,72 +94,76 @@ Which is exactly the same as calling
 ```erlang
 application:start( cre ).
 ```
+This starts the CRE as an application under its own application master. This procedure also registers the CRE master process locally under the name `cre_master`.
 
 #### Starting under the Default Supervisor
 
-If you do not want the CRE to run under its own application master or if you want to embed the CRE supervisor in your own custom supervision structure, you can start the CRE default supervisor by calling
+Alternatively, you can start the CRE's default supervisor by calling
 
 ```erlang
 cre_sup:start_link().
 ```
 
+This gives you the chance to embed the CRE supervisor in a custom supervision hierarchy. On success, the call returns a tuple of the form `{ok, CreSupPid}`. This procedure also registers the CRE master process locally under the name `cre_master`.
+
 #### Starting Directly
 
-If also the supervision strategy needs to be replaced, you can start the CRE process directly. To start an unregistered instance of the CRE call
+You can also start the CRE master process directly. To start an unregistered instance of the CRE call
 
 ```erlang
 cre_master:start_link().
 ```
 
-Starting the CRE master process unregistered makes it impossible to locate the process using `cre:pid/1`.
+On success, the call returns a tuple of the form `{ok, CrePid}`. Note that starting the CRE master process this way (unregistered) makes it impossible to locate it using `cre:pid/1`.
 
-To start and register the CRE process provide it with an appropriate process name. In the following example, we register the CRE locally, just as the default supervisor does:
+To start and register the CRE master process provide it with an appropriate process name. In the following example, we register the CRE locally, just as the default supervisor does:
 
 ```erlang
-CreName = {local, cre_master}.
-cre_master:start_link( CreName ).
+cre_master:start_link( {local, cre_master} ).
 ```
 
-Starting the CRE master under a different name or using a different registry makes it impossible to locate the process using `cre:pid/1`.
+Like the argumentless variant of the `start_link` function the call returns a tuple of the form `{ok, CrePid}`. Note that starting the CRE master under a different name or using a different registry makes it impossible to locate the process using `cre:pid/1`.
+
+### Controlling the Verbosity of Status Logs
 
 
 ### Creating a CRE Client Module
 
-The CRE client is a service that takes a program from a user (or from another service) and computes its result. For that purpose, the client extracts from the program small, independent computational units, which we call applications, and sends them to the CRE master for reduction. Also, the client awaits the return of application results. The client continues to generate applications until all application results in a program are known and no new applications can be generated. Then the result of the program is returned to the user. Additionally, the client sends an application to the CRE master only if the CRE master has expressed demand for new applications. This protects the CRE master from being overwhelmed by its clients.
+The CRE client is a service that takes a program from a user (or from another service) and computes its result. For that purpose, the client extracts from the program small, independent computational units, which we call applications, and sends them to the CRE master for evaluation. Conversely, the client expects the CRE master to reply with a result for each application it requested. The client continues to generate applications until all application results in a program are known and no new applications can be generated. Then the resulting program is returned to the user.
 
 ![cre Petri net model](priv/cre_client_pnet.png)
 
-*Figure 2: Petri net model of the common runtime environment's client application. It provides a user interface (top and bottom) and an interface to the master application.*
+*Figure 2: Petri net model of the common runtime environment's client process. It provides a user interface (left) and an interface to the CRE master process (right).*
 
+#### Starting a Client Process
 
-#### User Interface
-
-Let's say we have created a CRE client implementation in the module `my_cre_client`. We can start a client process from the module and link it to a CRE master by using the `cre_client:start_link/3` function. 
+Let's say we have created a CRE client in the module `logic_client`. The client must implement the `cre_client` behavior. We can start a client process by using the `cre_client:start_link/3` function. 
 
 ```erlang
 cre:start().
-{ok, Cre} = cre:pid( node() ).
+{ok, CrePid} = cre:pid( node() ).
 InitArg = [].
-{ok, Client} = cre_client:start_link( Cre, my_cre_client, InitArg ).
+{ok, ClientPid} = cre_client:start_link( CrePid, logic_client, InitArg ).
 ```
 
-In principle, we can now start querying the client by using the `cre_client:eval/2` function. This function takes a CRE client pid and a term `T` and returns the resulting value.
+We can query a client by using the `cre_client:eval/2` function. This function takes a CRE client pid and an expression `E` and returns the resulting value.
 
 ```erlang
 E = {'and', {'not', true}, {'not', false}}.
-cre_client( Cre, E ).
+cre_client:eval( Cre, E ).
 ```
+The `logic_client` module and the expression `E` we used here exemplifies the zero-order logic we discuss in the [example section](#example-a-distributed-zero-order-logic). If the CRE has workers available, it starts scheduling. Consequently, the client request cannot complete, unless we add workers to the CRE master. How workers are implemented and added to the CRE master is described in the [worker module section](#creating-a-cre-worker-module).
 
-The term we use here is in the syntax of the zero-order logic we use in the [example section](#example-a-distributed-zero-order-logic). If the CRE is live, it produces the result `false`. Note that we didn't add any workers to the CRE master yet, so the client request will just block and wait forever, unless we also add workers to the CRE master. How workers are implemented and added to the CRE master is described in the [worker module section](#creating-a-cre-worker-module).
+The call to `cre_client:eval/2` is synchronous, i.e., the function blocks while the CRE application is busy and returns the plain value when it becomes available, in this case `false`.
 
 
 #### Callback Functions
 
 The CRE client is implemented by providing three callback functions:
 
-- `init/1` is called when the client process starts.
+- `init/1` is called when the client process is started using `cre_client:start_link/n`.
 - `is_value/2` determines whether or not an expression is a value.
-- `step/2` attempts to make progress on a given expression, returning a new expression and, if necessary, a application to be scheduled.
+- `step/2` attempts to make progress on a given expression, returning a new expression and, if necessary, an application to be sent to the CRE master.
 - `recv/4` reacts to the reception of a completed application.
 
 
@@ -180,7 +180,7 @@ The `init/1` function is called when a client process starts. It takes an initia
 ```erlang
 -callback is_value( E :: _, UsrInfo :: _ ) -> boolean().
 ```
-The `is_value/2` function takes an expression `E` and the user info field generated by the `init/1` function and determines whether the expression is a value. If so, that means that the program has terminated and the result is returned to the user.
+The `is_value/2` function takes an expression `E` and the user info field generated by the `init/1` function and determines whether the expression is a value. If an expression is a value, that means that the program has terminated and the result is returned to the user.
 
 
 ##### step/2
@@ -188,7 +188,7 @@ The `is_value/2` function takes an expression `E` and the user info field genera
 ```erlang
 -callback step( E :: _, UsrInfo :: _ ) -> {ok, _} | {ok_send, _, _} | norule.
 ```
-The `step/2` function takes an expression `E` and the user info field `UsrInfo` generated by the `init/1` function and either generates a new expression by returning `{ok, E1}`, additionally generates a application `A` by returning `{ok_send, E1, A}`, or detects that no further progress can be made by returning `norule`.
+The `step/2` function takes an expression `E` and the user info field `UsrInfo` generated by the `init/1` function and generates either a new expression `E1` by returning `{ok, E1}` or a new expression `E1` and an application `A` by returning `{ok_send, E1, A}`. If no further progress can be made at the moment the function returns `norule`.
 
 
 ##### recv/4
@@ -197,29 +197,40 @@ The `step/2` function takes an expression `E` and the user info field `UsrInfo` 
 -callback recv( E :: _, A :: _, Delta :: _, UsrInfo :: _ ) -> _.
 ```
 
-The `recv/4` function reacts to the reception of a application result. The function takes the current expression `E`, the application that has been sent earlier `A`, the corresponding application result `Delta`, and the user info field `UsrInfo` as generated by the `init/1` function. It returns an updated expression `E1`.
+The `recv/4` function reacts to the reception of a application result. The function takes the current expression `E`, the application `A` that has been sent earlier and is now returned, the corresponding application result `Delta`, and the user info field `UsrInfo` as generated by the `init/1` function. It returns an updated expression `E1`.
 
 
 ### Creating a CRE Worker Module
 
-The CRE worker is a service that consumes applications that have been scheduled to it by a CRE master and reduces it. For that purpose the worker also makes sure that any preconditions are met prior to reduction and that any postconditions are met prior to sending the application's result back to the CRE master. Such pre- and postconditions could be, for example, the stage-in of input files which need to be fetched from a distributed file system or the stage-out of output files.
+The CRE worker consumes applications scheduled to it by the CRE master and evaluates them. For that purpose the worker also makes sure that any preconditions are met prior to evaluation and that any postconditions are met prior to sending the application's result back to the CRE master. Usually, a precondition is that all necessary input files are present. Conversely, a usual postcondition is that all expected output files have been created.
 
 ![cre Petri net model](priv/cre_worker_pnet.png)
 
-*Figure 3: Petri net model of the common runtime environment's worker application. It interfaces only to the master application.*
+*Figure 3: Petri net model of the common runtime environment's worker application. It provides an interface to the CRE master (left).*
+
+#### Starting a Worker Process
+
+As with the client process, the CRE master needs to run before we can connect workers to it. The worker module to be started is `logic_worker`. It implements the `cre_worker` behavior.
+
+```erlang
+cre:start().
+{ok, CrePid} = cre:pid( node() ).
+InitArg = [].
+cre_worker:start_link( CrePid, logic_worker, InitArg ).
+```
 
 #### Callback Functions
 
-The CRE worker is implemented by providing seven callback functions:
+The CRE worker is implemented by providing the following nine callback functions:
 
-- `init/1` is called on starting a worker instance.
+- `init/1` is called when starting a worker instance with `cre_worker:start_link/n`.
 - `prepare_case/2` called upon receiving an application before any other application-related callback is used.
 - `stagein_lst/2` returns a list of preconditions for a given application.
 - `do_stagein/3` fulfills a precondition.
 - `run/2` reduces an application assuming all preconditions are fulfilled.
-- `stageout_lst/3` returns a list of postconditions for a given application and its reduction result.
+- `stageout_lst/3` returns a list of postconditions for a given application and its evaluation result.
 - `do_stageout/3` fulfills a postcondition.
-- `error_to_expr/3` returns an error expression for a given intransient error.
+- `error_to_expr/3` creates an error expression from a given intransient error.
 - `cleanup_case/3` called upon finishing up a case prior to sending the result back to the CRE.
 
 ##### init/1
@@ -235,14 +246,14 @@ The `init/1` function is called when the worker process starts. It takes an init
 -callback prepare_case( A :: _, UsrInfo :: _ ) -> ok.
 ```
 
-The `prepare_case/2` function is called every time an application is received and prior to any other processing steps. The function is intended for the worker to perform any preparation steps necessary to start processing the application `A`. The `UsrInfo` field that is also provided is the data structure created as the output of `init/1`. Upon success, the function returns the atom `ok`. Should anything in the preparation process go wrong, the function is supposed to throw an error.
+The `prepare_case/2` function is called every time an application is received and prior to any other processing steps. The function is intended for the worker to perform any preparation steps necessary to start processing the application `A`. The user info field `UsrInfo` has been generated using `init/1`. Upon success, the function returns the atom `ok`. Should anything in the preparation process go wrong, the function is supposed to raise an exception.
 
 ##### stagein_lst/2
 
 ```erlang
 -callback stagein_lst( A :: _, UsrInfo :: _ ) -> [F :: _].
 ```
-The stagein_lst/2 produces a list of preconditions `F` for a given application `A`. In addition, the user info field `UsrInfo` which has been generated with `init/1` is provided. Later, the `do_stagein/3` function will be called in an arbitrary order for each of the preconditions this function returns.
+The stagein_lst/2 produces a list of preconditions `F` for a given application `A`. The user info field `UsrInfo` has been generated using `init/1`. Later, the `do_stagein/3` function will be called for each of the preconditions this function returns.
 
 ##### do_stagein/3
 
@@ -263,7 +274,7 @@ The `run/2` function consumes an application `A` and attempts to reduce it. On s
 ```erlang
 -callback stageout_lst( A :: _, R :: _, UsrInfo :: _ ) -> [F :: _].
 ```
-The `stageout_lst/3` function takes an application `A` and its associated reduction result `R` and produces a list of postconditions `F`. Later, the `do_stageout/3` function will be called in an arbitrary order for each of the postconditions this function returns.
+The `stageout_lst/3` function takes an application `A` and its associated reduction result `R` and produces a list of postconditions `F`. Later, the `do_stageout/3` function will be called for each postcondition returned.
 
 ##### do_stageout/3
 
@@ -279,7 +290,7 @@ The `do_stageout/3` function fulfills a single postcondition previously announce
                          Reason  :: {stagein | stageout, [_]} | {run, _},
                          UsrInfo :: _ ) -> _.
 ```
-The functions `do_stagein/3`, `run/2`, and `do_stageout/3` all carry the possibility to return an error. This possibility is usually reflected in the target language by providing a syntactic category for errors and reduction rules that handle errors in one or the other way. The `error_to_expr/3` function takes an application `A` and an error info field `Reason` and produces from these an error expression in the syntax of the target language.
+The functions `do_stagein/3`, `run/2`, and `do_stageout/3` all carry the possibility to produce a deterministic error. This possibility is usually reflected in the target language by providing a syntactic category for errors and reduction rules that handle errors. The `error_to_expr/3` function takes an application `A` and an error info field `Reason` and produces from these an error expression in the syntax of the target language.
 
 ##### cleanup_case/3
 
@@ -287,31 +298,31 @@ The functions `do_stagein/3`, `run/2`, and `do_stageout/3` all carry the possibi
 -callback cleanup_case( A :: _, R :: _, UsrInfo :: _ ) -> R1 :: _.
 ```
 
-The function `cleanup_case/3` is called whenever an application has been fully processed and the result is ready to be sent back to the CRE master. The arguments are the application `A`, its result `R`, as well as the `UsrInfo` field as generated by `init/1`. The function returns an updated result expression `R1`. Should cleaning up fail, the function is expected to throw an error.
+The function `cleanup_case/3` is called whenever an application has been fully processed and the result is ready to be sent back to the CRE master. The arguments are the application `A`, its result `R`, as well as the `UsrInfo` field as generated by `init/1`. The function returns an updated result expression `R1`. Should cleaning up fail, the function is expected to raise an exception.
 
 
 ## Example: A Distributed Zero-Order Logic
 
-In this section we demonstrate the implementation of a CRE application by distributing a zero-order logic, i.e., a logic with truth values and propositional operators like negation, conjunction or disjunction but no quantifiers or variables. We show how a client module and a worker module are implemented from the callback definitions we gave in the previous section.
+In this section we demonstrate the implementation of a CRE-based programming language by creating a distributed zero-order logic, i.e., a logic with truth values and propositional operators like negation, conjunction or disjunction but no quantifiers or variables. We show how a client module and a worker module are implemented from the callback definitions we gave in the previous section.
 
-There are several reasons why distributing a zero-order logic this way is utter waste. However, the example is instructive because there is a habitual familiarity of programmers with logic and also because it is a healthy exercise to reflect on when *not* to distribute.
+There are several reasons why distributing a zero-order logic this way is problematic. However, the example is instructive because there is a habitual familiarity of programmers with logic and also because it is a healthy exercise to reflect on when *not* to distribute.
 
 
 ### Reduction Semantics
 
-Before dwelling on the code, let us clarify what we are about to build. Here, we define a zero-order logic as a reduction semantics, i.e., we give a notion of reduction which we apply in an evaluation context to get a small-step operational semantics.
+First, let us clarify what we are about to build. Here, we define a zero-order logic as a reduction semantics, i.e., we give a notion of reduction which we apply in an evaluation context to get a small-step operational semantics.
 
-So, first, we define the syntax of the language. Then, we give the notion of reduction and a definition of the evaluation context. The interesting part is the small step reduction relation that we create from these building blocks. This reduction relation as well as the syntax of programs needs to conform some basic rules in order to be compatible with the CRE. We discuss these rules in the reduction semantics before we move on to implement it.
+So, first, we define the syntax of the language. Then, we give the notion of reduction and a definition of the evaluation context. The interesting part is the small step reduction relation that we create from these building blocks. This reduction relation as well as the syntax of programs needs to conform some basic rules in order to be compatible with the CRE.
 
 #### Syntax
 
-Here, we show how a simple zero-order logic can be distributed using the CRE. We describe the semantics of this logic as a reduction semantics. Thus, first we introduce its static syntax. It consists of truth values, negation, conjunction, and disjunction. The resulting syntax for expressions *e* looks as follows:
+Here, we introduce the static syntax of the zero-order logic. It consists of truth values, negation, conjunction, and disjunction. The resulting syntax for expressions *e* looks as follows:
 
 ![Syntax: expression first version](priv/logic_syntax_expr1.png)
 
 #### Notion of Reduction
 
-Before we introduce the notion of reduction for the above logic, we need to extend the syntax by defining the concept of a value *v*, i.e., an expression that can be the result of an evaluation and that can play the role of an operand in a redex:
+Before we introduce the notion of reduction for the above syntax, we need to extend the syntax by defining the concept of a value *v*, i.e., an expression that can be the result of an evaluation and that can play the role of an operand in a reducible expression:
 
 ![Syntax: value](priv/logic_syntax_value.png)
 
@@ -335,7 +346,7 @@ Before we introduce the reduction relation for the distributed zero-order logic 
 
 ![Syntax: evaluation context](priv/logic_syntax_evaluation_context.png)
 
-Note that defining the evaluation context this way does not result in a deterministic reduction relation as would be the desirable when defining a standard reduction relation. This non-determinism allows us to find redexes in many places in the control string. This is important when we define the reduction relation for the CRE, since we want to send as many redexes as possible to the distributed execution environment regardless of how fast the CRE can generate replies.
+Note that defining the evaluation context this way results in a non-deterministic reduction relation. This non-determinism allows us to find reducible expressions in many places inside an expression. This is important when we define the reduction relation for the CRE, since we want to send as many reducible expressions as possible to the distributed execution environment regardless of how fast the CRE can generate replies.
 
 #### Reduction Relation: A First Try
 
@@ -347,25 +358,25 @@ To get a reduction relation from the previously defined notion of reduction n, w
 
 #### Reduction Relation: The CRE Way
 
-The reduction relation defined in `[E-red]` sufficiently describes how evaluation in our zero-order logic is accomplished. However, it applies the notion of reduction in-place, thereby reducing one redex at a time in a sequential manner. Now the sport is to send the redex to a remote service instead of just reducing it, and to do so with as many redexes as we can find in an expression.
+The reduction relation defined in `[E-red]` describes how evaluation in our zero-order logic can be accomplished. However, it applies the notion of reduction in-place, thereby reducing one redex at a time in a sequential manner. However, our goal is to send the redex to a remote service instead of just reducing it and to do so with as many redexes as we can find in an expression.
 
 Accordingly, the first thing to do is to extend the syntax of expressions *e* with the concept of a future. Futures provide a way to mark redexes that have already been sent away to be computed.
 
 ![Syntax: expression second version](priv/logic_syntax_expr2.png)
 
-Next, it is not enough to housekeep bare expressions. We need a way to represent redexes awaiting reduction and also redex-value pairs that we get back in return from the remote reduction service.
+Next, it is not enough to operate bare expressions. We need a queue of redexes for which we request evaluation. Also, we need a way a queue of redex-value pairs we received in return.
 
-Accordingly, CRE programs are triples consisting of a queue, a cache, and a control string. This convention is reflected in the way we construct the syntax for programs *p*. In this example, the queue is a list of redexes awaiting reduction, the cache is a list of redex-value pairs holding the redex and the value associated with it according to the notion of reduction, and the control string is an expression under evaluation.
+Accordingly, a CRE program *p* is a triple consisting of a send-queue, a receive-queue, and a control string expression. The send-queue is a list of redexes awaiting reduction, the receive-queue is a list of redex-value pairs holding the redex and its value derived by applying the notion of reduction, and the control string is the expression under evaluation.
 
 ![Syntax: program](priv/logic_syntax_program.png)
 
-Now that we have defined the evaluation context, we can express what the notion of reduction n means in the context of a program *p*. The updated reduction relation consists of two rules. The first rule defines how redexes are sent to the execution environment. This is achieved by enclosing a redex in a future and by enqueueing the redex.
+Now, we need to define a reduction relation on programs instead of expressions. The updated reduction relation consists of two rules. The first rule defines how redexes are sent to the execution environment. This is achieved by enclosing a redex in a future and by adding the redex to the send-queue.
 
 ![E-send](priv/logic_e-send.png)
 
 `[E-send]`
 
-Next we need to define how results which have been received via the cache are substituted into the control string:
+Next we need to define how results which have been received are substituted into the control string:
 
 ![E-recv](priv/logic_e-recv.png)
 
@@ -373,7 +384,7 @@ Next we need to define how results which have been received via the cache are su
 
 The notion of reduction n does not appear directly in the reduction relation anymore (we use it only in a side condition to identify redexes in `E-send`). This reflects the fact that the notion of reduction is applied by the worker and, thus, never explicitly appears in the way reduction is performed in the client.
 
-In real applications, we let the client perform some reductions and defer only the "number crunching" to the CRE. In this example, however, we have the CRE do *all* reductions.
+In real programming languages, we also need the client perform some reductions and try to defer only the expensive tasks to the CRE. In this example, however, we have the CRE do *all* reductions.
 
 ### A CRE Application from the Reduction Semantics
 
@@ -381,7 +392,7 @@ In real applications, we let the client perform some reductions and defer only t
 
 The type specifications we make here are rather for documentation than for anything else. We give them anyway because they give us a feeling for what the abstract syntax we defined for the reduction semantics has to do with Erlang terms.
 
-The syntax of expressions is made up of Booleans and tuples forming the Erlang representation of abstract syntax trees for our zero-order logic.
+The syntax of expressions is made up of Booleans and tuples.
 ```erlang
 -type e() :: boolean()
            | {'not', e()}
@@ -389,7 +400,7 @@ The syntax of expressions is made up of Booleans and tuples forming the Erlang r
            | {'or', e(), e()}
            | {fut, e()}.
 ```
-Similar to syntax trees we can give a definition of the form of evaluation contexts.
+Similar to the syntax of expressions we can give a definition of the syntax of evaluation contexts.
 ```erlang
 -type ctx() :: hole
              | {'not', ctx()}
@@ -401,7 +412,7 @@ Similar to syntax trees we can give a definition of the form of evaluation conte
 
 #### Implementation of the Worker
 
-The CRE worker for our zero-order logic involves implementing the notion of reduction inside the `run/2` function. This function takes a redex and returns the result of that redex. The user info field is ignored. The [source code](test/logic_worker.erl) of the client is available as part of the CRE test suite.
+The CRE worker for our zero-order logic involves implementing the notion of reduction inside the `run/2` function. This function takes a redex and returns the result of that redex. The user info field is ignored.
 
 ```erlang
 run( {'not', X}, _UsrInfo )      -> {ok, not X};
@@ -409,12 +420,12 @@ run( {'and', X1, X2}, _UsrInfo ) -> {ok, X1 andalso X2};
 run( {'or', X1, X2}, _UsrInfo )  -> {ok, X1 orelse X2}.
 ```
 
-The worker also requires implementing eight other callback functions. These are, however, simplistic since neither file staging nor error handling have to be performed and preparation and cleanup are trivial.
+The worker also requires implementing eight other callback functions not shown here. The [source code](test/logic_worker.erl) for the whole worker module is available as part of the CRE test suite.
 
 
 #### Implementation of the Client
 
-The CRE client for our zero-order logic involves implementing the two reduction rules `[E-send]` and `[E-recv]` from the reduction semantics. Additionally, we have to implement a test whether evaluation has terminated. Concretely, we need to implement the three callback functions `init/1`, `is_value/2`, and `step/2`. The [source code](test/logic_client.erl) of the client is available as part of the CRE test suite.
+The CRE client for our zero-order logic involves implementing the two reduction rules `[E-send]` and `[E-recv]` from the reduction semantics. Additionally, we have to implement a test whether evaluation has terminated. Concretely, we need to implement the three callback functions `init/1`, `is_value/2`, and `step/2`. The [source code](test/logic_client.erl) for the whole client module is available as part of the CRE test suite.
 
 ##### init/1
 
@@ -426,7 +437,7 @@ init( _InitArg ) -> [].
 
 ##### is_value/2
 
-The `is_value/2` function tests whether an expression is a value or not telling the CRE client whether evaluation has terminated. In the case of our zero-order logic, an expression is a value when it is a plain truth value, i.e., `true` or `false`.
+The `is_value/2` function tests whether an expression is a value or not telling the CRE client when evaluation has terminated. In the case of our zero-order logic, an expression is a value when it is a plain truth value, i.e., `true` or `false`.
 
 ```erlang
 is_value( E, _UsrInfo ) -> is_boolean( E ).
@@ -439,7 +450,7 @@ The `step/2` function implements a small-step semantics for the language to be i
 ```erlang
 step( E, _UsrInfo ) ->
   case find_context( E ) of
-    {ok, {Ctx, TNext}} -> {ok_send, in_hole( Ctx, {fut, TNext} ), TNext};
+    {ok, {Ctx, Redex}} -> {ok_send, in_hole( Ctx, {fut, Redex} ), Redex};
     {error, nocontext} -> norule
   end.
 ```
@@ -447,18 +458,16 @@ step( E, _UsrInfo ) ->
 
 ##### recv/4
 
-The `recv/4` reacts to the reception of a application result. In the case of our zero-order logic the function implements the `[E-recv]` rule of the reduction relation.
+The function `recv/4` reacts to the reception of an application result. In the case of our zero-order logic the function implements the `[E-recv]` rule of the reduction relation.
 
 ```erlang
 recv( E, A, Delta, _UsrInfo ) ->
   subst_fut( E, A, Delta ).
 ```
 
-The functions `step/2` and `recv/4` are defined in terms of three other functions: `find_context/1` which takes an arbitrary expression and tries to decompose it into an evaluation context and a redex, `in_hole/2` which replaces the hole in an evaluation context with some expression (or another evaluation context), and `subst_fut/3` which replaces a future with its corresponding value.
+The functions `step/2` and `recv/4` are defined in terms of three other functions: `find_context/1`, `in_hole/2`, and `subst_fut/3`. `find_context/1` takes an arbitrary expression and tries to decompose it into an evaluation context and a redex. `in_hole/2` replaces the hole in an evaluation context with some expression (or another evaluation context). `subst_fut/3` replaces a future with its corresponding value.
 
-Note that we had to define a reduction function even if the reduction rules given in the previous section were given in the form of a relation. We achieve the function property by constraining the `E-send` rule to situations where the cache is empty and by making the `find_context/1` function return the leftmost outermost redex, instead of just any redex.
-
-Even though the reduction rules are now encoded in a function, evaluation is not deterministic in the order of reduction. The reason is that reduction results from the CRE can be received in any order regardless of the fact that the client has sent the redexes away in a deterministic order.
+Note that even though the reduction rules we gave here are encoded as deterministic functions, evaluation is not deterministic w.r.t. the order of reductions. The reason is (i) that we do not stop sending redexes after we identified the first one but traverse each "leaf" of the syntax tree until all redexes have been sent, and (ii) that reduction results can be received in any order even though the client has sent the redexes away in a deterministic order.
 
 ## Related Projects
 
