@@ -41,11 +41,17 @@
 -export( [main/1] ).
 
 
+%%====================================================================
+%% Definitions
+%%====================================================================
+
 -define( VSN, "0.1.5" ).
 
 %%====================================================================
 %% API functions
 %%====================================================================
+
+-spec start() -> ok | {error, _}.
 
 start() ->
   application:start( cre ).
@@ -67,6 +73,8 @@ pid( CreNode ) when is_atom( CreNode ) ->
 %% Application callback functions
 %%====================================================================
 
+-spec start( Type :: _, Args :: _ ) -> {ok, pid()} | {error, _}.
+
 start( _Type, _Args ) ->
 
   error_logger:info_report( [{info,        "starting common runtime environment"},
@@ -75,7 +83,10 @@ start( _Type, _Args ) ->
                              {node,        node()}] ),
 
   cre_sup:start_link().
-  
+
+
+-spec stop( State :: _ ) -> ok.
+
 stop( _State ) ->
   ok.
 
@@ -83,6 +94,9 @@ stop( _State ) ->
 %%====================================================================
 %% Escript main function
 %%====================================================================
+
+
+-spec main( Args :: _ ) -> ok.
 
 main( _Args ) ->
 
@@ -93,5 +107,5 @@ main( _Args ) ->
   % wait indefinitely
   receive
   	{'DOWN', _Ref, process, _Object, _Info} ->
-      ok = timer:sleep( 1000 )
+      timer:sleep( 1000 )
   end.

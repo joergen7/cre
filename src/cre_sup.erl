@@ -44,12 +44,24 @@
 %% API functions
 %%====================================================================
 
+-spec start_link() -> {ok, pid()} | {error, _}.
+
 start_link() ->
   supervisor:start_link( {local, cre_sup}, ?MODULE, [] ).
 
 %%====================================================================
 %% Application callback functions
 %%====================================================================
+
+-spec init( _ ) -> {ok, {#{ strategy  => one_for_one,
+                            intensity => non_neg_integer(),
+                            period    => pos_integer() },
+                         [#{ id       := _,
+                             start    := {atom(), atom(), [_]},
+                             restart  => temporary,
+                             shutdown => non_neg_integer(),
+                             type     => worker,
+                             modules  => [atom()] }]}}.
 
 init( _Args ) ->
 
