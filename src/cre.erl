@@ -40,12 +40,18 @@
 -export( [start/2, stop/1] ).
 -export( [main/1] ).
 
+%%====================================================================
+%% Includes
+%%====================================================================
+
+-include( "cre.hrl" ).
+
 
 %%====================================================================
 %% Definitions
 %%====================================================================
 
--define( VSN, "0.1.5" ).
+-define( PORT, 4142 ).
 
 %%====================================================================
 %% API functions
@@ -77,10 +83,17 @@ pid( CreNode ) when is_atom( CreNode ) ->
 
 start( _Type, _Args ) ->
 
-  error_logger:info_report( [{info,        "starting common runtime environment"},
+  error_logger:info_report( [{info,        "starting cre"},
                              {application, cre},
                              {vsn,         ?VSN},
-                             {node,        node()}] ),
+                             {node,        node()},
+                             {port,        ?PORT}] ),
+
+  Dispatch = cowboy_router:compile( [{'_', [{"/", status_handler, []}]}] ),
+
+  {ok, _} = cowboy:start_clear( status_listener,
+                                [{port, ?PORT}],
+                                 #{ env => #{ dispatch => Dispatch } } ),
 
   cre_sup:start_link().
 
@@ -100,8 +113,15 @@ stop( _State ) ->
 
 main( _Args ) ->
 
-  % start the application
+  % start cowboy
+  {ok, _} = application:ensure_all_started( cowboy ),
+
+
+  % start the cre application
   ok = start(),
+
+
+  % create monitor
   _ = monitor( process, cre_sup ),
 
   % wait indefinitely

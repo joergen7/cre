@@ -5,10 +5,16 @@
   {registered, [cre]},
   {applications, [
                   kernel,
-                  stdlib
+                  stdlib,
+                  cowboy
                  ]},
   {env, []},
-  {modules, [cre, cre_client, cre_master, cre_sup, cre_worker]},
+  {modules, [cre,
+             cre_client,
+             cre_master,
+             cre_sup,
+             cre_worker,
+             status_handler]},
 
   {maintainers, ["Jorgen Brandt"]},
   {licenses, ["Apache 2.0"]},

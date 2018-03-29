@@ -21,8 +21,6 @@
 %% @version 0.1.5
 %% @copyright 2015-2018 Jörgen Brandt
 %%
-%% @doc A module implementing the behavior of the common runtime environment
-%%      (CRE).
 %%
 %%
 %%
@@ -39,11 +37,13 @@
 
 %% API functions
 -export( [start_link/0, start_link/1, add_worker/2, worker_result/4,
-          cre_request/4, stop/1] ).
+          cre_request/4, stop/1, cre_info/1, node_info/1, task_info/1] ).
 
 %% gen_server callback functions
 -export( [code_change/3, handle_call/3, handle_cast/2, handle_info/2, init/1,
           terminate/2] ).
+
+
 
 %%====================================================================
 %% Record definitions
@@ -119,12 +119,25 @@ cre_request( CreName, ClientName, I, A ) ->
 stop( CreName ) ->
   gen_server:stop( CreName ).
 
+
+cre_info( CreName ) ->
+  {ok, Info} = gen_server:call( CreName, cre_info ),
+  Info.
+  
+node_info( CreName ) ->
+  {ok, Info} = gen_server:call( CreName, node_info ),
+  Info.
+
+task_info( CreName ) ->
+  {ok, Info} = gen_server:call( CreName, task_info ),
+  Info.
+
+
 %%====================================================================
 %% gen_server callback functions
 %%====================================================================
 
 code_change( _OldVsn, CreState, _Extra ) -> {ok, CreState}.
-handle_call( _Request, _From, CreState ) -> {reply, {error, bad_msg}, CreState}.
 terminate( _Reason, _CreState )          -> ok.
 
 init( _Arg ) ->
@@ -289,6 +302,124 @@ handle_info( {'EXIT', P, _Reason}, CreState ) ->
   end;
 
 handle_info( _Info, CreState ) -> {noreply, CreState}.
+
+
+
+
+
+
+handle_call( cre_info, _From, CreState ) ->
+
+  #cre_state{ idle_lst = IdleLst,
+              busy_map = BusyMap } = CreState,
+
+  NIdle = length( IdleLst ),
+  NBusy = maps:size( BusyMap ),
+  N     = NBusy+NIdle,
+
+  Ratio =
+    case N of
+      0 -> 0.0;
+      _ -> NBusy/N
+    end,
+
+  CreInfoMap = #{ total_load => Ratio, n_wrk => N},
+
+  {reply, {ok, CreInfoMap}, CreState};
+
+handle_call( node_info, _From, CreState ) ->
+
+  #cre_state{ idle_lst = IdleLst,
+              busy_map = BusyMap } = CreState,
+
+  PidLst = IdleLst++maps:values( BusyMap ),
+
+  F =
+    fun( Pid, Acc ) ->
+      Node = node( Pid ),
+      L = maps:get( Node, Acc, [] ),
+      Acc#{ Node => [Pid|L] }
+    end,
+
+  NodeWrkMap = lists:foldl( F, #{}, PidLst ),
+
+  IsBusy =
+    fun( Pid ) ->
+      not lists:member( Pid, IdleLst )
+    end,
+
+  G =
+    fun( Node, L ) ->
+      NWrk = length( L ),
+      NBusy  = length( lists:filter( IsBusy, L ) ),
+      NodeLoad = NBusy/NWrk,
+      #{ node => Node, n_wrk => NWrk, node_load => NodeLoad }
+    end,
+
+  NodeInfoLst = maps:values( maps:map( G, NodeWrkMap ) ),
+
+  {reply, {ok, NodeInfoLst}, CreState};
+
+handle_call( task_info, _From, CreState ) ->
+
+  #cre_state{ cache    = Cache,
+              busy_map = BusyMap,
+              queue    = Queue } = CreState,
+
+  F =
+    fun( App ) ->
+      #{ app_id := AppId,
+         lambda := Lambda } = App,
+      #{ lambda_name := LambdaName } = Lambda,
+      #{ app_id      => AppId,
+         lambda_name => LambdaName }
+    end,
+
+  G =
+    fun( App, Pid ) ->
+      M = F( App ),
+      M#{ node => node( Pid ) }
+    end,
+
+  QueuedLst = [F( App ) || App <- Queue],
+  ActiveLst = [G( App, Pid ) || {App, Pid} <- maps:to_list( BusyMap )],
+  CompletedLst = [F( App ) || App <- maps:keys( Cache )],
+
+  Sort1 =
+    fun( M1, M2 ) ->
+      #{ app_id := AppId1, lambda_name := LambdaName1 } = M1,
+      #{ app_id := AppId2, lambda_name := LambdaName2 } = M2,
+      if
+        LambdaName1 =/= LambdaName2 -> LambdaName1 =< LambdaName2;
+        true                        -> AppId1 =< AppId2
+      end
+    end,
+
+  Sort2 =
+    fun( M1, M2 ) ->
+      #{ app_id := AppId1, lambda_name := LambdaName1, node := Node1 } = M1,
+      #{ app_id := AppId2, lambda_name := LambdaName2, node := Node2 } = M2,
+      if
+        Node1 =/= Node2 -> Node1 =< Node2;
+        true ->
+          if
+            LambdaName1 =/= LambdaName2 -> LambdaName1 =< LambdaName2;
+            true                        -> AppId1 =< AppId2
+          end
+      end
+    end,
+
+  TaskInfoMap = #{ queued_lst    => lists:sort( Sort1, QueuedLst ),
+                   active_lst    => lists:sort( Sort2, ActiveLst ),
+                   completed_lst => lists:sort( Sort1, CompletedLst ) },
+
+  {reply, {ok, TaskInfoMap}, CreState};
+
+handle_call( _Request, _From, CreState ) ->
+  {reply, {error, bad_msg}, CreState}.
+
+
+
 
 %%====================================================================
 %% Internal functions
