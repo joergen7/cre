@@ -366,26 +366,44 @@ handle_call( task_info, _From, CreState ) ->
               busy_map = BusyMap,
               queue    = Queue } = CreState,
 
-  F =
-    fun( App ) ->
-      #{ app_id := AppId,
-         lambda := Lambda } = App,
-      #{ lambda_name := LambdaName } = Lambda,
-      #{ app_id      => AppId,
-         lambda_name => LambdaName }
+  BinaryToHexString =
+    fun( X ) when is_binary( X ) ->
+      list_to_binary( 
+        lists:flatten(
+          [io_lib:format( "~2.16.0b", [B] ) || <<B>> <= X] ) )
     end,
 
-  G =
+  FormatTask =
+    fun
+
+      % if apps have the form of Cuneiform applications, we can format them
+      ( #{ app_id := AppId, lambda := Lambda } )
+      when is_binary( AppId ),
+           is_binary( Lambda ) ->
+        #{ lambda_name := LambdaName } = Lambda,
+        #{ app_id      => AppId,
+           lambda_name => LambdaName };
+
+      % generic apps are represented with the last seven digits of their sha224
+      ( App ) ->
+        Hash = crypto:hash( sha224, io_lib:format( "~w", [App] ) ),
+        B = BinaryToHexString( Hash ),
+        #{ app_id      => B,
+           lambda_name => <<"na">> }
+
+    end,
+
+  FormatActiveTask =
     fun( App, Pid ) ->
-      M = F( App ),
+      M = FormatTask( App ),
       M#{ node => node( Pid ) }
     end,
 
-  QueuedLst = [F( App ) || App <- Queue],
-  ActiveLst = [G( App, Pid ) || {App, Pid} <- maps:to_list( BusyMap )],
-  CompletedLst = [F( App ) || App <- maps:keys( Cache )],
+  QueuedLst = [FormatTask( App ) || App <- Queue],
+  ActiveLst = [FormatActiveTask( App, Pid ) || {App, Pid} <- maps:to_list( BusyMap )],
+  CompleteLst = [FormatTask( App ) || App <- maps:keys( Cache )],
 
-  Sort1 =
+  SortFormattedTask =
     fun( M1, M2 ) ->
       #{ app_id := AppId1, lambda_name := LambdaName1 } = M1,
       #{ app_id := AppId2, lambda_name := LambdaName2 } = M2,
@@ -395,23 +413,35 @@ handle_call( task_info, _From, CreState ) ->
       end
     end,
 
-  Sort2 =
+  SortFormattedActiveTask =
     fun( M1, M2 ) ->
+
       #{ app_id := AppId1, lambda_name := LambdaName1, node := Node1 } = M1,
       #{ app_id := AppId2, lambda_name := LambdaName2, node := Node2 } = M2,
+
       if
-        Node1 =/= Node2 -> Node1 =< Node2;
+
+        Node1 =/= Node2 ->
+          Node1 =< Node2;
+
         true ->
           if
-            LambdaName1 =/= LambdaName2 -> LambdaName1 =< LambdaName2;
-            true                        -> AppId1 =< AppId2
+
+            LambdaName1 =/= LambdaName2 ->
+              LambdaName1 =< LambdaName2;
+
+            true ->
+              AppId1 =< AppId2
+
           end
+
       end
+
     end,
 
-  TaskInfoMap = #{ queued_lst    => lists:sort( Sort1, QueuedLst ),
-                   active_lst    => lists:sort( Sort2, ActiveLst ),
-                   completed_lst => lists:sort( Sort1, CompletedLst ) },
+  TaskInfoMap = #{ queued_lst   => lists:sort( SortFormattedTask, QueuedLst ),
+                   active_lst   => lists:sort( SortFormattedActiveTask, ActiveLst ),
+                   complete_lst => lists:sort( SortFormattedTask, CompleteLst ) },
 
   {reply, {ok, TaskInfoMap}, CreState};
 

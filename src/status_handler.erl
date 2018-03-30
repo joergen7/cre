@@ -86,9 +86,9 @@ init( Req0, State ) ->
 
   % queue table
 
-  #{ queued_lst    := QueuedLst,
-     active_lst    := ActiveLst,
-     completed_lst := CompletedLst } = cre_master:task_info( cre_master ),
+  #{ queued_lst   := QueuedLst,
+     active_lst   := ActiveLst,
+     complete_lst := CompleteLst } = cre_master:task_info( cre_master ),
 
 
   G =
@@ -120,14 +120,14 @@ init( Req0, State ) ->
   ActiveTable = table( ActiveHeader, ActiveRowLst ),
 
 
-  % completed table
+  % complete table
 
-  CompletedRowLst = [G( T ) || T <- CompletedLst],
-  CompletedTable = table( QueuedHeader, CompletedRowLst ),
+  CompleteRowLst = [G( T ) || T <- CompleteLst],
+  CompleteTable = table( QueuedHeader, CompleteRowLst ),
 
 
-  TaskHeader = table_header( ["Queued", "Active", "Completed"] ),
-  TaskTable = table( TaskHeader, [table_row( [QueuedTable, ActiveTable, CompletedTable] )] ),
+  TaskHeader = table_header( ["Queued", "Active", "Complete"] ),
+  TaskTable = table( TaskHeader, [table_row( [QueuedTable, ActiveTable, CompleteTable] )] ),
 
 
 
