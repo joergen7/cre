@@ -373,13 +373,13 @@ handle_call( task_info, _From, CreState ) ->
           [io_lib:format( "~2.16.0b", [B] ) || <<B>> <= X] ) )
     end,
 
-  FormatTask =
+  FormatQueuedTask =
     fun
 
       % if apps have the form of Cuneiform applications, we can format them
       ( #{ app_id := AppId, lambda := Lambda } )
       when is_binary( AppId ),
-           is_binary( Lambda ) ->
+           is_map( Lambda ) ->
         #{ lambda_name := LambdaName } = Lambda,
         #{ app_id      => AppId,
            lambda_name => LambdaName };
@@ -395,13 +395,21 @@ handle_call( task_info, _From, CreState ) ->
 
   FormatActiveTask =
     fun( App, Pid ) ->
-      M = FormatTask( App ),
-      M#{ node => node( Pid ) }
+      M = FormatQueuedTask( App ),
+      M#{ node => atom_to_binary( node( Pid ), utf8 ) }
     end,
 
-  QueuedLst = [FormatTask( App ) || App <- Queue],
+  FormatCompleteTask =
+    fun( App ) ->
+      M = FormatQueuedTask( App ),
+      #{ App := R } = Cache,
+      #{ stat := #{ node := Node } } = R,
+      M#{ node => Node }
+    end,
+
+  QueuedLst = [FormatQueuedTask( App ) || App <- Queue],
   ActiveLst = [FormatActiveTask( App, Pid ) || {App, Pid} <- maps:to_list( BusyMap )],
-  CompleteLst = [FormatTask( App ) || App <- maps:keys( Cache )],
+  CompleteLst = [FormatCompleteTask( App ) || App <- maps:keys( Cache )],
 
   SortFormattedTask =
     fun( M1, M2 ) ->

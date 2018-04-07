@@ -100,9 +100,10 @@ init( Req0, State ) ->
     end,
 
   QueuedRowLst = [G( T ) || T <- QueuedLst],
-  QueuedHeader = table_header( ["App id", "Lambda"] ),
+  QueuedHeader = table_header( ["App id", "Lambda name"] ),
 
   QueuedTable = table( QueuedHeader, QueuedRowLst ),
+  QueuedSubsection = subsection( "Queued", QueuedTable ),
 
   % active table
 
@@ -111,33 +112,35 @@ init( Req0, State ) ->
       #{ app_id := AppId, lambda_name := LambdaName, node := Node } = T,
       Skip = byte_size( AppId )-7,
       <<_:Skip/binary, B/binary>> = AppId,
-      table_row( [monospace( B ), monospace( LambdaName ), monospace( atom_to_binary( Node, utf8 ) )] )
+      table_row( [monospace( B ), monospace( LambdaName ), monospace( Node )] )
     end,
 
   ActiveRowLst = [H( T ) || T <- ActiveLst],
-  ActiveHeader = table_header( ["App id", "Lambda", "Worker node"] ),
+  ActiveHeader = table_header( ["App id", "Lambda name", "Worker node"] ),
 
   ActiveTable = table( ActiveHeader, ActiveRowLst ),
+  ActiveSubsection = subsection( "Active", ActiveTable ),
 
 
   % complete table
 
-  CompleteRowLst = [G( T ) || T <- CompleteLst],
+  I =
+    fun( T ) ->
+      #{ app_id := AppId, lambda_name := LambdaName, node := Node } = T,
+      Skip = byte_size( AppId )-7,
+      <<_:Skip/binary, B/binary>> = AppId,
+      table_row( [a( AppId, monospace( B ) ), monospace( LambdaName ), monospace( Node )] )
+    end,
+
+  CompleteRowLst = [I( T ) || T <- CompleteLst],
   CompleteTable = table( QueuedHeader, CompleteRowLst ),
-
-
-  TaskHeader = table_header( ["Queued", "Active", "Complete"] ),
-  TaskTable = table( TaskHeader, [table_row( [QueuedTable, ActiveTable, CompleteTable] )] ),
-
-
-
-
-
-
+  CompleteSubsection = subsection( "Complete", CompleteTable ),
 
   Title = title( "CRE status" ),
   NodeSection = section( "Worker nodes", NodeTable ),
-  TaskSection = section( "Tasks", TaskTable ),
+  TaskSection = section( "Tasks", <<QueuedSubsection/binary, "\n",
+                                    ActiveSubsection/binary, "\n",
+                                    CompleteSubsection/binary, "\n">> ),
 
   Head = head( "CRE status" ),
 
@@ -145,7 +148,7 @@ init( Req0, State ) ->
     body(
       [Title,
        CreInfo,
-       CreLoad,<<"<hr />">>,
+       CreLoad,
        NodeSection,
        TaskSection] ),
   
@@ -290,3 +293,13 @@ monospace( Content ) ->
   <<"<span style=\"font-family : monospace\">",
     Content/binary,
     "</span>\n">>.
+
+
+a( Href, Body ) when is_binary( Href ), is_binary( Body ) ->
+  <<"<a href=\"", Href/binary, "\">", Body/binary, "</a>">>.
+
+subsection( Title, Body )
+when is_list( Title ),
+     is_binary( Body ) ->
+  B = list_to_binary( Title ),
+  <<"<h3>", B/binary, "</h3>\n", Body/binary>>.
