@@ -377,10 +377,9 @@ handle_call( task_info, _From, CreState ) ->
     fun
 
       % if apps have the form of Cuneiform applications, we can format them
-      ( #{ app_id := AppId, lambda := Lambda } )
+      ( #{ app_id := AppId, lambda := #{ lambda_name := LambdaName } } )
       when is_binary( AppId ),
-           is_map( Lambda ) ->
-        #{ lambda_name := LambdaName } = Lambda,
+           is_binary( LambdaName ) ->
         #{ app_id      => AppId,
            lambda_name => LambdaName };
 
@@ -403,8 +402,17 @@ handle_call( task_info, _From, CreState ) ->
     fun( App ) ->
       M = FormatQueuedTask( App ),
       #{ App := R } = Cache,
-      #{ stat := #{ node := Node } } = R,
-      M#{ node => Node }
+      case R of
+
+        #{ stat := #{ node := Node }, result := #{ status := Status } }
+        when is_binary( Node ),
+             Status =:= <<"ok">> orelse Status =:= <<"error">> ->
+          M#{ node => Node, status => Status };
+        
+        _ ->
+          M#{ node => <<"na">>, status => <<"ok">> }
+          
+      end
     end,
 
   QueuedLst = [FormatQueuedTask( App ) || App <- Queue],
