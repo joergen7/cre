@@ -37,7 +37,8 @@
 
 %% API functions
 -export( [start_link/0, start_link/1, add_worker/2, worker_result/4,
-          cre_request/4, stop/1, cre_info/1, node_info/1, task_info/1] ).
+          cre_request/4, stop/1, cre_info/1, node_info/1, app_info/1,
+          cache/1] ).
 
 %% gen_server callback functions
 -export( [code_change/3, handle_call/3, handle_cast/2, handle_info/2, init/1,
@@ -120,17 +121,40 @@ stop( CreName ) ->
   gen_server:stop( CreName ).
 
 
+-spec cre_info( CreName :: _ ) ->
+  #{ total_load => float(),
+     n_wrk      => non_neg_integer() }.
+
 cre_info( CreName ) ->
   {ok, Info} = gen_server:call( CreName, cre_info ),
   Info.
-  
+
+
+-spec node_info( CreName :: _ ) ->
+  [#{ node      => binary(),
+      n_wrk     => pos_integer(),
+      node_load => float() }].
+
 node_info( CreName ) ->
   {ok, Info} = gen_server:call( CreName, node_info ),
   Info.
 
-task_info( CreName ) ->
-  {ok, Info} = gen_server:call( CreName, task_info ),
+
+-spec app_info( CreName :: _ ) ->
+  #{ queued_lst   => [#{ atom() => _ }],
+     active_lst   => [#{ atom() => _ }],
+     complete_lst => [#{ atom() => _ }] }.
+
+app_info( CreName ) ->
+  {ok, Info} = gen_server:call( CreName, app_info ),
   Info.
+
+
+-spec cache( CreName :: _ ) -> [{_, _}].
+
+cache( CreName ) ->
+  {ok, PairLst} = gen_server:call( CreName, cache ),
+  PairLst.
 
 
 %%====================================================================
@@ -360,7 +384,7 @@ handle_call( node_info, _From, CreState ) ->
 
   {reply, {ok, NodeInfoLst}, CreState};
 
-handle_call( task_info, _From, CreState ) ->
+handle_call( app_info, _From, CreState ) ->
 
   #cre_state{ cache    = Cache,
               busy_map = BusyMap,
@@ -460,6 +484,11 @@ handle_call( task_info, _From, CreState ) ->
                    complete_lst => lists:sort( SortFormattedTask, CompleteLst ) },
 
   {reply, {ok, TaskInfoMap}, CreState};
+
+handle_call( cache, _From, CreState ) ->
+
+  #cre_state{ cache = Cache } = CreState,
+  {reply, {ok, maps:to_list( Cache )}, CreState};
 
 handle_call( _Request, _From, CreState ) ->
   {reply, {error, bad_msg}, CreState}.

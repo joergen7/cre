@@ -88,7 +88,7 @@ init( Req0, State ) ->
 
   #{ queued_lst   := QueuedLst,
      active_lst   := ActiveLst,
-     complete_lst := CompleteLst } = cre_master:task_info( cre_master ),
+     complete_lst := CompleteLst } = cre_master:app_info( cre_master ),
 
 
   G =
@@ -142,7 +142,7 @@ init( Req0, State ) ->
 
   Title = cre_html:title( "CRE status" ),
   NodeSection = cre_html:section( "Worker nodes", NodeTable ),
-  TaskSection = cre_html:section( "Tasks", <<QueuedSubsection/binary, "\n",
+  TaskSection = cre_html:section( "Applications", <<QueuedSubsection/binary, "\n",
                                     ActiveSubsection/binary, "\n",
                                     CompleteSubsection/binary, "\n">> ),
 
@@ -158,13 +158,13 @@ init( Req0, State ) ->
   
   Page = cre_html:html( Head, Body ),
 
-  Req =
+  Reply =
     cowboy_req:reply(
       200,
       #{ <<"content-type">> => <<"text/html">>},
       Page,
       Req0 ),
 
-  {ok, Req, State}.
+  {ok, Reply, State}.
 
 

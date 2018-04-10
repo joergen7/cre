@@ -89,7 +89,12 @@ start( _Type, _Args ) ->
                              {node,        node()},
                              {port,        ?PORT}] ),
 
-  Dispatch = cowboy_router:compile( [{'_', [{"/", cre_index_handler, []}]}] ),
+  Dispatch =
+    cowboy_router:compile(
+      [{'_', [
+              {"/[index.html]", cre_index_handler, []},
+              {"/cache.json", cre_cache_handler, []}
+             ]}] ),
 
   {ok, _} = cowboy:start_clear( status_listener,
                                 [{port, ?PORT}],
