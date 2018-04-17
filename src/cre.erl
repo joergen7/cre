@@ -60,7 +60,8 @@
 -spec start() -> ok | {error, _}.
 
 start() ->
-  application:start( cre ).
+  {ok, _} = application:ensure_all_started( cre ),
+  ok.
 
 
 -spec pid( CreNode :: atom() ) -> {ok, pid()} | {error, undefined}.
@@ -118,8 +119,6 @@ stop( _State ) ->
 
 main( _Args ) ->
 
-  % start cowboy
-  {ok, _} = application:ensure_all_started( cowboy ),
 
 
   % start the cre application
