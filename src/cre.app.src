@@ -1,6 +1,6 @@
 {application, cre,
  [{description, "Common runtime environment for distributed programming languages"},
-  {vsn, "0.1.5"},
+  {vsn, "0.1.6"},
   {mod, {cre, []}},
   {registered, [cre]},
   {applications, [
