@@ -92,7 +92,7 @@ start( _Type, _Args ) ->
   Dispatch =
     cowboy_router:compile(
       [{'_', [
-              {"/[index.html]", cre_index_handler, []},
+              {"/[status.json]", cre_status_handler, []},
               {"/cache.json", cre_cache_handler, []}
              ]}] ),
 

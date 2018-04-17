@@ -37,8 +37,7 @@
 
 %% API functions
 -export( [start_link/0, start_link/1, add_worker/2, worker_result/4,
-          cre_request/4, stop/1, cre_info/1, node_info/1, app_info/1,
-          cache/1] ).
+          cre_request/4, stop/1, get_status/1, get_cache/1] ).
 
 %% gen_server callback functions
 -export( [code_change/3, handle_call/3, handle_cast/2, handle_info/2, init/1,
@@ -121,40 +120,34 @@ stop( CreName ) ->
   gen_server:stop( CreName ).
 
 
--spec cre_info( CreName :: _ ) ->
-  #{ total_load => float(),
-     n_wrk      => non_neg_integer() }.
 
-cre_info( CreName ) ->
-  {ok, Info} = gen_server:call( CreName, cre_info ),
+-spec get_status( CreName :: _ ) ->
+  #{ cre_info  => #{ load  => float(),
+                     n_wrk => non_neg_integer() },
+     node_info => [#{ node  => binary(),
+                      load  => float(),
+                      n_wrk => pos_integer() }],
+     app_info  => #{ queued   => [#{ app_id      => binary(),
+                                     lambda_name => binary() }],
+                     active   => [#{ app_id      => binary(),
+                                     lambda_name => binary(),
+                                     node        => binary() }],
+                     complete => [#{ app_id      => binary(),
+                                     lambda_name => binary(),
+                                     node        => binary(),
+                                     status      => binary() }] } }.
+
+get_status( CreName ) ->
+  {ok, Info} = gen_server:call( CreName, get_status ),
   Info.
 
 
--spec node_info( CreName :: _ ) ->
-  [#{ node      => binary(),
-      n_wrk     => pos_integer(),
-      node_load => float() }].
+-spec get_cache( CreName :: _ ) ->
+  #{ cache => [#{ app => _, delta => _ }] }.
 
-node_info( CreName ) ->
-  {ok, Info} = gen_server:call( CreName, node_info ),
-  Info.
-
-
--spec app_info( CreName :: _ ) ->
-  #{ queued_lst   => [#{ atom() => _ }],
-     active_lst   => [#{ atom() => _ }],
-     complete_lst => [#{ atom() => _ }] }.
-
-app_info( CreName ) ->
-  {ok, Info} = gen_server:call( CreName, app_info ),
-  Info.
-
-
--spec cache( CreName :: _ ) -> [{_, _}].
-
-cache( CreName ) ->
-  {ok, PairLst} = gen_server:call( CreName, cache ),
-  PairLst.
+get_cache( CreName ) ->
+  {ok, CacheMap} = gen_server:call( CreName, get_cache ),
+  CacheMap.
 
 
 %%====================================================================
@@ -185,6 +178,7 @@ handle_cast( {add_worker, P}, CreState ) ->
      {application, cre},
      {cre_master_pid, self()},
      {worker_pid, Pid},
+     {worker_node, node( Pid )},
      {nworker, length( IdleLst )+maps:size( BusyMap )+1}] ),
 
 
@@ -332,10 +326,12 @@ handle_info( _Info, CreState ) -> {noreply, CreState}.
 
 
 
-handle_call( cre_info, _From, CreState ) ->
+handle_call( get_status, _From, CreState ) ->
 
   #cre_state{ idle_lst = IdleLst,
-              busy_map = BusyMap } = CreState,
+              busy_map = BusyMap,
+              cache    = Cache,
+              queue    = Queue } = CreState,
 
   NIdle = length( IdleLst ),
   NBusy = maps:size( BusyMap ),
@@ -347,14 +343,8 @@ handle_call( cre_info, _From, CreState ) ->
       _ -> NBusy/N
     end,
 
-  CreInfoMap = #{ total_load => Ratio, n_wrk => N},
+  CreInfoMap = #{ load => Ratio, n_wrk => N },
 
-  {reply, {ok, CreInfoMap}, CreState};
-
-handle_call( node_info, _From, CreState ) ->
-
-  #cre_state{ idle_lst = IdleLst,
-              busy_map = BusyMap } = CreState,
 
   PidLst = IdleLst++maps:values( BusyMap ),
 
@@ -373,22 +363,15 @@ handle_call( node_info, _From, CreState ) ->
     end,
 
   G =
-    fun( Node, L ) ->
-      NWrk = length( L ),
-      NBusy  = length( lists:filter( IsBusy, L ) ),
+    fun( Node, PLst ) ->
+      NWrk = length( PLst ),
+      NBusy  = length( lists:filter( IsBusy, PLst ) ),
       NodeLoad = NBusy/NWrk,
-      #{ node => Node, n_wrk => NWrk, node_load => NodeLoad }
+      #{ node => Node, n_wrk => NWrk, load => NodeLoad }
     end,
 
   NodeInfoLst = maps:values( maps:map( G, NodeWrkMap ) ),
 
-  {reply, {ok, NodeInfoLst}, CreState};
-
-handle_call( app_info, _From, CreState ) ->
-
-  #cre_state{ cache    = Cache,
-              busy_map = BusyMap,
-              queue    = Queue } = CreState,
 
   BinaryToHexString =
     fun( X ) when is_binary( X ) ->
@@ -443,52 +426,24 @@ handle_call( app_info, _From, CreState ) ->
   ActiveLst = [FormatActiveTask( App, Pid ) || {App, Pid} <- maps:to_list( BusyMap )],
   CompleteLst = [FormatCompleteTask( App ) || App <- maps:keys( Cache )],
 
-  SortFormattedTask =
-    fun( M1, M2 ) ->
-      #{ app_id := AppId1, lambda_name := LambdaName1 } = M1,
-      #{ app_id := AppId2, lambda_name := LambdaName2 } = M2,
-      if
-        LambdaName1 =/= LambdaName2 -> LambdaName1 =< LambdaName2;
-        true                        -> AppId1 =< AppId2
-      end
-    end,
 
-  SortFormattedActiveTask =
-    fun( M1, M2 ) ->
+  AppInfoMap = #{ queued   => QueuedLst,
+                  active   => ActiveLst,
+                  complete => CompleteLst },
 
-      #{ app_id := AppId1, lambda_name := LambdaName1, node := Node1 } = M1,
-      #{ app_id := AppId2, lambda_name := LambdaName2, node := Node2 } = M2,
+  StatusMap = #{ cre_info  => CreInfoMap,
+                 node_info => NodeInfoLst,
+                 app_info  => AppInfoMap },
 
-      if
+  {reply, {ok, StatusMap}, CreState};
 
-        Node1 =/= Node2 ->
-          Node1 =< Node2;
 
-        true ->
-          if
 
-            LambdaName1 =/= LambdaName2 ->
-              LambdaName1 =< LambdaName2;
-
-            true ->
-              AppId1 =< AppId2
-
-          end
-
-      end
-
-    end,
-
-  TaskInfoMap = #{ queued_lst   => lists:sort( SortFormattedTask, QueuedLst ),
-                   active_lst   => lists:sort( SortFormattedActiveTask, ActiveLst ),
-                   complete_lst => lists:sort( SortFormattedTask, CompleteLst ) },
-
-  {reply, {ok, TaskInfoMap}, CreState};
-
-handle_call( cache, _From, CreState ) ->
+handle_call( get_cache, _From, CreState ) ->
 
   #cre_state{ cache = Cache } = CreState,
-  {reply, {ok, maps:to_list( Cache )}, CreState};
+  CacheMap = #{ cache => [#{ app => A, delta => R } || {A, R} <- maps:to_list( Cache )] },
+  {reply, {ok, CacheMap}, CreState};
 
 handle_call( _Request, _From, CreState ) ->
   {reply, {error, bad_msg}, CreState}.

@@ -27,8 +27,9 @@
 %%
 %% @end
 %% -------------------------------------------------------------------
--module( cre_cache_handler ).
+-module( cre_status_handler ).
 -behavior( cowboy_handler ).
+
 
 %%====================================================================
 %% Exports
@@ -36,11 +37,23 @@
 
 -export( [init/2] ).
 
+
+%%====================================================================
+%% Includes
+%%====================================================================
+
+-include( "cre.hrl" ).
+
+
+%%====================================================================
+%% Cowboy handler callback functions
+%%====================================================================
+
 init( Req0, State ) ->
 
-  CacheMap = cre_master:get_cache( cre_master ),
-  Doc = jsone:encode( CacheMap ),
-
+  StatusMap = cre_master:get_status( cre_master ),
+  Doc = jsone:encode( StatusMap ),
+  
   Reply =
     cowboy_req:reply(
       200,
@@ -49,3 +62,5 @@ init( Req0, State ) ->
       Req0 ),
 
   {ok, Reply, State}.
+
+
