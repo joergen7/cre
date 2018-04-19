@@ -18,7 +18,7 @@
 %%
 %% -------------------------------------------------------------------
 %% @author Jörgen Brandt <joergen.brandt@onlinehome.de>
-%% @version 0.1.6
+%% @version 0.1.7
 %% @copyright 2015-2018 Jörgen Brandt
 %%
 %%

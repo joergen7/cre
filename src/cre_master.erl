@@ -18,7 +18,7 @@
 %%
 %% -------------------------------------------------------------------
 %% @author Jörgen Brandt <joergen.brandt@onlinehome.de>
-%% @version 0.1.6
+%% @version 0.1.7
 %% @copyright 2015-2018 Jörgen Brandt
 %%
 %%
@@ -365,8 +365,8 @@ handle_call( get_status, _From, CreState ) ->
   G =
     fun( Node, PLst ) ->
       NWrk = length( PLst ),
-      NBusy  = length( lists:filter( IsBusy, PLst ) ),
-      NodeLoad = NBusy/NWrk,
+      NodeNBusy  = length( lists:filter( IsBusy, PLst ) ),
+      NodeLoad = NodeNBusy/NWrk,
       #{ node => Node, n_wrk => NWrk, load => NodeLoad }
     end,
 
