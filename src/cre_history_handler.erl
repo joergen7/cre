@@ -27,7 +27,7 @@
 %%
 %% @end
 %% -------------------------------------------------------------------
--module( cre_cache_handler ).
+-module( cre_history_handler ).
 -behavior( cowboy_handler ).
 
 %%====================================================================
@@ -38,7 +38,7 @@
 
 init( Req0, State ) ->
 
-  CacheMap = cre_master:get_cache( cre_master ),
+  CacheMap = cre_master:get_history( cre_master ),
   Doc = jsone:encode( CacheMap ),
 
   Reply =

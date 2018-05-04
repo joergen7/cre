@@ -37,7 +37,7 @@
 
 %% API functions
 -export( [start_link/0, start_link/1, add_worker/2, worker_result/4,
-          cre_request/4, stop/1, get_status/1, get_cache/1] ).
+          cre_request/4, stop/1, get_status/1, get_history/1] ).
 
 %% gen_server callback functions
 -export( [code_change/3, handle_call/3, handle_cast/2, handle_info/2, init/1,
@@ -142,12 +142,12 @@ get_status( CreName ) ->
   Info.
 
 
--spec get_cache( CreName :: _ ) ->
-  #{ cache => [#{ app => _, delta => _ }] }.
+-spec get_history( CreName :: _ ) ->
+  #{ history => [#{ app => _, delta => _ }] }.
 
-get_cache( CreName ) ->
-  {ok, CacheMap} = gen_server:call( CreName, get_cache ),
-  CacheMap.
+get_history( CreName ) ->
+  {ok, HistoryMap} = gen_server:call( CreName, get_history ),
+  HistoryMap.
 
 
 %%====================================================================
@@ -439,11 +439,11 @@ handle_call( get_status, _From, CreState ) ->
 
 
 
-handle_call( get_cache, _From, CreState ) ->
+handle_call( get_history, _From, CreState ) ->
 
   #cre_state{ cache = Cache } = CreState,
-  CacheMap = #{ cache => [#{ app => A, delta => R } || {A, R} <- maps:to_list( Cache )] },
-  {reply, {ok, CacheMap}, CreState};
+  HistoryMap = #{ history => [#{ app => A, delta => R } || {A, R} <- maps:to_list( Cache )] },
+  {reply, {ok, HistoryMap}, CreState};
 
 handle_call( _Request, _From, CreState ) ->
   {reply, {error, bad_msg}, CreState}.

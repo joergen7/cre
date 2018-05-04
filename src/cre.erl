@@ -94,7 +94,7 @@ start( _Type, _Args ) ->
     cowboy_router:compile(
       [{'_', [
               {"/[status.json]", cre_status_handler, []},
-              {"/cache.json", cre_cache_handler, []}
+              {"/history.json", cre_history_handler, []}
              ]}] ),
 
   {ok, _} = cowboy:start_clear( status_listener,
