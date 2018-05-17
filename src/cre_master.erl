@@ -281,6 +281,7 @@ handle_info( {'EXIT', P, _Reason}, CreState ) ->
          {application, cre},
          {cre_master_pid, self()},
          {worker_pid, Pid},
+         {worker_node, node( Pid )},
          {nworker, length( IdleLst )+maps:size( BusyMap )-1}] ),
 
       CreState1 = CreState#cre_state{ idle_lst = IdleLst--[Pid] },
@@ -298,6 +299,7 @@ handle_info( {'EXIT', P, _Reason}, CreState ) ->
              {application, cre},
              {cre_master_pid, self()},
              {worker_pid, Pid},
+             {worker_node, node( Pid )},
              {nworker, length( IdleLst )+maps:size( BusyMap )-1}] ),
 
           CreState1 = CreState#cre_state{ queue    = [A|Queue],
