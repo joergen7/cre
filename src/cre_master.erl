@@ -1,6 +1,6 @@
 %% -*- erlang -*-
 %%
-%% Common runtime environment for distributed programming languages
+%% cre
 %%
 %% Copyright 2015-2018 Jörgen Brandt
 %%
@@ -18,7 +18,7 @@
 %%
 %% -------------------------------------------------------------------
 %% @author Jörgen Brandt <joergen.brandt@onlinehome.de>
-%% @version 0.1.7
+%% @version 0.1.8
 %% @copyright 2015-2018 Jörgen Brandt
 %%
 %%
@@ -411,13 +411,15 @@ handle_call( get_status, _From, CreState ) ->
       #{ App := R } = Cache,
       case R of
 
-        #{ stat := #{ node := Node }, result := #{ status := Status } }
-        when is_binary( Node ),
-             Status =:= <<"ok">> orelse Status =:= <<"error">> ->
-          M#{ node => Node, status => Status };
+        #{ result := #{ status := <<"ok">>, stat := #{ node := Node } } }
+        when is_binary( Node ) ->
+          M#{ node => Node, status => <<"ok">> };
+
+        #{ result := #{ status := <<"error">> } } ->
+          M#{ node => <<"na">>, status => <<"error">> };
         
         _ ->
-          M#{ node => <<"na">>, status => <<"ok">> }
+          M#{ node => <<"na">>, status => <<"na">> }
           
       end
     end,

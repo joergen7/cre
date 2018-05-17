@@ -1,6 +1,6 @@
 %% -*- erlang -*-
 %%
-%% Common runtime environment for distributed programming languages
+%% cre
 %%
 %% Copyright 2015-2018 Jörgen Brandt
 %%
@@ -18,7 +18,7 @@
 %%
 %% -------------------------------------------------------------------
 %% @author Jörgen Brandt <joergen.brandt@onlinehome.de>
-%% @version 0.1.7
+%% @version 0.1.8
 %% @copyright 2015-2018 Jörgen Brandt
 %%
 %%
@@ -32,5 +32,5 @@
 %% Definitions
 %%====================================================================
 
--define( VSN, "0.1.7" ).
+-define( VSN, "0.1.8" ).
 
