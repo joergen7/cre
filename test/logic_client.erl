@@ -90,13 +90,13 @@ init( _InitArg ) -> [].
 is_value( E, _UsrInfo ) -> is_boolean( E ).
 
 
--spec step( E, UsrInfo ) -> {ok, _} | {ok_send, _, _} | norule
+-spec step( E, UsrInfo ) -> {ok, _, [_]} | norule
 when E       :: _,
      UsrInfo :: _.
 
 step( E, _UsrInfo ) ->
   case find_context( E ) of
-  	{ok, {Ctx, TNext}} -> {ok_send, in_hole( Ctx, {fut, TNext} ), TNext};
+  	{ok, {Ctx, TNext}} -> {ok, in_hole( Ctx, {fut, TNext} ), [TNext]};
   	{error, nocontext} -> norule
   end.
 

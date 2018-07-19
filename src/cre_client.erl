@@ -58,7 +58,7 @@
 -callback is_value( E :: _, UsrInfo :: _ ) -> boolean().
 
 -callback step( E :: _, UsrInfo :: _ ) ->
-            {ok, _} | {ok_send, _, _} | norule.
+            {ok, _, [_]} | norule.
 
 -callback recv( E :: _, A :: _, Delta :: _, UsrInfo :: _ ) -> _.
 
@@ -256,9 +256,8 @@ fire( step, #{ 'Program' := [{I, {Q, [{A, Delta}|T], E}}] },
 fire( step, #{ 'Program' := [{I, {Q, [], E}}] },
             #client_state{ client_mod = ClientMod, usr_info = UsrInfo } ) ->
   case  ClientMod:step( E, UsrInfo ) of
-    {ok, E1}         -> {produce, #{ 'Program' => [{I, {Q, [], E1}}] }};
-    {ok_send, E1, A} -> {produce, #{ 'Program' => [{I, {[A|Q], [], E1}}] }};
-    norule           -> abort
+    {ok, E1, ALst} -> {produce, #{ 'Program' => [{I, {ALst++Q, [], E1}}] }};
+    norule         -> abort
   end;
 
 fire( send, #{ 'Program' := [{I, {[A|Q1], C, E}}] }, _ClientState ) ->
