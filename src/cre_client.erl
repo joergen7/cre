@@ -29,25 +29,24 @@
 %% -------------------------------------------------------------------
 
 -module( cre_client ).
--behaviour( gen_pnet ).
+-behavior( gen_server ).
+
 
 %%====================================================================
 %% Exports
 %%====================================================================
 
--export( [code_change/3, handle_call/3, handle_cast/2, handle_info/2, init/1,
-          terminate/2, trigger/3] ).
-
--export( [place_lst/0, trsn_lst/0, init_marking/2, preset/1, is_enabled/3,
-          fire/3] ).
+-export( [code_change/3, handle_call/3, handle_cast/2, init/1, terminate/2,
+          handle_info/2] ).
 
 -export( [start_link/3, start_link/4, eval/2, cre_reply/4, stop/1] ).
 
+
 %%====================================================================
-%% Includes
+%% Constant definitions
 %%====================================================================
 
--include_lib( "gen_pnet/include/gen_pnet.hrl" ).
+-define( INTERVAL, 250 ).
 
 %%====================================================================
 %% Callback definitions
@@ -57,16 +56,21 @@
 
 -callback is_value( E :: _, UsrInfo :: _ ) -> boolean().
 
--callback step( E :: _, UsrInfo :: _ ) ->
-            {ok, _, [_]} | norule.
+-callback step( E :: _, UsrInfo :: _ ) -> {ok, _, [_]}.
 
--callback recv( E :: _, A :: _, Delta :: _, UsrInfo :: _ ) -> _.
+-callback recv( E :: _, ReplyLst :: [{_, _}], UsrInfo :: _ ) -> _.
+
 
 %%====================================================================
 %% Record definitions
 %%====================================================================
 
--record( client_state, {cre_name, client_mod, usr_info} ).
+-record( client_state, { cre_name,
+                         client_mod,
+                         usr_info,
+                         request_map = #{},
+                         reply_map   = #{},
+                         state       = idle } ).
 
 
 %%====================================================================
@@ -74,80 +78,37 @@
 %%====================================================================
 
 start_link( CreName, ClientMod, ClientArg ) ->
-  gen_pnet:start_link( ?MODULE, {CreName, ClientMod, ClientArg}, [] ).
+  gen_server:start_link( ?MODULE, {CreName, ClientMod, ClientArg}, [] ).
 
 start_link( ClientName, CreName, ClientMod, ClientArg ) ->
-  gen_pnet:start_link( ClientName,
-                       ?MODULE,
-                       {CreName, ClientMod, ClientArg},
-                       [] ).
+  gen_server:start_link( ClientName,
+                        ?MODULE,
+                        {CreName, ClientMod, ClientArg},
+                        [] ).
 
-eval( ClientName, T ) ->
-  gen_pnet:call( ClientName, {eval, T}, infinity ).
+eval( ClientName, E ) ->
+  gen_server:call( ClientName, {eval, E}, infinity ).
 
 cre_reply( ClientName, I, A, Delta ) ->
-  gen_pnet:cast( ClientName, {cre_reply, I, A, Delta} ).
+  gen_server:cast( ClientName, {cre_reply, I, A, Delta} ).
 
 stop( ClientName ) ->
-  gen_pnet:stop( ClientName ).
+  gen_server:stop( ClientName ).
 
 
 %%====================================================================
-%% Interface callback functions
+%% gen_server callback functions
 %%====================================================================
 
--spec code_change( OldVsn :: _, NetState :: #net_state{}, Extra :: _ ) ->
-        {ok, #net_state{}} | {error, _}.
+code_change( _OldVsn, State, _Extra ) ->
+  {ok, State}.
 
-code_change( _OldVsn, NetState, _Extra ) -> {ok, NetState}.
-
-
--spec handle_call( Request :: _, From :: {pid(), _},
-                   NetState :: #net_state{} ) ->
-              {reply, _}
-            | {reply, _, #{ atom() => [_] }, #{ atom() => [_] }}
-            | noreply
-            | {noreply, #{ atom() => [_] }, #{ atom() => [_] }}
-            | {stop, _, _}.
-
-handle_call( {eval, T}, From, _NetState ) ->
-  {noreply, #{}, #{ 'ClientRequest' => [{From, T}] }};
-
-handle_call( _Request, _From, _NetState ) ->
-  {reply, {error, bad_msg}}.
+terminate( _Reason, _ClientState ) ->
+  ok.
 
 
--spec handle_cast( Request :: _, NetState :: #net_state{} ) ->
-              noreply
-            | {noreply, #{ atom() => [_] }, #{ atom() => [_] }}
-            | {stop, _}.
-
-handle_cast( {cre_reply, I, A, Delta}, _NetState ) ->
-  {noreply, #{}, #{ 'CreReply' => [{I, A, Delta}] }};
-
-handle_cast( _Request, _NetState ) -> noreply.
-
-
-
--spec handle_info( Info :: _, NetState :: #net_state{} ) ->
-              noreply
-            | {noreply, #{ atom() => [_] }, #{ atom() => [_] }}
-            | {stop, _}.
-
-handle_info( {'DOWN', _MonitorRef, process, _Object, _Info}, _NetState ) ->
-  {stop, cre_down};
-
-handle_info( _Request, _NetState ) -> noreply.
-
-
--spec init( {CreName, ClientMod, ClientArg} ) -> _
-when CreName   :: gen_pnet:name(),
-     ClientMod :: atom(),
-     ClientArg :: _.
-
-init( {CreName, ClientMod, ClientArg} )
-when is_atom( ClientMod ) ->
-
+init( {CreName, ClientMod, ClientArg} ) ->
+  
   UsrInfo = ClientMod:init( ClientArg ),
 
   ClientState = #client_state{ cre_name   = CreName,
@@ -156,116 +117,125 @@ when is_atom( ClientMod ) ->
 
   _MonitorRef = monitor( process, CreName ),
 
-  ClientState.
+  {ok, ClientState}.
 
 
--spec terminate( Reason :: _, NetState :: #net_state{} ) -> ok.
+handle_call( {eval, E}, From, ClientState ) ->
 
-terminate( _Reason, _NetState ) -> ok.
+  #client_state{ request_map = RequestMap,
+                 state       = State } = ClientState,
 
+  case State of
+    idle -> start_timer( From );
+    _    -> ok
+  end,
 
--spec trigger( Place :: atom(), Token :: _, NetState :: #net_state{} ) -> pass | drop.
+  ClientState1 =
+    ClientState#client_state{ request_map = RequestMap#{ From => E },
+                              state       = primed },
 
-trigger( 'ClientReply', {I, T}, _NetState ) ->
-  _ = gen_pnet:reply( I, T ),
-  drop;
-
-trigger( 'CreRequest', {I, A}, NetState ) ->
-  ClientState = gen_pnet:get_usr_info( NetState ),
-  #client_state{ cre_name = CreName } = ClientState,
-  cre_master:cre_request( CreName, self(), I, A ),
-  drop;
-
-trigger( _Place, _Token, _NetState ) -> pass.
+  {noreply, ClientState1};
 
 
-%%====================================================================
-%% Petri net callback functions
-%%====================================================================
-
--spec place_lst() -> [atom()].
-
-place_lst() ->
-  ['ClientRequest', 'ClientReply', 'CreRequest', 'CreReply', 'Program'].
+handle_call( _Request, _From, ClientState ) ->
+  {reply, {error, bad_msg}, ClientState}.
 
 
--spec trsn_lst() -> [atom()].
+handle_cast( {cre_reply, I, A, Delta}, ClientState ) ->
 
-trsn_lst() -> [start, terminate, step, send, recv].
+  #client_state{ reply_map = ReplyMap,
+                 state     = State } = ClientState,
 
+  case State of
+    idle -> start_timer( I );
+    _    -> ok
+  end,
 
--spec init_marking( Place :: atom(), ClientState :: #client_state{} ) -> [_].
+  ReplyLst = maps:get( I, ReplyMap, [] ),
+  ReplyLst1 = [{A, Delta}|ReplyLst],
+  ReplyMap1 = ReplyMap#{ I => ReplyLst1 },
 
-init_marking( _Place, _ClientState)  -> [].
+  ClientState1 =
+    ClientState#client_state{ reply_map = ReplyMap1,
+                              state     = primed },
 
-
--spec preset( Trsn :: atom() ) -> [atom()].
-
-preset( start )     -> ['ClientRequest'];
-preset( terminate ) -> ['Program'];
-preset( step )      -> ['Program'];
-preset( send )      -> ['Program'];
-preset( recv )      -> ['Program', 'CreReply'].
-
-
--spec is_enabled( Trsn, Mode, ClientState ) -> boolean()
-when Trsn        :: atom(),
-     Mode        :: #{ atom() => [_]},
-     ClientState :: #client_state{}.
-
-is_enabled( start, _Mode, _ClientState ) -> true;
-
-is_enabled( terminate, #{ 'Program' := [{_I, {[], [], E}}] },
-                       #client_state{ client_mod = ClientMod,
-                                      usr_info   = UsrInfo } ) ->
-  ClientMod:is_value( E, UsrInfo );
-
-is_enabled( step, #{ 'Program' := [{_I, {_Q, _C, E}}] }, 
-                  #client_state{ client_mod = ClientMod,
-                                 usr_info   = UsrInfo } ) ->
-  not ClientMod:is_value( E, UsrInfo );
-
-is_enabled( send, #{ 'Program' := [{_I, {[_|_], _C, _E}}] },
-                  _ClientState ) ->
-  true;
-
-is_enabled( recv, #{ 'Program'  := [{I, {_Q, _C, _E}}],
-                     'CreReply' := [{I, _A, _Delta}]},
-                  _ClientState ) ->
-  true;
-
-is_enabled( _Trsn, _Mode, _ClientState ) -> false.
+  {noreply, ClientState1};
 
 
--spec fire( Trsn, Mode, ClientState ) -> abort | {produce, #{ atom() => [_] }}
-when Trsn        :: atom(),
-     Mode        :: #{ atom() => [_] },
-     ClientState :: #client_state{}.
+handle_cast( {continue, I}, ClientState ) ->
 
-fire( start, #{ 'ClientRequest' := [{I, E}] }, _ClientState ) ->
-  {produce, #{ 'Program' => [{I, {[], [], E}}] }};
+  #client_state{ cre_name    = CreName,
+                 client_mod  = ClientMod,
+                 usr_info    = UsrInfo,
+                 request_map = RequestMap,
+                 reply_map   = ReplyMap,
+                 state       = primed } = ClientState,
 
-fire( terminate, #{ 'Program' := [{I, {[], [], E}}] }, _ClientState ) ->
-  {produce, #{ 'ClientReply' => [{I, E}] }};
+  E = maps:get( I, RequestMap ),
+  ReplyLst = maps:get( I, ReplyMap, [] ),
+  Self = self(),
 
-fire( step, #{ 'Program' := [{I, {Q, [{A, Delta}|T], E}}] },
-            #client_state{ client_mod = ClientMod, usr_info = UsrInfo } ) ->
-  E1 = ClientMod:recv( E, A, Delta, UsrInfo ),
-  {produce, #{ 'Program' => [{I, {Q, T, E1}}] }};
+  Send =
+    fun( A ) ->
+      cre_master:cre_request( CreName, Self, I, A )
+    end,
 
-fire( step, #{ 'Program' := [{I, {Q, [], E}}] },
-            #client_state{ client_mod = ClientMod, usr_info = UsrInfo } ) ->
-  case  ClientMod:step( E, UsrInfo ) of
-    {ok, E1, ALst} -> {produce, #{ 'Program' => [{I, {ALst++Q, [], E1}}] }};
-    norule         -> abort
-  end;
+  % receive new result pairs
+  E1 =
+    case ReplyLst of
+      []    -> E;
+      [_|_] -> ClientMod:recv( E, ReplyLst, UsrInfo )
+    end,
 
-fire( send, #{ 'Program' := [{I, {[A|Q1], C, E}}] }, _ClientState ) ->
-  {produce, #{ 'Program'    => [{I, {Q1, C, E}}],
-               'CreRequest' => [{I, A}] }};
+  % evaluate
+  {ok, E2, ALst} = ClientMod:step( E1, UsrInfo ),
 
-fire( recv, #{ 'Program'  := [{I, {Q, C, E}}],
-               'CreReply' := [{I, A, Delta}] }, _ClientState ) ->
-  C1 = [{A, Delta}|C],
-  {produce, #{ 'Program' => [{I, {Q, C1, E}}] }}.
+  % send new tasks
+  lists:foreach( Send, ALst ),
+
+  % check if a value resulted
+  ClientState1 =
+    case ClientMod:is_value( E2, UsrInfo ) of
+
+      true  ->
+        gen_server:reply( I, E2 ),
+        ClientState#client_state{ request_map = maps:remove( I, RequestMap ),
+                                  reply_map   = maps:remove( I, ReplyMap ),
+                                  state       = idle };
+
+      false ->
+        ClientState#client_state{ request_map = RequestMap#{ I => E2 },
+                                  reply_map   = ReplyMap#{ I => [] },
+                                  state       = idle }
+    end,
+
+  {noreply, ClientState1};
+
+
+handle_cast( _Request, ClientState ) ->
+  {noreply, ClientState}.
+
+
+handle_info( {'DOWN', _MonitorRef, process, _Object, _Info}, ClientState ) ->
+  {stop, cre_down, ClientState};
+
+handle_info( _Info, ClientState ) ->
+  {noreply, ClientState}.
+
+
+-spec start_timer( I :: _ ) -> ok.
+
+start_timer( I ) ->
+
+  Self = self(),
+
+  F =
+    fun() ->
+      timer:sleep( ?INTERVAL ),
+      gen_server:cast( Self, {continue, I} )
+    end,
+
+  _Pid = spawn_link( F ),
+
+  ok.
 

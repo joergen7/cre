@@ -36,7 +36,7 @@
 %% Exports
 %%====================================================================
 
--export( [init/1, is_value/2, step/2, recv/4] ).
+-export( [init/1, is_value/2, step/2, recv/3] ).
 -export( [start_link/0, start_link/1, start_link/2, eval/2, stop/1] ).
 
 %%====================================================================
@@ -90,25 +90,24 @@ init( _InitArg ) -> [].
 is_value( E, _UsrInfo ) -> is_boolean( E ).
 
 
--spec step( E, UsrInfo ) -> {ok, _, [_]} | norule
+-spec step( E, UsrInfo ) -> {ok, _, [_]}
 when E       :: _,
      UsrInfo :: _.
 
 step( E, _UsrInfo ) ->
   case find_context( E ) of
   	{ok, {Ctx, TNext}} -> {ok, in_hole( Ctx, {fut, TNext} ), [TNext]};
-  	{error, nocontext} -> norule
+  	{error, nocontext} -> {ok, E, []}
   end.
 
 
--spec recv( E, A, Delta, UsrInfo ) -> _
-when E       :: _,
-     A       :: _,
-     Delta   :: _,
-     UsrInfo :: _.
+-spec recv( E, ReplyLst, UsrInfo ) -> _
+when E        :: _,
+     ReplyLst :: [{_, _}],
+     UsrInfo  :: _.
 
-recv( E, A, Delta, _UsrInfo ) ->
-  subst_fut( E, A, Delta ).
+recv( E, ReplyLst, _UsrInfo ) ->
+  subst_fut( E, ReplyLst ).
 
 
 %%====================================================================
@@ -145,14 +144,20 @@ find_context( {Op, T1, T2}, E ) ->
   find_context( T2, in_hole( E, {Op, T1, hole} ) ).
 
 
-subst_fut( {'not', T}, A, V ) ->
-  {'not', subst_fut( T, A, V )};
+subst_fut( {'not', T}, ReplyLst ) ->
+  {'not', subst_fut( T, ReplyLst )};
 
-subst_fut( {'and', T1, T2}, A, V ) ->
-  {'and', subst_fut( T1, A, V ), subst_fut( T2, A, V )};
+subst_fut( {'and', T1, T2}, ReplyLst ) ->
+  {'and', subst_fut( T1, ReplyLst ), subst_fut( T2, ReplyLst )};
 
-subst_fut( {'or', T1, T2}, A, V ) ->
-  {'or', subst_fut( T1, A, V ), subst_fut( T2, A, V )};
+subst_fut( {'or', T1, T2}, ReplyLst ) ->
+  {'or', subst_fut( T1, ReplyLst ), subst_fut( T2, ReplyLst )};
 
-subst_fut( {fut, A}, A, V ) -> V;
-subst_fut( T, _A, _V )      -> T.
+subst_fut( {fut, A}, ReplyLst ) ->
+  case lists:keyfind( A, 1, ReplyLst ) of
+    false -> {fut, A};
+    {A, Delta} -> Delta
+  end;
+
+subst_fut( V, _ ) ->
+  V.
