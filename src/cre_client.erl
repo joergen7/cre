@@ -123,6 +123,8 @@ init( {CreName, ClientMod, ClientArg} ) ->
 handle_call( {eval, E}, From, ClientState ) ->
 
   #client_state{ cre_name    = CreName,
+                 client_mod  = ClientMod,
+                 usr_info    = UsrInfo,
                  request_map = RequestMap,
                  reply_map   = ReplyMap,
                  state_map   = StateMap } = ClientState,
@@ -163,13 +165,15 @@ handle_call( _Request, _From, ClientState ) ->
 
 handle_cast( {cre_reply, From, A, Delta}, ClientState ) ->
 
-  #client_state{ reply_map = #{ From := ReplyLst },
+  #client_state{ reply_map = ReplyMap,
                  state_map = #{ From := State } } = ClientState,
 
   case State of
-    idle -> start_timer( I );
+    idle -> start_timer( From );
     _    -> ok
   end,
+
+  #{ From := ReplyLst } = ReplyMap,
 
   ClientState1 =
     ClientState#client_state{ reply_map = ReplyMap#{ From => [{A, Delta}|ReplyLst] },
@@ -223,7 +227,7 @@ handle_cast( {continue, From}, ClientState ) ->
       false ->
         ClientState#client_state{ request_map = RequestMap#{ From => E2 },
                                   reply_map   = ReplyMap#{ From => [] },
-                                  state       = StateMap#{ From => idle } }
+                                  state_map   = StateMap#{ From => idle } }
     end,
 
   {noreply, ClientState1};
