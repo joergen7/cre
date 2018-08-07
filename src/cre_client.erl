@@ -70,7 +70,7 @@
                          usr_info,
                          request_map = #{},
                          reply_map   = #{},
-                         state       = idle } ).
+                         state_map   = #{} } ).
 
 
 %%====================================================================
@@ -122,17 +122,37 @@ init( {CreName, ClientMod, ClientArg} ) ->
 
 handle_call( {eval, E}, From, ClientState ) ->
 
-  #client_state{ request_map = RequestMap,
-                 state       = State } = ClientState,
+  #client_state{ cre_name    = CreName,
+                 request_map = RequestMap,
+                 reply_map   = ReplyMap,
+                 state_map   = StateMap } = ClientState,
 
-  case State of
-    idle -> start_timer( From );
-    _    -> ok
-  end,
+  Self = self(),
 
+  Send =
+    fun( A ) ->
+      cre_master:cre_request( CreName, Self, From, A )
+    end,
+
+  % evaluate
+  {ok, E1, ALst} = ClientMod:step( E, UsrInfo ),
+
+  % send new tasks
+  lists:foreach( Send, ALst ),
+
+  % check if a value resulted
   ClientState1 =
-    ClientState#client_state{ request_map = RequestMap#{ From => E },
-                              state       = primed },
+    case ClientMod:is_value( E1, UsrInfo ) of
+
+      true  ->
+        gen_server:reply( From, E1 ),
+        ClientState;
+
+      false ->
+        ClientState#client_state{ request_map = RequestMap#{ From => E1 },
+                                  reply_map   = ReplyMap#{ From => [] },
+                                  state_map   = StateMap#{ From => idle } }
+    end,
 
   {noreply, ClientState1};
 
@@ -141,43 +161,40 @@ handle_call( _Request, _From, ClientState ) ->
   {reply, {error, bad_msg}, ClientState}.
 
 
-handle_cast( {cre_reply, I, A, Delta}, ClientState ) ->
+handle_cast( {cre_reply, From, A, Delta}, ClientState ) ->
 
-  #client_state{ reply_map = ReplyMap,
-                 state     = State } = ClientState,
+  #client_state{ reply_map = #{ From := ReplyLst },
+                 state_map = #{ From := State } } = ClientState,
 
   case State of
     idle -> start_timer( I );
     _    -> ok
   end,
 
-  ReplyLst = maps:get( I, ReplyMap, [] ),
-  ReplyLst1 = [{A, Delta}|ReplyLst],
-  ReplyMap1 = ReplyMap#{ I => ReplyLst1 },
-
   ClientState1 =
-    ClientState#client_state{ reply_map = ReplyMap1,
-                              state     = primed },
+    ClientState#client_state{ reply_map = ReplyMap#{ From => [{A, Delta}|ReplyLst] },
+                              state_map = #{ From => primed } },
 
   {noreply, ClientState1};
 
 
-handle_cast( {continue, I}, ClientState ) ->
+handle_cast( {continue, From}, ClientState ) ->
 
   #client_state{ cre_name    = CreName,
                  client_mod  = ClientMod,
                  usr_info    = UsrInfo,
                  request_map = RequestMap,
                  reply_map   = ReplyMap,
-                 state       = primed } = ClientState,
+                 state_map   = StateMap } = ClientState,
 
-  E = maps:get( I, RequestMap ),
-  ReplyLst = maps:get( I, ReplyMap, [] ),
+  #{ From := E } = RequestMap,
+  #{ From := ReplyLst } = ReplyMap,
+
   Self = self(),
 
   Send =
     fun( A ) ->
-      cre_master:cre_request( CreName, Self, I, A )
+      cre_master:cre_request( CreName, Self, From, A )
     end,
 
   % receive new result pairs
@@ -198,15 +215,15 @@ handle_cast( {continue, I}, ClientState ) ->
     case ClientMod:is_value( E2, UsrInfo ) of
 
       true  ->
-        gen_server:reply( I, E2 ),
-        ClientState#client_state{ request_map = maps:remove( I, RequestMap ),
-                                  reply_map   = maps:remove( I, ReplyMap ),
-                                  state       = idle };
+        gen_server:reply( From, E2 ),
+        ClientState#client_state{ request_map = maps:remove( From, RequestMap ),
+                                  reply_map   = maps:remove( From, ReplyMap ),
+                                  state_map   = maps:remove( From, StateMap ) };
 
       false ->
-        ClientState#client_state{ request_map = RequestMap#{ I => E2 },
-                                  reply_map   = ReplyMap#{ I => [] },
-                                  state       = idle }
+        ClientState#client_state{ request_map = RequestMap#{ From => E2 },
+                                  reply_map   = ReplyMap#{ From => [] },
+                                  state       = StateMap#{ From => idle } }
     end,
 
   {noreply, ClientState1};
@@ -223,16 +240,16 @@ handle_info( _Info, ClientState ) ->
   {noreply, ClientState}.
 
 
--spec start_timer( I :: _ ) -> ok.
+-spec start_timer( From :: _ ) -> ok.
 
-start_timer( I ) ->
+start_timer( From ) ->
 
   Self = self(),
 
   F =
     fun() ->
       timer:sleep( ?INTERVAL ),
-      gen_server:cast( Self, {continue, I} )
+      gen_server:cast( Self, {continue, From} )
     end,
 
   _Pid = spawn_link( F ),
