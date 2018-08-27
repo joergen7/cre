@@ -166,18 +166,23 @@ handle_call( _Request, _From, ClientState ) ->
 handle_cast( {cre_reply, From, A, Delta}, ClientState ) ->
 
   #client_state{ reply_map = ReplyMap,
-                 state_map = #{ From := State } } = ClientState,
-
-  case State of
-    idle -> start_timer( From );
-    _    -> ok
-  end,
-
-  #{ From := ReplyLst } = ReplyMap,
+                 state_map = StateMap } = ClientState,
 
   ClientState1 =
-    ClientState#client_state{ reply_map = ReplyMap#{ From => [{A, Delta}|ReplyLst] },
-                              state_map = #{ From => primed } },
+    case StateMap of
+      #{ From := State } ->
+        case State of
+          idle -> start_timer( From );
+          _    -> ok
+        end,
+
+        #{ From := ReplyLst } = ReplyMap,
+
+        ClientState#client_state{ reply_map = ReplyMap#{ From => [{A, Delta}|ReplyLst] },
+                                  state_map = #{ From => primed } };
+
+      _ -> ClientState
+    end,
 
   {noreply, ClientState1};
 
