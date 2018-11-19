@@ -11,10 +11,11 @@
   {env, []},
   {modules, [cre,
              cre_client,
+             cre_history_handler,
              cre_master,
+             cre_status_handler,
              cre_sup,
-             cre_worker,
-             status_handler]},
+             cre_worker]},
 
   {maintainers, ["Jorgen Brandt"]},
   {licenses, ["Apache 2.0"]},
