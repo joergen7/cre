@@ -413,13 +413,10 @@ handle_call( get_status, _From, CreState ) ->
       #{ App := R } = Cache,
       case R of
 
-        #{ result := #{ status := <<"ok">>, stat := #{ node := Node } } }
-        when is_binary( Node ) ->
-          M#{ node => Node, status => <<"ok">> };
+        #{ result := #{ status := Status, node := Node } }
+        when is_binary( Status ), is_binary( Node ) ->
+          M#{ node => Node, status => Status };
 
-        #{ result := #{ status := <<"error">> } } ->
-          M#{ node => <<"na">>, status => <<"error">> };
-        
         _ ->
           M#{ node => <<"na">>, status => <<"na">> }
           
