@@ -84,22 +84,13 @@ pid( CreNode ) when is_atom( CreNode ) ->
 
 start( _Type, _Args ) ->
 
+  {ok, Port} = start_cre_webservice( ?PORT ),
+
   error_logger:info_report( [{info,        "starting cre"},
                              {application, cre},
                              {vsn,         ?VSN},
                              {node,        node()},
-                             {port,        ?PORT}] ),
-
-  Dispatch =
-    cowboy_router:compile(
-      [{'_', [
-              {"/[status.json]", cre_status_handler, []},
-              {"/history.json", cre_history_handler, []}
-             ]}] ),
-
-  {ok, _} = cowboy:start_clear( status_listener,
-                                [{port, ?PORT}],
-                                 #{ env => #{ dispatch => Dispatch } } ),
+                             {port,        Port}] ),
 
   cre_sup:start_link().
 
@@ -132,4 +123,39 @@ main( _Args ) ->
   receive
   	{'DOWN', _Ref, process, _Object, _Info} ->
       timer:sleep( 1000 )
+  end.
+
+
+%%====================================================================
+%% Internal functions
+%%====================================================================
+
+% start_cre_webservice/1
+% @doc Attempts to start the CRE web service under the given port.
+%      If the port is in use we try new port numbers until we find a
+%      free port.
+
+-spec start_cre_webservice( Port :: inet:port_number() ) ->
+  {ok, inet:port_number()} | {error, _}.
+
+start_cre_webservice( Port )
+when is_integer( Port ),
+     Port >= 0,
+     Port < 65536 ->
+
+  Dispatch =
+    cowboy_router:compile(
+      [{'_', [
+              {"/[status.json]", cre_status_handler, []},
+              {"/history.json", cre_history_handler, []}
+             ]}] ),
+
+  Reply = cowboy:start_clear( cre_status_listener,
+                          [{port, Port}],
+                          #{ env => #{ dispatch => Dispatch } } ),
+
+  case Reply of
+    {ok, _ListenerPid}  -> {ok, Port};
+    {error, eaddrinuse} -> start_cre_webservice( Port+1 );
+    {error, Reason}     -> {error, Reason}
   end.
