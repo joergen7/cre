@@ -60,6 +60,10 @@
 
 -callback recv( E :: _, ReplyLst :: [{_, _}], UsrInfo :: _ ) -> _.
 
+-callback load( _, UserInfo :: _ ) -> _.
+
+-callback unload( _, UserInfo :: _ ) -> _.
+
 
 %%====================================================================
 %% Record definitions
@@ -122,39 +126,22 @@ init( {CreName, ClientMod, ClientArg} ) ->
 
 handle_call( {eval, E}, From, ClientState ) ->
 
-  #client_state{ cre_name    = CreName,
-                 client_mod  = ClientMod,
-                 usr_info    = UsrInfo,
+  #client_state{ client_mod  = ClientMod,
+                 usr_info    = UserInfo,
                  request_map = RequestMap,
                  reply_map   = ReplyMap,
                  state_map   = StateMap } = ClientState,
 
   Self = self(),
 
-  Send =
-    fun( A ) ->
-      cre_master:cre_request( CreName, Self, From, A )
-    end,
+  P = ClientMod:load( E, UserInfo ),
 
-  % evaluate
-  {ok, E1, ALst} = ClientMod:step( E, UsrInfo ),
-
-  % send new tasks
-  lists:foreach( Send, ALst ),
-
-  % check if a value resulted
   ClientState1 =
-    case ClientMod:is_value( E1, UsrInfo ) of
+    ClientState#client_state{ request_map = RequestMap#{ From => P },
+                              reply_map   = ReplyMap#{ From => [] },
+                              state_map   = StateMap#{ From => idle } },
 
-      true  ->
-        gen_server:reply( From, E1 ),
-        ClientState;
-
-      false ->
-        ClientState#client_state{ request_map = RequestMap#{ From => E1 },
-                                  reply_map   = ReplyMap#{ From => [] },
-                                  state_map   = StateMap#{ From => idle } }
-    end,
+  gen_server:cast( Self, {continue, From} ),
 
   {noreply, ClientState1};
 
@@ -191,12 +178,12 @@ handle_cast( {continue, From}, ClientState ) ->
 
   #client_state{ cre_name    = CreName,
                  client_mod  = ClientMod,
-                 usr_info    = UsrInfo,
+                 usr_info    = UserInfo,
                  request_map = RequestMap,
                  reply_map   = ReplyMap,
                  state_map   = StateMap } = ClientState,
 
-  #{ From := E } = RequestMap,
+  #{ From := P } = RequestMap,
   #{ From := ReplyLst } = ReplyMap,
 
   Self = self(),
@@ -207,30 +194,30 @@ handle_cast( {continue, From}, ClientState ) ->
     end,
 
   % receive new result pairs
-  E1 =
+  P1 =
     case ReplyLst of
-      []    -> E;
-      [_|_] -> ClientMod:recv( E, ReplyLst, UsrInfo )
+      []    -> P;
+      [_|_] -> ClientMod:recv( P, ReplyLst, UserInfo )
     end,
 
   % evaluate
-  {ok, E2, ALst} = ClientMod:step( E1, UsrInfo ),
+  {ok, P2, ALst} = ClientMod:step( P1, UserInfo ),
 
   % send new tasks
   lists:foreach( Send, ALst ),
 
   % check if a value resulted
   ClientState1 =
-    case ClientMod:is_value( E2, UsrInfo ) of
+    case ClientMod:is_value( P2, UserInfo ) of
 
       true  ->
-        gen_server:reply( From, E2 ),
+        gen_server:reply( From, ClientMod:unload( P2, UserInfo ) ),
         ClientState#client_state{ request_map = maps:remove( From, RequestMap ),
                                   reply_map   = maps:remove( From, ReplyMap ),
                                   state_map   = maps:remove( From, StateMap ) };
 
       false ->
-        ClientState#client_state{ request_map = RequestMap#{ From => E2 },
+        ClientState#client_state{ request_map = RequestMap#{ From => P2 },
                                   reply_map   = ReplyMap#{ From => [] },
                                   state_map   = StateMap#{ From => idle } }
     end,
