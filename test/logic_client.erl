@@ -36,7 +36,7 @@
 %% Exports
 %%====================================================================
 
--export( [init/1, is_value/2, step/2, recv/3] ).
+-export( [init/1, is_value/2, step/2, recv/3, load/2, unload/2] ).
 -export( [start_link/0, start_link/1, start_link/2, eval/2, stop/1] ).
 
 %%====================================================================
@@ -108,6 +108,9 @@ when E        :: _,
 
 recv( E, ReplyLst, _UsrInfo ) ->
   subst_fut( E, ReplyLst ).
+
+load( E, _ ) -> E.
+unload( E, _ ) -> E.
 
 
 %%====================================================================
