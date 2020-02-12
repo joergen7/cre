@@ -19,7 +19,7 @@
 %% -------------------------------------------------------------------
 %% @author Jörgen Brandt <joergen@cuneiform-lang.org>
 %% @version 0.1.9
-%% @copyright 2015-2019
+%% @copyright 2013-2020
 %%
 %%
 %%
