@@ -1,4 +1,4 @@
-# cfl_re
+# cre
 ###### Cuneiform runtime environment
 
 [![hex.pm](https://img.shields.io/hexpm/v/cre.svg?style=flat-square)](https://hex.pm/packages/cre) [![Build Status](https://travis-ci.org/joergen7/cre.svg?branch=master)](https://travis-ci.org/joergen7/cre)

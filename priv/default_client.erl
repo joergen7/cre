@@ -2,7 +2,7 @@
 %%
 %% CRE: common runtime environment for distributed programming languages
 %%
-%% Copyright 2013 Jörgen Brandt <joergen@cuneiform-lang.org>
+%% Copyright 2015 Jörgen Brandt <joergen@cuneiform-lang.org>
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 %%
 %% -------------------------------------------------------------------
 %% @author Jörgen Brandt <joergen@cuneiform-lang.org>
-%% @copyright 2013
+%% @copyright 2015
 %%
 %%
 %%
