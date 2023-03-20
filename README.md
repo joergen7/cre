@@ -43,10 +43,10 @@ Although the cfl_re library can be imported also directly from GitHub, we recomm
 
 #### rebar3
 
-To integrate the cfl_re into a rebar3 managed project change the `deps` entry in your application's `rebar.config` file to include the tuple `{cre, "0.1.9"}`.
+To integrate the cfl_re into a rebar3 managed project change the `deps` entry in your application's `rebar.config` file to include the tuple `{cre, "0.1.10"}`.
 
 ```erlang
-{deps, [{cre, "0.1.9"}]}.
+{deps, [{cre, "0.1.10"}]}.
 ```
 
 #### mix
@@ -54,7 +54,7 @@ To integrate the cfl_re into a rebar3 managed project change the `deps` entry in
 In an Elixir context, the cfl_re can be integrated into the project via mix.
 
 ```elixir
-{:cre, "~> 0.1.9"}
+{:cre, "~> 0.1.10"}
 ```
 
 ### Starting the cfl_re Master
