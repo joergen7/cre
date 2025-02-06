@@ -1,7 +1,7 @@
 # cre
 ###### Cuneiform runtime environment
 
-[![hex.pm](https://img.shields.io/hexpm/v/cre.svg?style=flat-square)](https://hex.pm/packages/cre) [![Build Status](https://travis-ci.org/joergen7/cre.svg?branch=master)](https://travis-ci.org/joergen7/cre)
+[![hex.pm](https://img.shields.io/hexpm/v/cre.svg?style=flat-square)](https://hex.pm/packages/cre)
 
 The Cuneiform runtime environment (cfl_re) is a distributed execution environment for programming languages implemented in [distributed Erlang](https://www.erlang.org) like Cuneiform. It manages communication with a client service running a Cuneiform interpreter and several distributed worker processes. Herein, the cfl_re performs scheduling, client and worker failure recovery, and caching. Principally, the cfl_re is language-independent, so it can be used to manage distributed languages other than Cuneiform. To do that, a distributed programming language must be implement certain Erlang behaviors.
 

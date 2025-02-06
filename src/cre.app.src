@@ -3,11 +3,9 @@
   {vsn, "0.1.10"},
   {mod, {cre, []}},
   {registered, [cre]},
-  {applications, [
-                  kernel,
+  {applications, [kernel,
                   stdlib,
-                  cowboy
-                 ]},
+                  cowboy]},
   {env, []},
   {modules, [cre,
              cre_client,
@@ -19,7 +17,4 @@
 
   {maintainers, ["Jorgen Brandt"]},
   {licenses, ["Apache 2.0"]},
-  {links, [
-           {"GitHub", "https://github.com/joergen7/cre/"}
-          ]}
- ]}.
+  {links, [{"GitHub", "https://github.com/joergen7/cre/"}]}]}.

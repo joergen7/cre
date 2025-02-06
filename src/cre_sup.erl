@@ -27,56 +27,61 @@
 %% @end
 %% -------------------------------------------------------------------
 
--module( cre_sup ).
--behaviour( supervisor ).
-
+-module(cre_sup).
+-behaviour(supervisor).
 
 %%====================================================================
 %% Exports
 %%====================================================================
 
--export( [start_link/0] ).
--export( [init/1] ).
-
+-export([start_link/0]).
+-export([init/1]).
 
 %%====================================================================
 %% API functions
 %%====================================================================
 
+
 -spec start_link() -> {ok, pid()} | {error, _}.
 
 start_link() ->
-  supervisor:start_link( {local, cre_sup}, ?MODULE, [] ).
+    supervisor:start_link({local, cre_sup}, ?MODULE, []).
+
 
 %%====================================================================
 %% Application callback functions
 %%====================================================================
 
--spec init( _ ) -> {ok, {#{ strategy  => one_for_one,
-                            intensity => non_neg_integer(),
-                            period    => pos_integer() },
-                         [#{ id       := _,
-                             start    := {atom(), atom(), [_]},
-                             restart  => temporary,
-                             shutdown => non_neg_integer(),
-                             type     => worker,
-                             modules  => [atom()] }]}}.
 
-init( _Args ) ->
+-spec init(_) -> {ok, {#{
+                         strategy => one_for_one,
+                         intensity => non_neg_integer(),
+                         period => pos_integer()
+                        },
+                       [#{
+                          id := _,
+                          start := {atom(), atom(), [_]},
+                          restart => temporary,
+                          shutdown => non_neg_integer(),
+                          type => worker,
+                          modules => [atom()]
+                         }]}}.
+
+init(_Args) ->
 
     SupFlags = #{
-                  strategy  => one_for_one,
-                  intensity => 0,
-                  period    => 5
+                 strategy => one_for_one,
+                 intensity => 0,
+                 period => 5
                 },
 
     ChildSpec = #{
-                   id       => cre_master,
-                   start    => {cre_master, start_link, [{local, cre_master}]},
-                   restart  => temporary,
-                   shutdown => 5000,
-                   type     => worker,
-                   modules  => [cre_master]
+                  id => cre_master,
+                  start => {cre_master, start_link, [{local, cre_master}]},
+                  restart => temporary,
+                  shutdown => 5000,
+                  type => worker,
+                  modules => [cre_master]
                  },
 
     {ok, {SupFlags, [ChildSpec]}}.

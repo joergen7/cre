@@ -27,75 +27,83 @@
 %% @end
 %% -------------------------------------------------------------------
 
--module( default_worker ).
--behaviour( cre_worker ).
-
+-module(default_worker).
+-behaviour(cre_worker).
 
 %%====================================================================
 %% Exports
 %%====================================================================
 
--export( [start_link/0, start_link/1, start_link/2, stop/1] ).
+-export([start_link/0, start_link/1, start_link/2, stop/1]).
 
--export( [do_stagein/3, do_stageout/3, init/1, run/2, stagein_lst/2,
-          stageout_lst/3, error_to_expr/3] ).
-
+-export([do_stagein/3,
+         do_stageout/3,
+         init/1,
+         run/2,
+         stagein_lst/2,
+         stageout_lst/3,
+         error_to_expr/3]).
 
 %%====================================================================
 %% API functions
 %%====================================================================
 
+
 start_link() ->
-  {ok, CreName} = cre:pid(),
-  start_link( CreName ).
+    {ok, CreName} = cre:pid(),
+    start_link(CreName).
 
-start_link( CreName ) ->
-  cre_worker:start_link( CreName, ?MODULE, [] ).
 
-start_link( WrkName, CreName ) ->
-  cre_worker:start_link( WrkName, CreName, ?MODULE, [] ).
+start_link(CreName) ->
+    cre_worker:start_link(CreName, ?MODULE, []).
 
-stop( WrkName ) ->
-  cre_worker:stop( WrkName ).
+
+start_link(WrkName, CreName) ->
+    cre_worker:start_link(WrkName, CreName, ?MODULE, []).
+
+
+stop(WrkName) ->
+    cre_worker:stop(WrkName).
 
 
 %%====================================================================
 %% CRE worker callback functions
 %%====================================================================
 
--spec do_stagein( A :: _, F :: _, UsrInfo :: _ ) -> ok | {error, enoent}.
 
-do_stagein( _A, _F, _UsrInfo ) -> ok.
+-spec do_stagein(A :: _, F :: _, UsrInfo :: _) -> ok | {error, enoent}.
 
-
--spec do_stageout( A :: _, F :: _, UsrInfo :: _ ) -> ok | {error, enoent}.
-
-do_stageout( _A, _F, _UsrInfo ) -> ok.
+do_stagein(_A, _F, _UsrInfo) -> ok.
 
 
--spec init( InitArg :: _ ) -> UsrInfo :: _.
+-spec do_stageout(A :: _, F :: _, UsrInfo :: _) -> ok | {error, enoent}.
 
-init( _InitArg ) -> [].
-
-
--spec run( A :: _, UsrInfo :: _ ) -> {ok, R :: _} | {error, Reason :: _}.
-
-run( A, _UsrInfo ) -> {ok, A}.
+do_stageout(_A, _F, _UsrInfo) -> ok.
 
 
--spec stagein_lst( A :: _, UsrInfo :: _ ) -> [F :: _].
+-spec init(InitArg :: _) -> UsrInfo :: _.
 
-stagein_lst( _A, _UsrInfo ) -> [].
-
-
--spec stageout_lst( A :: _, R :: _, UsrInfo :: _ ) -> [F :: _].
-
-stageout_lst( _A, _R, _UsrInfo ) -> [].
+init(_InitArg) -> [].
 
 
--spec error_to_expr( A, Reason, UsrInfo ) -> _
-when A       :: _,
-     Reason  :: {stagein | stageout, [_]} | {run, _},
-     UsrInfo :: _.
+-spec run(A :: _, UsrInfo :: _) -> {ok, R :: _} | {error, Reason :: _}.
 
-error_to_expr( _A, _Reason, _UsrInfo ) -> err.
+run(A, _UsrInfo) -> {ok, A}.
+
+
+-spec stagein_lst(A :: _, UsrInfo :: _) -> [F :: _].
+
+stagein_lst(_A, _UsrInfo) -> [].
+
+
+-spec stageout_lst(A :: _, R :: _, UsrInfo :: _) -> [F :: _].
+
+stageout_lst(_A, _R, _UsrInfo) -> [].
+
+
+-spec error_to_expr(A, Reason, UsrInfo) -> _
+              when A :: _,
+                   Reason :: {stagein | stageout, [_]} | {run, _},
+                   UsrInfo :: _.
+
+error_to_expr(_A, _Reason, _UsrInfo) -> err.

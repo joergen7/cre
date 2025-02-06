@@ -27,77 +27,77 @@
 %% @end
 %% -------------------------------------------------------------------
 
--module( cre ).
--behaviour( application ).
-
+-module(cre).
+-behaviour(application).
 
 %%====================================================================
 %% Exports
 %%====================================================================
 
--export( [start/0, pid/1] ).
--export( [start/2, stop/1] ).
--export( [main/1] ).
+-export([start/0, pid/1]).
+-export([start/2, stop/1]).
+-export([main/1]).
 
 %%====================================================================
 %% Includes
 %%====================================================================
 
--include( "cre.hrl" ).
-
+-include("cre.hrl").
 
 %%====================================================================
 %% Definitions
 %%====================================================================
 
--define( PORT, 4142 ).
+-define(PORT, 4142).
 
 %%====================================================================
 %% API functions
 %%====================================================================
 
--spec start() -> ok | {error, _}.
+
+-spec start() -> ok.
 
 start() ->
-  {ok, _} = application:ensure_all_started( cre ),
-  ok.
+    {ok, _} = application:ensure_all_started(cre),
+    ok.
 
 
--spec pid( CreNode :: atom() ) -> {ok, pid()} | {error, undefined}.
+-spec pid(CreNode :: atom()) -> {error, cre_node_down | cre_process_not_registered} | {ok, _}.
 
-pid( CreNode ) when is_atom( CreNode ) ->
+pid(CreNode) when is_atom(CreNode) ->
 
-  % query cre process pid
-  case rpc:call( CreNode, erlang, whereis, [cre_master] ) of
-    undefined          -> {error, cre_process_not_registered};
-    {badrpc, nodedown} -> {error, cre_node_down};
-    CrePid             -> {ok, CrePid}
-  end.
+    % query cre process pid
+    case rpc:call(CreNode, erlang, whereis, [cre_master]) of
+        undefined -> {error, cre_process_not_registered};
+        {badrpc, nodedown} -> {error, cre_node_down};
+        CrePid -> {ok, CrePid}
+    end.
 
 
 %%====================================================================
 %% Application callback functions
 %%====================================================================
 
--spec start( Type :: _, Args :: _ ) -> {ok, pid()} | {error, _}.
 
-start( _Type, _Args ) ->
+-spec start(Type :: _, Args :: _) -> {ok, pid()} | {error, _}.
 
-  {ok, Port} = start_cre_webservice( ?PORT ),
+start(_Type, _Args) ->
 
-  error_logger:info_report( [{info,        "starting cre"},
-                             {application, cre},
-                             {vsn,         ?VSN},
-                             {node,        node()},
-                             {port,        Port}] ),
+    {ok, Port} = start_cre_webservice(?PORT),
 
-  cre_sup:start_link().
+    error_logger:info_report([{info, "starting cre"},
+                              {application, cre},
+                              {vsn, ?VSN},
+                              {node, node()},
+                              {port, Port}]),
+
+    cre_sup:start_link().
 
 
--spec stop( State :: _ ) -> ok.
+-spec stop(State :: _) -> ok.
 
-stop( _State ) ->
-  ok.
+stop(_State) ->
+    ok.
 
 
 %%====================================================================
@@ -105,24 +105,21 @@ stop( _State ) ->
 %%====================================================================
 
 
--spec main( Args :: _ ) -> ok.
+-spec main(Args :: _) -> ok.
 
-main( _Args ) ->
+main(_Args) ->
 
+    % start the cre application
+    ok = start(),
 
+    % create monitor
+    _ = monitor(process, cre_sup),
 
-  % start the cre application
-  ok = start(),
-
-
-  % create monitor
-  _ = monitor( process, cre_sup ),
-
-  % wait indefinitely
-  receive
-  	{'DOWN', _Ref, process, _Object, _Info} ->
-      timer:sleep( 1000 )
-  end.
+    % wait indefinitely
+    receive
+        {'DOWN', _Ref, process, _Object, _Info} ->
+            timer:sleep(1000)
+    end.
 
 
 %%====================================================================
@@ -134,27 +131,26 @@ main( _Args ) ->
 %      If the port is in use we try new port numbers until we find a
 %      free port.
 
--spec start_cre_webservice( Port :: inet:port_number() ) ->
-  {ok, inet:port_number()} | {error, _}.
 
-start_cre_webservice( Port )
-when is_integer( Port ),
-     Port >= 0,
-     Port < 65536 ->
+-spec start_cre_webservice(Port :: inet:port_number()) ->
+          {ok, inet:port_number()} | {error, _}.
 
-  Dispatch =
-    cowboy_router:compile(
-      [{'_', [
-              {"/[status.json]", cre_status_handler, []},
-              {"/history.json", cre_history_handler, []}
-             ]}] ),
+start_cre_webservice(Port)
+  when is_integer(Port),
+       Port >= 0,
+       Port < 65536 ->
 
-  Reply = cowboy:start_clear( cre_status_listener,
-                          [{port, Port}],
-                          #{ env => #{ dispatch => Dispatch } } ),
+    Dispatch =
+        cowboy_router:compile(
+          [{'_', [{"/[status.json]", cre_status_handler, []},
+                  {"/history.json", cre_history_handler, []}]}]),
 
-  case Reply of
-    {ok, _ListenerPid}  -> {ok, Port};
-    {error, eaddrinuse} -> start_cre_webservice( Port+1 );
-    {error, Reason}     -> {error, Reason}
-  end.
+    Reply = cowboy:start_clear(cre_status_listener,
+                               [{port, Port}],
+                               #{env => #{dispatch => Dispatch}}),
+
+    case Reply of
+        {ok, _ListenerPid} -> {ok, Port};
+        {error, eaddrinuse} -> start_cre_webservice(Port + 1);
+        {error, Reason} -> {error, Reason}
+    end.

@@ -26,25 +26,26 @@
 %%
 %% @end
 %% -------------------------------------------------------------------
--module( cre_history_handler ).
--behavior( cowboy_handler ).
+-module(cre_history_handler).
+-behavior(cowboy_handler).
 
 %%====================================================================
 %% Exports
 %%====================================================================
 
--export( [init/2] ).
+-export([init/2]).
 
-init( Req0, State ) ->
 
-  CacheMap = cre_master:get_history( cre_master ),
-  Doc = jsone:encode( CacheMap ),
+init(Req0, State) ->
 
-  Reply =
-    cowboy_req:reply(
-      200,
-      #{ <<"content-type">> => <<"application/json">>},
-      Doc,
-      Req0 ),
+    CacheMap = cre_master:get_history(cre_master),
+    Doc = jsone:encode(CacheMap),
 
-  {ok, Reply, State}.
+    Reply =
+        cowboy_req:reply(
+          200,
+          #{<<"content-type">> => <<"application/json">>},
+          Doc,
+          Req0),
+
+    {ok, Reply, State}.

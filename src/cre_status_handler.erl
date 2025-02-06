@@ -26,40 +26,36 @@
 %%
 %% @end
 %% -------------------------------------------------------------------
--module( cre_status_handler ).
--behavior( cowboy_handler ).
-
+-module(cre_status_handler).
+-behavior(cowboy_handler).
 
 %%====================================================================
 %% Exports
 %%====================================================================
 
--export( [init/2] ).
-
+-export([init/2]).
 
 %%====================================================================
 %% Includes
 %%====================================================================
 
--include( "cre.hrl" ).
-
+-include("cre.hrl").
 
 %%====================================================================
 %% Cowboy handler callback functions
 %%====================================================================
 
-init( Req0, State ) ->
 
-  StatusMap = cre_master:get_status( cre_master ),
-  Doc = jsone:encode( StatusMap ),
-  
-  Reply =
-    cowboy_req:reply(
-      200,
-      #{ <<"content-type">> => <<"application/json">>},
-      Doc,
-      Req0 ),
+init(Req0, State) ->
 
-  {ok, Reply, State}.
+    StatusMap = cre_master:get_status(cre_master),
+    Doc = jsone:encode(StatusMap),
 
+    Reply =
+        cowboy_req:reply(
+          200,
+          #{<<"content-type">> => <<"application/json">>},
+          Doc,
+          Req0),
 
+    {ok, Reply, State}.
