@@ -125,7 +125,7 @@ handle_cast({worker_request, A}, NetState) ->
 
     ok = WrkMod:prepare_case(A, UsrInfo),
 
-    {noreply, #{}, #{'WorkerRequest' => [A]}};
+    {noreply, #{'WorkerRequest' => [A]}};
 
 handle_cast(_Request, _NetState) -> noreply.
 
